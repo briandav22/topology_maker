@@ -90,19 +90,22 @@ a{color:var(--link)}
 .step button:hover:not(:disabled){background:var(--pill)}
 .step button:disabled{color:var(--faint);cursor:default;opacity:.55}
 .step .num{min-width:16px;text-align:center;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
-.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px;transition:grid-template-columns .25s ease,gap .25s ease}
+.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px}
+.main.sliding{transition:grid-template-columns .25s ease,gap .25s ease}
 .main.nopanel{grid-template-columns:minmax(0,1fr) 0;gap:0}
 .main.nopanel .panel{visibility:hidden;padding:0;border-width:0}
-.pbtn{margin-left:auto;padding:4px 9px;font-size:12.5px}
-.back:not([hidden])+.pbtn{margin-left:8px}
 .stage{position:relative;background:var(--canvas);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
-.shead{display:flex;align-items:center;gap:8px;padding:7px 10px 0 10px;min-height:34px;flex-wrap:wrap}
-.crumbs{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
+/* One fixed line, so a click or drill-in never resizes the diagram; a long trail or hint is cut short instead */
+.shead{display:flex;align-items:center;gap:8px;padding:7px 10px 0 10px;height:35px;flex:none;white-space:nowrap}
+.shead .tbtn{height:28px;padding:0 10px;font-size:12.5px;flex:none}
+.crumbs{display:flex;align-items:center;gap:6px;font-size:13px;min-width:0;overflow:hidden}
+.crumbs>*{flex:none}
 .crumbs button{border:0;background:none;padding:2px 4px;border-radius:6px;cursor:pointer;color:var(--link);font-weight:500}
 .crumbs .sep{color:var(--faint)}
-.crumbs .cur{font-weight:600}
-.back{margin-left:auto}
-.hint{font-size:12px;color:var(--muted)}
+.crumbs .cur{font-weight:600;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.back,.panelbtn{margin-left:auto}
+.back:not([hidden])+.panelbtn{margin-left:0}
+.hint{font-size:12px;color:var(--muted);flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .svgwrap{position:relative;flex:1;min-height:0}
 .svgwrap>svg{position:absolute;inset:0;width:100%;height:100%;display:block;transition:opacity .28s ease}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;padding:4px 12px 8px;font-size:12px;color:var(--muted);align-items:center}
@@ -304,10 +307,12 @@ dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
   .brand{flex-wrap:wrap;gap:4px 10px}
   .brand h1{font-size:15px}
   .shead .hint{display:none}
+  .shead{height:auto;min-height:35px;flex-wrap:wrap;white-space:normal}
+  .crumbs{flex-wrap:wrap}
   .panel{padding:12px}
 }
 @media (prefers-reduced-motion: reduce){
-  .main{transition:none}
+  .main.sliding{transition:none}
   .svgwrap>svg{transition:none}
 }
 </style>
@@ -385,7 +390,7 @@ dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
           <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
           <span class="hint" id="hint"></span>
           <button type="button" class="tbtn back" id="backBtn" hidden>&#8249; All deployments</button>
-          <button type="button" class="tbtn pbtn" id="panelBtn" aria-controls="panel" aria-expanded="true"><span>Hide details</span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.4"/></svg></button>
+          <button type="button" class="tbtn panelbtn" id="panelBtn" aria-controls="panel" aria-expanded="true"><span>Hide details</span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.4"/></svg></button>
         </div>
         <div class="svgwrap" id="svgwrap">
           <svg id="ov" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Overview of the selected deployments"></svg>
@@ -2430,10 +2435,12 @@ function renderChrome(){
   if(S.view === 'ov') c.innerHTML = '<span class="cur">All deployments</span>';
   else {
     let h = '<button type="button" data-nav="ov">All deployments</button><span class="sep">›</span>';
-    h += S.focus ? `<button type="button" data-nav="${S.view}">${esc(viewName(S.view))}</button><span class="sep">›</span><span class="cur">${esc(focusName())}</span>` : `<span class="cur">${esc(viewName(S.view))}</span>`;
-    c.innerHTML = h;
+    const cur = S.focus ? focusName() : viewName(S.view);
+    if(S.focus) h += `<button type="button" data-nav="${S.view}">${esc(viewName(S.view))}</button><span class="sep">›</span>`;
+    c.innerHTML = h + `<span class="cur" title="${esc(cur)}">${esc(cur)}</span>`;
   }
-  $('#hint').textContent = S.view === 'ov' ? 'Click a deployment to drill in, or Kentik SaaS to see inside' : 'Click any box or line for details · Esc goes back';
+  const hint = $('#hint');
+  hint.textContent = hint.title = S.view === 'ov' ? 'Click a deployment to drill in, or Kentik SaaS to see inside' : 'Click any box or line for details · Esc goes back';
   $('#backBtn').hidden = S.view === 'ov';
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === S.mode ? 'true' : 'false'));
   $('#motionBtn').setAttribute('aria-pressed', S.anim ? 'true' : 'false');
@@ -2482,13 +2489,16 @@ function aspectBox(r){
   return [cx - W / 2, cy - H / 2, W, H];
 }
 function setVB(svg, b){ svg.setAttribute('viewBox', b.map(v => Math.round(v * 100) / 100).join(' ')); }
+let zoomEnd = 0;   // when the running zoom is done; the overview waits for it before it re-lays out
 function animVB(svg, from, to, ms){
   const tok = svg._tok = (svg._tok || 0) + 1;
   if(REDUCED || !ms){ setVB(svg, to); return; }
   setVB(svg, from);
-  const t0 = performance.now();
+  zoomEnd = Math.max(zoomEnd, performance.now() + ms + 150);
+  let t0 = 0;   // the clock starts on the first frame, so the click's own work never eats the opening of the zoom
   const step = now => {
     if(svg._tok !== tok) return;
+    if(!t0) t0 = now;
     let k = Math.min(1, (now - t0) / ms);
     k = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
     setVB(svg, from.map((v, i) => v + (to[i] - v) * k));
@@ -2516,6 +2526,7 @@ function go(view, instant){
   const prev = S.view, ov = $('#ov'), dt = $('#dt'), ms = instant ? 0 : 420;
   if(prev === view){ if(S.focus || S.hl){ S.focus = null; S.hl = null; refresh(); } return; }
   S.view = view; S.focus = null; S.hl = null;
+  document.querySelectorAll('#svgwrap .ovfade').forEach(n => n.remove());
   if(view === 'ov'){
     show(dt, false); animVB(dt, DVB.slice(), WIDE, ms);
     show(ov, true); animVB(ov, OVR[prev] ? aspectBox(OVR[prev]) : wideOf(VB), VB.slice(), ms);
@@ -2793,26 +2804,40 @@ $('#backBtn').addEventListener('click', () => go('ov'));
 /* ===== Collapsible details panel: the diagram takes the space back ===== */
 function setPanel(open, save){
   S.panelOpen = open;
-  $('.main').classList.toggle('nopanel', !open);
+  const m = $('.main');
+  if(save && !REDUCED){ m.classList.add('sliding'); clearTimeout(m._slide); m._slide = setTimeout(() => m.classList.remove('sliding'), 320); }
+  m.classList.toggle('nopanel', !open);
   const b = $('#panelBtn');
   b.setAttribute('aria-expanded', open ? 'true' : 'false');
   b.title = open ? 'Hide the details panel (\\)' : 'Show the details panel (\\)';
   b.querySelector('span').textContent = open ? 'Hide details' : 'Details';
   if(save) try { localStorage.setItem('ibk-panel', open ? '1' : '0'); } catch(e){}
 }
-/* The overview canvas widens to fill a wide stage (up to 1.5x), so cards spread out instead of floating in white space */
+/* The overview canvas widens to fill a wide stage (up to 1.5x), so cards spread out instead of floating in white space.
+   It never re-lays out in the middle of a zoom, and on screen the new layout fades in over the old one. */
+let fitT = 0;
 function fitOverview(){
+  clearTimeout(fitT);
+  const wait = zoomEnd - performance.now();
+  if(wait > 0){ fitT = setTimeout(fitOverview, wait); return; }
   const r = $('#svgwrap').getBoundingClientRect();
   if(!r.width || !r.height) return;
   const w = Math.round(Math.min(1500, Math.max(1000, VB[3] * r.width / r.height)) / 10) * 10;
   if(w === VB[2]) return;
+  const ov = $('#ov'), live = S.view === 'ov';
+  const old = live && !REDUCED ? ov.cloneNode(true) : null;
   VB[2] = w;
   renderOverview();
-  setVB($('#ov'), S.view === 'ov' || !OVR[S.view] ? VB : aspectBox(OVR[S.view]));
-  if(S.view === 'ov'){ buildParticles(); applyHighlight(); }
+  setVB(ov, live || !OVR[S.view] ? VB : aspectBox(OVR[S.view]));
+  if(live){ buildParticles(); applyHighlight(); }
+  if(old){
+    old.removeAttribute('id'); old.setAttribute('aria-hidden', 'true'); old.classList.add('ovfade'); old.style.pointerEvents = 'none';
+    ov.after(old); void old.getBoundingClientRect();
+    old.style.opacity = 0;
+    setTimeout(() => old.remove(), 320);
+  }
 }
 $('#panelBtn').addEventListener('click', () => setPanel(!S.panelOpen, true));
-let fitT = 0;
 if(window.ResizeObserver) new ResizeObserver(() => { clearTimeout(fitT); fitT = setTimeout(fitOverview, 60); }).observe($('#svgwrap'));
 (() => { let open = true; try { open = localStorage.getItem('ibk-panel') !== '0'; } catch(e){} setPanel(open, false); })();
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
