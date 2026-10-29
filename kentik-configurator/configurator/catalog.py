@@ -329,7 +329,7 @@ AWS_STEPS = [
 ]
 AWS_DATA_PATH = [
     "Flow logs: Kentik's collector runs in Kentik's AWS account (834693425129). It assumes your role and reads new log files from your S3 "
-    "buckets inside AWS, then sends them to Kentik SaaS. The logs never leave your account as Internet egress you pay for.",
+    "buckets inside AWS, then sends them to Kentik SaaS, so you don't pay egress charges for the logs.",
     "Metadata: Kentik SaaS calls the AWS describe APIs (EC2, Direct Connect, ELB, Network Firewall and so on) through the same read-only role, "
     "using sts:AssumeRole with your ExternalId.",
 ]
