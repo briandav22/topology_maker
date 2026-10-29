@@ -243,6 +243,44 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 .panel ol li{margin:2px 0}
 .panel .gobtn{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent-text);border-radius:8px;padding:4px 10px;font-size:12.5px;cursor:pointer;font-weight:500;margin:2px 6px 6px 0}
 .panel .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--surface-2)}
+/* Installed capabilities: toggles like Settings › Universal Agents */
+.panel .caps .caphead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.panel .caps .caphead h4{margin:0 0 1px}
+.panel .caps .caphead p{margin:0;font-size:12px}
+.capn{flex:none;min-width:28px;height:28px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);display:grid;place-items:center;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.caprow{display:flex;align-items:center;gap:11px;border:1px solid var(--border);border-radius:9px;padding:7px 10px;margin:0 0 6px;background:var(--surface)}
+.caprow.solo{margin:4px 0 8px}
+.caprow .capt{display:flex;flex-direction:column;min-width:0}
+.caprow .capt b{font-size:13px;font-weight:600;line-height:1.3}
+.caprow .capt span{font-size:11.5px;color:var(--muted);line-height:1.3}
+.caprow .capt .aka{display:inline;font-weight:400;font-size:12px}
+.caprow:not(.on) .capt b{color:var(--muted)}
+.panel .card button.sw,.sw{flex:none;width:38px;height:22px;border-radius:999px;border:0;background:var(--faint);position:relative;cursor:pointer;padding:0;transition:background .15s}
+.sw span{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.panel .card button.sw[aria-checked="true"],.sw[aria-checked="true"]{background:var(--ib-green)}
+.sw[aria-checked="true"] span{left:19px}
+.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel .card .seg button{border:0;background:transparent;padding:3px 11px;font-size:12px;border-radius:7px}
+.panel .card .seg button[aria-pressed="true"]{background:var(--ib-green);color:#000}
+.panel .fld .seg{align-self:flex-start}
+.panel .fld select{font:inherit;font-size:13.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 8px;width:100%}
+.card-ov.warn rect.bg{stroke:var(--l-trap);stroke-dasharray:4 3}
+/* Save and export */
+dialog.xdlg{border:1px solid var(--border);border-radius:14px;padding:0;background:var(--surface);color:var(--text);width:min(460px,calc(100vw - 32px));box-shadow:0 12px 40px rgba(0,0,0,.25)}
+dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
+.xdlg .xin{padding:16px 18px 18px}
+.xdlg h2{font-size:17px;margin:0 0 4px}
+.xdlg p{margin:0 0 10px;color:var(--muted);font-size:13px}
+.xdlg label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);margin:0 0 9px}
+.xdlg input,.xdlg select{font:inherit;font-size:13.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 9px}
+.xdlg .xbtns{display:flex;flex-direction:column;gap:7px;margin:12px 0 6px}
+.xdlg .xbtns button{border:1px solid var(--border);background:var(--surface-2);border-radius:9px;padding:8px 12px;cursor:pointer;text-align:left;font-size:13.5px;font-weight:600}
+.xdlg .xbtns button span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.xdlg .xbtns button.pri{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-text)}
+.xdlg .xbtns button:disabled{opacity:.5;cursor:default}
+.xdlg .xstat{font-size:12.5px;color:var(--accent-text);min-height:18px;margin:0}
+.xdlg .xclose{float:right;border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--muted);padding:0 2px}
+@media print{ .top .controls,.top .presets-nav,.picker,.legend,.panel{display:none!important} .main{grid-template-columns:1fr} }
 @media (max-width:1000px){
   .app{height:auto;min-height:100vh}
   .body{flex:none}
@@ -320,6 +358,7 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
         <button type="button" data-mode="deep" aria-pressed="false" title="Permissions, ports and setup details (key D)">Deep dive</button>
       </div>
       <button type="button" class="tbtn" id="motionBtn" aria-pressed="true" title="Animate data moving along the lines (key M)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Motion</button>
+      <button type="button" class="tbtn" id="exportBtn" title="Save this design as an HTML file, or export the deployment guide (key E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>Export</button>
       <button type="button" class="tbtn icon-only" id="themeBtn" title="Switch between light and dark" aria-label="Switch between light and dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg></button>
     </div>
   </header>
@@ -345,7 +384,26 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     </div>
   </div>
 </div>
+<dialog class="xdlg" id="xdlg" aria-labelledby="xdlgT">
+  <div class="xin">
+    <button type="button" class="xclose" data-xclose="1" aria-label="Close">×</button>
+    <h2 id="xdlgT">Save or export this design</h2>
+    <p>Everything you set here, the sites, branches, capabilities and clouds, goes into the export.</p>
+    <label>Customer<input type="text" id="xCu" maxlength="80" autocomplete="off" placeholder="Customer name"></label>
+    <label>Prepared by<input type="text" id="xPb" maxlength="80" autocomplete="off" placeholder="Your name or team"></label>
+    <label>Kentik region<select id="xRg"><option value="US">United States (Ashburn, VA)</option><option value="EU">European Union (Frankfurt)</option></select></label>
+    <div class="xbtns">
+      <button type="button" class="pri" id="xHtml">Save as HTML<span>One file that opens in any browser, on this exact design</span></button>
+      <button type="button" id="xPdf">Deployment guide PDF<span id="xPdfNote">Diagrams plus install steps, sizing, firewall rules and cloud setup</span></button>
+      <button type="button" id="xJson" hidden>Setup file (JSON)<span>For python3 run.py export on the command line</span></button>
+    </div>
+    <p class="xstat" id="xStat" role="status"></p>
+  </div>
+</dialog>
 <script>
+/* The page exactly as it was loaded, before any rendering: the starting point for Save as HTML */
+const PRISTINE = '<!doctype html>\n' + document.documentElement.outerHTML;
+
 /* ---------- Shared data: line types, deployments, presets ---------- */
 const TYPES = {
   https:  {n:'To Kentik (HTTPS)', d:'Telemetry sent to Kentik SaaS over outbound HTTPS or gRPC with TLS 1.2+', pt:'sq'},
@@ -370,13 +428,13 @@ const MODS = [
    chips:[['flow','Flow'],['snmp','SNMP/ST'],['trap','Traps'],['syslog','Syslog'],['dns','DNS'],['synth','Tests'],['ssh','Config'],['bgp','BGP']],
    one:'A Universal Agent in the data center collects flow, metrics, traps, syslog, DNS, tests and configs.',
    oned:'UA on a Linux host or in Docker. Devices send to UDP 9995/162/514; the agent polls UDP 161 and SSH 22; everything leaves on TCP 443.'},
-  {id:'branch', side:'left', name:'Branch office', icon:'store', tag:'Universal Agent',
-   sub:'Same agent, fewer capabilities', subd:'Agent tests: TCP 8877 · UDP 9977',
-   flowline:'Branch devices → Universal Agent → Kentik',
+  {id:'branch', side:'bottom', name:'Branch office', icon:'store', tag:'Agent optional',
+   sub:'Sends to a data center agent, or has its own', subd:'Across the WAN: UDP 9995, 162, 514',
+   flowline:'Branch devices → data center or branch agent → Kentik',
    pipe:[['router','Branch router,','switches, Wi-Fi'],['agent','Universal','Agent'],['probe','Tests to apps','and other sites']],
    chips:[['flow','Flow'],['snmp','SNMP/ST'],['trap','Traps'],['syslog','Syslog'],['synth','Tests']],
-   one:'A small Universal Agent per branch adds local flow and device health, and tests the paths users depend on.',
-   oned:'Same UA build. Turn on Flow Proxy, SNMP/ST, Trap Receiver, Syslog and Synthetics as needed. Open TCP 8877 and UDP 9977 for agent-to-agent tests.'},
+   one:'Most branches have no agent: their devices send flow, traps and syslog across the WAN to a data center agent. Add an agent at a branch for local tests and collection.',
+   oned:'No agent: allow UDP 9995, 162 and 514 from branch devices to the data center agent, and UDP 161 / TCP 22 back. With an agent: same UA build, toggle what the site needs, open TCP 8877 and UDP 9977 for agent-to-agent tests.'},
   {id:'aws', side:'right', name:'AWS', icon:'cloud', tag:'Agentless',
    sub:'Flow logs to S3, read-only IAM role', subd:'Role trusts account 834693425129',
    flowline:'VPC, TGW and firewall logs → S3 → IAM role',
@@ -419,7 +477,7 @@ const HUB = {name:'Kentik SaaS', rows:['Ingest and enrichment','Kentik Data Engi
   subd:'US (Ashburn) or EU (Frankfurt)'};
 
 const PRESETS = [
-  {id:'start', n:'Site + AWS', s:['dc','aws']},
+  {id:'start', n:'Sites + AWS', s:['dc','branch','aws']},
   {id:'all', n:'Everything', s:['dc','branch','aws','azure','gcp','oci','saas']},
   {id:'onprem', n:'On-prem', s:['dc','branch']},
   {id:'multi', n:'Multi-cloud', s:['aws','azure','gcp','oci']},
@@ -435,12 +493,13 @@ const OV_HL = `
 <h2>How Kentik is deployed</h2>
 <p class="lead">Kentik, now part of Infoblox, is SaaS. You run a small footprint where your network lives, and everything lands in your Kentik account over encrypted, outbound connections.</p>
 <h3>Three patterns cover almost everything</h3>
-<div class="card"><h4>On-prem: one Universal Agent per site</h4><p>A single agent on a Linux host or in Docker, with capabilities switched on: Flow Proxy, SNMP/ST, Trap Receiver, Syslog Server, DNS OTT Tap, Synthetics and SSH config access. Devices point at it, and it talks to Kentik over HTTPS. Each new data center or branch gets its own agent.</p></div>
+<div class="card"><h4>On-prem: a Universal Agent in each data center</h4><p>A single agent on a Linux host or in Docker. You toggle on only the capabilities you need, just like Installed Capabilities in the portal: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy: Forwarding, SNMP Trap Receiver, SNMP/ST and Syslog Server. Devices point at it, and it talks to Kentik over HTTPS.</p></div>
+<div class="card"><h4>Branch offices: agent optional</h4><p>Most branches don’t get an agent. Their routers send flow, traps and syslog across the WAN to a data center agent. Give a branch its own agent when you want local tests or to keep telemetry local.</p></div>
 <div class="card"><h4>Public cloud: agentless</h4><p>You turn on flow logs, send them to storage in your own account, and grant Kentik read-only access. Kentik also reads topology metadata and metrics.</p></div>
 <div class="card"><h4>Internet and SaaS: synthetic tests</h4><p>Kentik’s global agents and your own agents test SaaS apps, websites, DNS and paths between your sites and clouds.</p></div>
 <h3 id="ov-sel-h">What you are looking at</h3>
 <div id="ov-sel"></div>
-<p class="muted" style="font-size:12.5px">Tip: click a box or press 1 to 7 to drill in. The + and − buttons next to Data center (or the + and − keys) add and remove data centers. Esc goes back. D and H switch modes.</p>`;
+<p class="muted" style="font-size:12.5px">Tip: click a box or press 1 to 7 to drill in. The + and − buttons next to Data center and Branches add and remove sites. Open a site to toggle its agent’s capabilities. Esc goes back. D and H switch modes.</p>`;
 
 const OV_DD = `
 <p class="kick">Infoblox + Kentik · Deep dive</p>
@@ -449,10 +508,11 @@ const OV_DD = `
 <h3>Firewall rules</h3>
 <table><thead><tr><th style="width:34%">From → to</th><th style="width:30%">Port</th><th>Why</th></tr></thead><tbody>
 <tr><td>Universal Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>flow, grpc.api, api, portal .kentik.com and storage.googleapis.com (EU: .kentik.eu)</td></tr>
-<tr><td>Devices → Universal Agent</td><td>UDP 9995 · UDP 162 · UDP/TCP 514</td><td>Flow, SNMP traps, syslog</td></tr>
+<tr><td>Devices → Universal Agent</td><td>UDP 9995 · UDP 162 · UDP/TCP 514</td><td>Flow, SNMP traps, syslog (also from branches with no agent, across the WAN)</td></tr>
+<tr><td>Routers → Universal Agent</td><td>TCP 179</td><td>BGP Proxy, when it is on</td></tr>
 <tr><td>Universal Agent → devices</td><td>UDP 161 · gNMI · ICMP · TCP 22</td><td>SNMP, streaming telemetry, reachability, SSH config</td></tr>
 <tr><td>Agent ↔ agent</td><td>TCP 8877 · UDP 9977</td><td>Agent-to-agent and mesh tests</td></tr>
-<tr><td>Edge router ↔ Kentik</td><td>TCP 179</td><td>BGP peering with the Kentik ingest peering IPs shown in device settings</td></tr>
+<tr><td>Edge router ↔ Kentik</td><td>TCP 179</td><td>Direct BGP peering when BGP Proxy is off, with the ingest peering IPs shown in device settings</td></tr>
 <tr><td>Kentik → Azure storage</td><td>From 20.69.189.228 and 20.69.185.115</td><td>Only if the storage account firewall is restricted</td></tr>
 </tbody></table>
 <h3>Cloud access you grant</h3>
@@ -490,10 +550,11 @@ function EGRESS(x, y){ return {id:'egress', x:x-18, y:y-18, w:36, h:36, k:'net',
 
 /* Capability descriptions shared by every site */
 const CAP = {
-  flow:{h:'Flow Proxy receives NetFlow, sFlow and IPFIX from your devices, enriches it and forwards it to Kentik over TLS.',
+  flow:{h:'Flow Proxy: Forwarding receives NetFlow, sFlow and IPFIX from your devices and forwards it to Kentik over TLS. It is the light way to collect flow.',
     d:['Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.',
-       'Flow Proxy (Edge Processing) decodes, enriches with SNMP and rDNS, and samples locally: 8 cores / 32 GB RAM for 25,000+ flows per second.',
-       'Flow Proxy (Forwarding, beta) ships raw flow with about 10x less compute: 1 core / 2 GB for 20,000+ flows per second.',
+       'Forwarding (ktraffic, beta in the KB) ships raw flow with about 10x less compute: 1 core / 2 GB for 20,000+ flows per second.',
+       'The Edge Processing flavor (kproxy) decodes, enriches with SNMP and rDNS, and samples locally: 8 cores / 32 GB RAM for 25,000+ flows per second.',
+       'Branches without their own agent can export flow across the WAN to this agent on UDP 9995.',
        'Sends to flow.kentik.com on TCP 443, with an optional UDP 40010 base port.',
        'Replaces the standalone kproxy agent, which reaches end of life on May 1, 2027.']},
   snmp:{h:'SNMP/ST discovers devices and collects health, interface and hardware metrics by SNMP polling or gNMI streaming telemetry. The same capability enriches flow with interface names and speeds.',
@@ -519,98 +580,65 @@ const CAP = {
     d:['Agent-to-agent and mesh tests use TCP 8877 and UDP 9977 between agents.',
        'Private agent subtests cost 2.5 credits per run; global agent subtests cost 5.',
        'Sizing: 2 cores / 2 GB RAM.',
-       'The KB names this capability Connectivity Test (Synthetics). Confirm which continuous test types run on the Universal Agent today with your Infoblox team.']},
-  ssh:{h:'SSH config access lets Kentik back up configs, show what changed, and run read-only show commands during an AI Advisor investigation.',
+       'Shown as Connectivity Test in Installed Capabilities. Confirm which continuous test types run on the Universal Agent today with your Infoblox team.']},
+  ssh:{h:'Device Configuration Sync uses read-only SSH so Kentik can back up configs, show what changed, and run read-only show commands during an AI Advisor investigation.',
     d:['Needs TCP 22 from the agent to each device’s management IP, a read-only SSH account and an NMS device license.',
        'Supported platforms: Juniper Junos, Cisco NX-OS, Arista EOS and Cisco IOS-XE.',
        'Read-only by design: a command block-list, never configure or commit. Commands come from your agent, so they land in your TACACS+ or RADIUS logs.',
        'Config sync and backup: a 5 minute fetch interval is recommended for high-visibility environments.']},
-  bgp:{h:'BGP Proxy will let routers in private networks peer with Kentik through the agent. Kentik lists it as coming soon.',
-    d:['Planned sizing: 2 cores / 2 GB RAM, with BGP on TCP 179 into the agent.',
-       'Until then, routers peer with Kentik directly, as shown from the edge routers.']}
+  bgp:{h:'BGP Proxy (kbgp) lets routers peer BGP with the agent instead of with Kentik, and the agent relays the routes to Kentik over outbound HTTPS. Routers in private networks need no session to the Internet.',
+    d:['Routers peer with the agent on TCP 179.',
+       'Sizing: 2 cores / 2 GB RAM. Extra capacity helps the agent stay stable during BGP table updates.',
+       'With BGP Proxy off, edge routers peer with Kentik directly on TCP 179, as before.',
+       'It appears in Installed Capabilities in the portal, while the KB page still lists it as coming soon. Confirm availability for your account with your Infoblox team.']}
 };
 
 function chips(x, y0, w, list, step){
   return list.map((c, i) => ({id:'c-'+c[0], x, y:y0+i*step, w, h:46, k:c[0]==='bgp'?'opt':'chip', icon:c[1], t:c[2], s:c[3], sd:c[4], i:CAP[c[0]], cap:c[0]}));
 }
 
-/* ===== Data center ===== */
-SC.dc = {
-  frames:[
-    {x:16, y:16, w:744, h:588, label:'Data center (on-prem)'},
-    {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network devices', cls:'sframe',
-     i:{h:'Routers, switches and firewalls export flow to the agent, send it traps and syslog, and answer its SNMP or streaming telemetry requests.',
-        d:['Flow: sample ingress on every interface, never ingress and egress on the same interface. The device sample rate must match the rate set for the device in Kentik.',
-           'Recommended standard rates: data center and core 1:400–800 at 1 Gbps up to 1:25k–50k at 1 Tbps; Internet edge 1:3k–7k at 10 Gbps up to 1:11k–15k at 1 Tbps.',
-           'SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.',
-           'Vendor config snippets for flow, SNMP and BGP live in github.com/kentik/config-snippets.']}}
-  ],
-  nodes:[
-    {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge', sd:'Flow · SNMP · traps · BGP',
-     i:{h:'Edge routers carry Internet and WAN traffic. Besides flow and device telemetry, they peer BGP with Kentik so every flow gets AS path, community and next-hop context.',
-        d:['Device settings › BGP › “Peer with device”. Kentik shows its ingest peering IPv4 and IPv6 addresses next to the fields.',
-           'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
-           'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
-           'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.',
-           'The Universal Agent BGP Proxy capability is listed as coming soon, so today routers peer with Kentik directly.']}},
-    {id:'core', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Core and leaf switches', s:'Data center fabric', sd:'sFlow/IPFIX · SNMP or gNMI',
-     i:{h:'Data center switches export sFlow or IPFIX and are polled for interface counters, so Kentik sees east-west traffic and link health together.',
-        d:['sFlow is the only common flow protocol that carries a packet sample. IPFIX and NetFlow v9 add MAC and VLAN through option templates.',
-           'Sanity check: flow volume should land within about 20% of SNMP interface traffic.']}},
-    {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls', s:'Perimeter and internal', sd:'Flow · syslog · traps',
-     i:{h:'Firewalls export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
-        d:['Syslog to the agent on UDP or TCP 514; traps to UDP 162.','Trap and syslog ingestion require the device to be licensed for NMS.']}},
-    {id:'srv', x:32, y:298, w:240, h:52, k:'srv', icon:'server', t:'Servers and hypervisors', s:'Linux, Windows, VMware', sd:'Syslog to UDP/TCP 514',
-     i:{h:'Servers and hypervisors can send syslog to the same agent, so server events line up with network events.', d:['Changing the syslog port currently needs Kentik support.']}},
-    {id:'dnsn', x:32, y:364, w:240, h:52, k:'srv', icon:'dns', t:'DNS servers', s:'Infoblox, BIND resolvers', sd:'DNSTAP stream to the agent',
-     i:{h:'DNS servers stream queries and answers to the agent, which turns DNS into records Kentik can join with traffic.', d:CAP.dns.d}},
-    {id:'ua', x:316, y:58, w:236, h:500, k:'ua', icon:'agent', t:'Universal Agent', s:'On a Linux host or in Docker', sd:'Debian, Ubuntu, Oracle Linux',
-     foot:'Capabilities switch on in the portal', footd:'Updates itself · status Up or Down',
-     i:{h:'The Universal Agent is one software package that runs capabilities. Install it once per site, then switch capabilities on in the portal. It updates itself and reports its own health.',
-        d:['Install on a Linux host (VM or bare metal) or in Docker: Settings › Universal Agents › Deploy Agent generates the Linux or Docker command carrying K_COMPANY_ID and K_REGISTER_PROVISIONING_TOKEN. Portal tokens last one hour.',
-           'Authorize the agent in the portal, or use an API token created with requiresApproval false. Status: Up, Down (not seen for 30 minutes) or Not Authorized.',
-           'Supported OS: Debian 11–13, Ubuntu 20.04–24.04, Oracle Linux 9, CentOS Stream 8. CentOS 7 and other EL7 builds are not supported.',
-           'Every capability you add needs more CPU and memory on the host; size for the sum.']}},
-    ...chips(328, 118, 212, [
-      ['flow','flow','Flow Proxy','NetFlow, sFlow, IPFIX','Listens on UDP 9995'],
-      ['snmp','gauge','SNMP / ST','Health and interfaces','UDP 161 · gNMI · ICMP'],
-      ['trap','bolt','SNMP Trap Receiver','Real-time device events','Listens on UDP 162'],
-      ['syslog','list','Syslog Server','Device and server logs','Listens on UDP/TCP 514'],
-      ['dns','dns','DNS OTT Tap','DNS queries as flow','DNSTAP, SPAN or on-server'],
-      ['synth','probe','Synthetics','Tests to sites and apps','TCP 8877 · UDP 9977'],
-      ['ssh','terminal','SSH config access','Config backups, show cmds','TCP 22 to management IPs'],
-      ['bgp','route','BGP Proxy','Coming soon','Coming soon · TCP 179']
-    ], 52),
-    EGRESS(760, 318),
-    KEN(),
-    {id:'remote', x:780, y:492, w:204, h:64, k:'ext', icon:'globe', t:'Other sites, SaaS', s:'Synthetic test targets', sd:'Agents, IPs, hosts, URLs', go:'saas',
-     i:{h:'Synthetic test targets: other sites’ agents, Kentik’s global and public cloud agents, SaaS apps, websites and DNS servers.', d:['Drill into Internet & SaaS apps for test types and credits.']}}
-  ],
-  edges:[
-    {t:'flow', a:'netgrp', b:'c-flow', p:[[272,104],[328,141]]},
-    {t:'snmp', a:'c-snmp', b:'netgrp', p:[[328,193],[272,148]], bi:true},
-    {t:'trap', a:'netgrp', b:'c-trap', p:[[272,192],[328,245]]},
-    {t:'syslog', a:'netgrp', b:'c-syslog', p:[[272,236],[328,290]]},
-    {t:'syslog', a:'srv', b:'c-syslog', p:[[272,324],[328,304]]},
-    {t:'dns', a:'dnsn', b:'c-dns', p:[[272,390],[328,349]]},
-    {t:'ssh', a:'c-ssh', b:'netgrp', p:[[328,453],[298,453],[298,268],[272,268]]},
-    {t:'synth', a:'c-synth', b:'remote', p:[[540,401],[574,401],[574,524],[780,524]], lab:'Tests to other sites and apps', labd:'Ping, traceroute, DNS, HTTP', lp:[676,512]},
-    {t:'https', a:'ua', b:'kentik', p:[[552,318],[780,318]], lab:'HTTPS, TLS 1.2+', labd:'TCP 443, outbound only', lp:[652,306]},
-    {t:'bgp', a:'edge', b:'kentik', p:[[236,90],[236,40],[882,40],[882,130]], lab:'BGP routes: edge routers peer with Kentik', labd:'iBGP on TCP 179, Kentik is a route-reflector client', lp:[566,40]}
-  ],
-  notes:[
-    {x:32, y:446, t:'Point devices at the agent.', td:'All agent connections are outbound.'},
-    {x:32, y:463, t:'It forwards everything to Kentik.', td:'A web proxy works (https_proxy).'}
-  ]
-};
+/* ===== Data center pieces: the scene is built per site from its capabilities (see d5) ===== */
+const DC_NETGRP = {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network devices', cls:'sframe',
+  i:{h:'Routers, switches and firewalls export flow to the agent, send it traps and syslog, and answer its SNMP or streaming telemetry requests.',
+     d:['Flow: sample ingress on every interface, never ingress and egress on the same interface. The device sample rate must match the rate set for the device in Kentik.',
+        'Recommended standard rates: data center and core 1:400–800 at 1 Gbps up to 1:25k–50k at 1 Tbps; Internet edge 1:3k–7k at 10 Gbps up to 1:11k–15k at 1 Tbps.',
+        'SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.',
+        'Vendor config snippets for flow, SNMP and BGP live in github.com/kentik/config-snippets.']}};
+const DC_DEVICES = [
+  {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge', sd:'Flow · SNMP · traps · BGP',
+   i:{h:'Edge routers carry Internet and WAN traffic. Besides flow and device telemetry, they peer BGP so every flow gets AS path, community and next-hop context.',
+      d:['With BGP Proxy on, routers peer with the Universal Agent on TCP 179 and the agent relays routes to Kentik over HTTPS.',
+         'With BGP Proxy off, routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
+         'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
+         'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
+         'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.']}},
+  {id:'core', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Core and leaf switches', s:'Data center fabric', sd:'sFlow/IPFIX · SNMP or gNMI',
+   i:{h:'Data center switches export sFlow or IPFIX and are polled for interface counters, so Kentik sees east-west traffic and link health together.',
+      d:['sFlow is the only common flow protocol that carries a packet sample. IPFIX and NetFlow v9 add MAC and VLAN through option templates.',
+         'Sanity check: flow volume should land within about 20% of SNMP interface traffic.']}},
+  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls', s:'Perimeter and internal', sd:'Flow · syslog · traps',
+   i:{h:'Firewalls export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
+      d:['Syslog to the agent on UDP or TCP 514; traps to UDP 162.','Trap and syslog ingestion require the device to be licensed for NMS.']}}
+];
+const DC_SRV = {id:'srv', k:'srv', icon:'server', t:'Servers and hypervisors', s:'Linux, Windows, VMware', sd:'Syslog to UDP/TCP 514',
+  i:{h:'Servers and hypervisors can send syslog to the same agent, so server events line up with network events.', d:['Changing the syslog port currently needs Kentik support.']}};
+const DC_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'DNS servers', s:'Infoblox, BIND resolvers', sd:'DNSTAP stream to the agent',
+  i:{h:'DNS servers stream queries and answers to the agent, which turns DNS into records Kentik can join with traffic.', d:CAP.dns.d}};
+const UA_DC_I = {h:'The Universal Agent is one software package that runs capabilities. Install it once per site, then toggle capabilities on in Settings › Universal Agents. It updates itself and reports its own health.',
+  d:['Install on a Linux host (VM or bare metal) or in Docker: Settings › Universal Agents › Deploy Agent generates the Linux or Docker command carrying K_COMPANY_ID and K_REGISTER_PROVISIONING_TOKEN. Portal tokens last one hour.',
+     'Authorize the agent in the portal, or use an API token created with requiresApproval false. Status: Up, Down (not seen for 30 minutes) or Not Authorized.',
+     'Supported OS: Debian 11–13, Ubuntu 20.04–24.04, Oracle Linux 9, CentOS Stream 8. CentOS 7 and other EL7 builds are not supported.',
+     'Every capability you toggle on needs more CPU and memory on the host; size for the sum.']};
+const REMOTE = {id:'remote', x:780, y:492, w:204, h:64, k:'ext', icon:'globe', t:'Other sites, SaaS', s:'Synthetic test targets', sd:'Agents, IPs, hosts, URLs', go:'saas',
+  i:{h:'Connectivity Test targets: other sites’ agents, Kentik’s global and public cloud agents, SaaS apps, websites and DNS servers.', d:['Drill into Internet & SaaS apps for test types and credits.']}};
 
 INFO.dc = {kick:'Drill-in · On-prem', title:'Data center with a Universal Agent',
 hl:`<p class="lead">One Universal Agent per data center collects everything. Devices send to it, it polls them, and it forwards it all to Kentik over outbound HTTPS.</p>
 <h3>What you deploy</h3><ul>
 <li>The Universal Agent on a Linux host (VM or bare metal) or in Docker</li>
-<li>Capabilities switched on in the portal: Flow Proxy, SNMP/ST, SNMP Trap Receiver, Syslog Server, DNS OTT Tap, Synthetics and SSH config access</li>
-<li>Devices pointed at the agent for flow, traps and syslog</li>
-<li>Optional BGP peering from edge routers to Kentik</li></ul>
+<li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy: Forwarding, SNMP Trap Receiver, SNMP/ST and Syslog Server</li>
+<li>Devices pointed at the agent for flow, traps and syslog, including branches that have no agent of their own</li>
+<li>BGP from the edge routers, to the agent (BGP Proxy) or directly to Kentik</li></ul>
 <h3>What Kentik collects</h3><ul>
 <li>Flow, enriched with interface names, BGP, GeoIP and your custom dimensions</li>
 <li>Device health and interface metrics</li><li>Traps and syslog events</li><li>DNS lookups</li><li>Synthetic test results</li><li>Config backups and changes</li></ul>
@@ -625,10 +653,12 @@ dd:`<p class="lead">Universal Agent on a Linux host or in Docker, managed from S
 <tr><td>Devices → agent</td><td>UDP and TCP 514</td><td>Syslog Server</td></tr>
 <tr><td>Agent → devices</td><td>UDP 161, ICMP</td><td>SNMP/ST polling</td></tr>
 <tr><td>Agent → devices</td><td>Device gNMI port</td><td>Streaming telemetry dial-in</td></tr>
-<tr><td>Agent → devices</td><td>TCP 22</td><td>SSH config and commands</td></tr>
-<tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Synthetics</td></tr>
+<tr><td>Agent → devices</td><td>TCP 22</td><td>Device Configuration Sync (SSH)</td></tr>
+<tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Connectivity Test</td></tr>
 <tr><td>DNS → agent</td><td>DNSTAP port you set</td><td>DNS OTT Tap</td></tr>
-<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP peering (direct today)</td></tr>
+<tr><td>Router → agent</td><td>TCP 179</td><td>BGP Proxy</td></tr>
+<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP peering, when BGP Proxy is off</td></tr>
+<tr><td>Branch devices → agent</td><td>UDP 9995 · 162 · 514</td><td>Branches with no agent, across the WAN</td></tr>
 </tbody></table>
 <h3>Outbound allowlist</h3>
 <p><code>flow.kentik.com</code> <code>grpc.api.kentik.com</code> <code>api.kentik.com</code> <code>portal.kentik.com</code> <code>storage.googleapis.com</code>, optional <code>whoami.kentiklabs.com</code>. EU accounts use <code>*.kentik.eu</code>. SSL inspection must allow gRPC.</p>
@@ -643,13 +673,13 @@ export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
 <li>Agents update themselves and their capabilities.</li></ul>
 <h3>Sizing per capability</h3>
 <table><thead><tr><th style="width:50%">Capability</th><th>CPU / RAM</th></tr></thead><tbody>
+<tr><td>Flow Proxy: Forwarding</td><td>1 core / 2 GB, 20k+ FPS</td></tr>
 <tr><td>Flow Proxy (Edge Processing)</td><td>8 cores / 32 GB, 25k+ FPS</td></tr>
-<tr><td>Flow Proxy (Forwarding, beta)</td><td>1 core / 2 GB, 20k+ FPS</td></tr>
 <tr><td>SNMP/ST</td><td>2 cores / 8 GB, up to 500 devices</td></tr>
 <tr><td>Syslog Server</td><td>1 core / 1 GB per 8k events/s</td></tr>
-<tr><td>Synthetics</td><td>2 cores / 2 GB</td></tr>
+<tr><td>Connectivity Test</td><td>2 cores / 2 GB</td></tr>
 <tr><td>DNS OTT Tap</td><td>1 core / 1 GB per 400k lookups/s</td></tr>
-<tr><td>BGP Proxy (coming soon)</td><td>2 cores / 2 GB</td></tr>
+<tr><td>BGP Proxy</td><td>2 cores / 2 GB</td></tr>
 </tbody></table>
 <p class="muted" style="font-size:12.5px">Add 20–30% headroom for bursty flow, syslog and traps.</p>
 <h3>Device settings in Kentik</h3><ul>
@@ -663,71 +693,45 @@ export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
 <li>Synthetics runs on test credits.</li></ul>`,
 src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['UA Deployment','https://kb.kentik.com/docs/ua-deployment'],['UA Portal Management','https://kb.kentik.com/docs/ua-portal-management'],['Device Settings','https://kb.kentik.com/docs/device-settings'],['Router Configuration','https://kb.kentik.com/docs/router-configuration'],['Flow Overview','https://kb.kentik.com/docs/flow-overview'],['NMS Setup','https://kb.kentik.com/docs/nms-setup'],['SNMP Traps & Syslog','https://kb.kentik.com/docs/snmp-traps-syslogs'],['SSH Command Access for Kentik NMS','https://kb.kentik.com/docs/ssh-command-access-for-kentik-nms'],['Migration Scenarios (kproxy to UA)','https://kb.kentik.com/docs/kproxy-migration-scenarios']]};
 
-/* ===== Branch & campus ===== */
-SC.branch = {
-  frames:[
-    {x:16, y:16, w:552, h:588, label:'Branch office or campus'},
-    {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network devices', cls:'sframe',
-     i:{h:'Branch devices send flow, traps and syslog to the local agent and answer its SNMP polls.',
-        d:['Use the same device settings as the data center: SNMP tab “Flow Enrichment via Universal Agent” or “Full Monitoring via Universal Agent”.',
-           'At a small site, flow from the WAN router alone often answers most questions.']}},
-    {x:584, y:58, w:184, h:296, label:'Test targets', cls:'sframe', ghost:true}
-  ],
+/* ===== Branch office pieces ===== */
+const BR_NETGRP = {id:'netgrp', x:32, y:58, w:240, h:222, label:'Branch network devices', cls:'sframe',
+  i:{h:'Branch devices send flow, traps and syslog to an agent and answer its SNMP polls. That agent is either at the branch or in a data center.',
+     d:['Use the same device settings as the data center: SNMP tab “Flow Enrichment via Universal Agent” or “Full Monitoring via Universal Agent”, then pick the collection agent.',
+        'At a small site, flow from the WAN router alone often answers most questions.']}};
+const BR_DEVICES = [
+  {id:'wan', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Branch / SD-WAN router', s:'WAN edge', sd:'Flow, SNMP, syslog, traps',
+   i:{h:'The WAN or SD-WAN edge sees everything entering and leaving the site, so its flow is the most valuable single source at a branch.', d:['Export flow on UDP 9995 to the agent that collects for this branch, and set the same sample rate in Kentik.']}},
+  {id:'sw', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Access switches', s:'Wired users and devices', sd:'sFlow · SNMP',
+   i:{h:'Access switches add interface health and, with sFlow, local traffic.', d:[]}},
+  {id:'wifi', x:44, y:214, w:216, h:52, k:'net', icon:'wifi', t:'Wi-Fi controller, APs', s:'Wireless users', sd:'Syslog · traps · SNMP',
+   i:{h:'Wireless controllers mostly contribute events and health: syslog, traps and SNMP.', d:[]}}
+];
+const BR_USERS = {id:'users', k:'ext', icon:'users', t:'Users at the site', s:'Experience you test for', sd:'Tests run from here',
+  i:{h:'People at the branch. Tests from the branch agent measure the paths and apps they rely on, before anyone opens a ticket.', d:[]}};
+const BR_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'Local DNS resolver', s:'Branch or SD-WAN DNS', sd:'DNSTAP or mirrored DNS',
+  i:{h:'A local resolver streams DNS to the branch agent, so lookups from this site line up with its traffic.', d:CAP.dns.d}};
+const UA_BR_I = {h:'The same Universal Agent as the data center, sized for a small site. Install it once, then toggle on only what the site needs.',
+  d:['Footprint: Connectivity Test 2 cores / 2 GB, Syslog 1 core / 1 GB, SNMP/ST 2 cores / 8 GB for up to 500 devices.',
+     'Linux or Docker install command from Settings › Universal Agents › Deploy Agent.',
+     'Assign the agent to a Site so devices and tests group by location.']};
+function BR_TARGETS(dcGo){ return {
+  frame:{x:584, y:58, w:184, h:296, label:'Test targets', cls:'sframe', ghost:true},
   nodes:[
-    {id:'wan', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Branch / SD-WAN router', s:'WAN edge', sd:'Flow, SNMP, syslog, traps',
-     i:{h:'The WAN or SD-WAN edge sees everything entering and leaving the site, so its flow is the most valuable single source at a branch.', d:['Export flow to the branch agent on UDP 9995 and set the same sample rate in Kentik.']}},
-    {id:'sw', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Access switches', s:'Wired users and devices', sd:'sFlow · SNMP',
-     i:{h:'Access switches add interface health and, with sFlow, local traffic.', d:[]}},
-    {id:'wifi', x:44, y:214, w:216, h:52, k:'net', icon:'wifi', t:'Wi-Fi controller, APs', s:'Wireless users', sd:'Syslog · traps · SNMP',
-     i:{h:'Wireless controllers mostly contribute events and health: syslog, traps and SNMP.', d:[]}},
-    {id:'users', x:32, y:300, w:240, h:52, k:'ext', icon:'users', t:'Users at the site', s:'Experience you test for', sd:'Tests run from here',
-     i:{h:'People at the branch. Tests from the branch agent measure the paths and apps they rely on, before anyone opens a ticket.', d:[]}},
-    {id:'ua', x:304, y:58, w:244, h:362, k:'ua', icon:'agent', t:'Universal Agent', s:'Small Linux host or Docker', sd:'Same build as the data center',
-     foot:'Only what this site needs', footd:'Add capabilities without reinstalling',
-     i:{h:'The same Universal Agent as the data center, sized for a small site. Install it once, then switch on only what the site needs.',
-        d:['Footprint: Synthetics 2 cores / 2 GB, Syslog 1 core / 1 GB, SNMP/ST 2 cores / 8 GB for up to 500 devices.',
-           'Linux or Docker install command from Settings › Universal Agents › Deploy Agent.',
-           'Assign the agent to a Site so devices and tests group by location.']}},
-    ...chips(316, 118, 220, [
-      ['flow','flow','Flow Proxy','Branch traffic','UDP 9995'],
-      ['snmp','gauge','SNMP / ST','Device health','UDP 161 · ICMP'],
-      ['trap','bolt','SNMP Trap Receiver','Device events','UDP 162'],
-      ['syslog','list','Syslog Server','Logs','UDP/TCP 514'],
-      ['synth','probe','Synthetics','What users experience','TCP 8877 · UDP 9977']
-    ], 52),
-    EGRESS(568, 372),
-    {id:'t-dc', x:592, y:88, w:172, h:52, k:'ext', icon:'agent', t:'Data center agent', s:'Agent-to-agent', sd:'TCP 8877 · UDP 9977', go:'dc',
+    {id:'t-dc', x:592, y:88, w:172, h:52, k:'ext', icon:'agent', t:'Data center agent', s:'Agent-to-agent', sd:'TCP 8877 · UDP 9977', go:dcGo,
      i:{h:'Agent-to-agent and Network Mesh tests between the branch and data center agents measure latency, loss and jitter in both directions.', d:['Each direction is a subtest. A 4-agent private mesh every minute is 12 subtests, 30 credits per run.']}},
     {id:'t-saas', x:592, y:152, w:172, h:52, k:'ext', icon:'app', t:'SaaS apps', s:'Microsoft 365, Zoom', sd:'HTTP(S), DNS, ping', go:'saas',
      i:{h:'HTTP(S) and API tests check status code, time to last byte and response size from the branch.', d:['Page load and transaction tests run on Kentik app agents with headless Chromium.']}},
     {id:'t-cloud', x:592, y:216, w:172, h:52, k:'ext', icon:'cloud', t:'Cloud regions', s:'Public cloud agents', sd:'Network mesh tests',
      i:{h:'Kentik’s public cloud agents sit in AWS, Azure, GCP and OCI regions, so you can test from the branch to the regions you use.', d:['Global agent subtests cost 5 credits per run.']}},
     {id:'t-dns', x:592, y:280, w:172, h:52, k:'ext', icon:'dns', t:'DNS servers', s:'Lookup time', sd:'DNS Server Monitor',
-     i:{h:'DNS Server Monitor tests a hostname against your resolvers and reports resolution time and the answer.', d:['DNS Server Grid runs the same lookup against many resolvers at once to find slow ones.']}},
-    KEN({y:150, h:300})
-  ],
-  edges:[
-    {t:'flow', a:'netgrp', b:'c-flow', p:[[272,104],[316,141]]},
-    {t:'snmp', a:'c-snmp', b:'netgrp', p:[[316,193],[272,150]], bi:true},
-    {t:'trap', a:'netgrp', b:'c-trap', p:[[272,196],[316,245]]},
-    {t:'syslog', a:'netgrp', b:'c-syslog', p:[[272,240],[316,297]]},
-    {t:'synth', a:'c-synth', b:'t-dc', p:[[536,349],[592,114]], bi:true},
-    {t:'synth', a:'c-synth', b:'t-saas', p:[[536,349],[592,178]]},
-    {t:'synth', a:'c-synth', b:'t-cloud', p:[[536,349],[592,242]], bi:true},
-    {t:'synth', a:'c-synth', b:'t-dns', p:[[536,349],[592,306]]},
-    {t:'https', a:'ua', b:'kentik', p:[[548,372],[780,372]], lab:'Results and telemetry over HTTPS', labd:'TCP 443, outbound only', lp:[681,390]}
-  ],
-  notes:[
-    {x:32, y:384, t:'Small sites still get flow, health,', td:'Agent-to-agent tests need TCP 8877'},
-    {x:32, y:401, t:'events and user-experience tests.', td:'and UDP 9977 open between agents.'}
-  ]
-};
+     i:{h:'DNS Server Monitor tests a hostname against your resolvers and reports resolution time and the answer.', d:['DNS Server Grid runs the same lookup against many resolvers at once to find slow ones.']}}
+  ]}; }
 
 INFO.branch = {kick:'Drill-in · On-prem', title:'Branch or campus with a Universal Agent',
 hl:`<p class="lead">The same Universal Agent, sized for a small site. It adds local flow and device health, and it tests the paths your users depend on.</p>
 <h3>What you deploy</h3><ul>
 <li>The Universal Agent on a small Linux host (a VM or a small PC) or in Docker</li>
-<li>Capabilities for this site, for example Flow Proxy, SNMP/ST, Trap Receiver, Syslog Server and Synthetics</li>
+<li>Only the capabilities this site needs, for example Flow Proxy: Forwarding, SNMP/ST and Connectivity Test</li>
 <li>Tests from the branch to the data center, cloud regions, SaaS apps and DNS</li></ul>
 <h3>Why it matters</h3><ul>
 <li>Site-to-site tests show latency, loss and jitter between locations</li>
@@ -780,9 +784,9 @@ SC.saas = {
     {id:'g-bb', x:44, y:286, w:226, h:52, k:'ktk', icon:'wifi', t:'Broadband agents', s:'End-user view from homes', sd:'Run in real homes',
      i:{h:'Agents on consumer broadband connections give an end-user view. Many run in real homes, so they can be less stable than data center agents.', d:[]}},
     {id:'p-dc', x:44, y:404, w:226, h:52, k:'chip', icon:'agent', t:'Data center agent', s:'Private test point', sd:'2.5 credits per subtest', go:'dc',
-     i:{h:'The data center Universal Agent with Synthetics switched on.', d:CAP.synth.d}},
-    {id:'p-br', x:44, y:468, w:226, h:52, k:'chip', icon:'agent', t:'Branch agent', s:'Private test point', sd:'TCP 8877 · UDP 9977', go:'branch',
-     i:{h:'The branch Universal Agent with Synthetics switched on.', d:CAP.synth.d}},
+     i:{h:'A data center Universal Agent with Connectivity Test on.', d:CAP.synth.d}},
+    {id:'p-br', x:44, y:468, w:226, h:52, k:'chip', icon:'agent', t:'Branch agent', s:'Private test point', sd:'TCP 8877 · UDP 9977', go:'br1',
+     i:{h:'A branch Universal Agent with Connectivity Test on. Branches without an agent can still be tested as a target from a data center agent.', d:CAP.synth.d}},
     {id:'t-saas', x:340, y:88, w:220, h:56, k:'ext', icon:'app', t:'SaaS apps', s:'Microsoft 365, Salesforce', sd:'HTTP(S)/API, page load',
      i:{h:'Test the SaaS apps your users rely on, from where your users are.',
         d:['HTTP(S) or API test: status code, average time to last byte and response size, with optional ping to the resolved IP.','Page load test: a full browser load with navigation, DNS, connect and response timings, on app agents.']}},
@@ -1279,7 +1283,7 @@ SC.kentik = {
     {id:'portal', x:748, y:70, w:220, h:72, k:'ktk', icon:'portal', t:'Portal', s:'Data Explorer, Kentik Map', s2:'NMS, Synthetics, Cloud', sd:'portal.kentik.com', sd2:'SAML SSO, MFA, roles',
      i:{h:'The Kentik portal: Data Explorer, Kentik Map, NMS, Synthetics, the Cloud section and dashboards.', d:['SAML 2.0 SSO or local accounts, MFA you can require, and user, admin and super admin roles.']}},
     {id:'ai', x:748, y:158, w:220, h:52, k:'ktk', icon:'spark', t:'AI Advisor', s:'Investigations in context', sd:'Read-only show commands',
-     i:{h:'AI Advisor answers questions and runs investigations across your Kentik data.', d:['With SSH config access on a Universal Agent, it can run read-only show commands on supported devices.']}},
+     i:{h:'AI Advisor answers questions and runs investigations across your Kentik data.', d:['With Device Configuration Sync on a Universal Agent, it can run read-only show commands on supported devices.']}},
     {id:'alerts', x:748, y:226, w:220, h:52, k:'ktk', icon:'bell', t:'Alerts and mitigation', s:'Notify your tools', sd:'RTBH and Flowspec via BGP',
      i:{h:'Alert policies watch traffic, metrics, events and tests, and notify your channels.', d:['BGP peering also enables RTBH and Flowspec mitigation.']}},
     {id:'api', x:748, y:294, w:220, h:52, k:'ktk', icon:'api', t:'APIs', s:'Query, config, automation', sd:'api.kentik.com, user tokens',
@@ -1353,32 +1357,232 @@ dd:`<h3>Hosting and availability</h3><ul>
 <li><b>Firehose</b>: copies of enriched flow to <code>ktranslate</code>, which you run, then on to Kafka, Splunk, New Relic, HTTP, Prometheus or files. Not available for cloud flow logs from the portal.</li></ul>
 <h3>Licensing</h3><p>FlowPak, NMS (DevicePak), CloudPak and Synthetics credits. Confirm entitlements with your Infoblox account team.</p>`,
 src:[['Security Overview','https://kb.kentik.com/docs/security-overview'],['KDE Overview','https://kb.kentik.com/docs/kde-overview'],['Using Kentik Firehose','https://kb.kentik.com/docs/using-kentik-firehose'],['Licenses','https://kb.kentik.com/docs/licenses']]};
-/* ---------- Data centers: one Universal Agent per site, add or remove sites, and all sites together ---------- */
+/* ---------- Sites: data centers and branch offices, each agent with its own capabilities ---------- */
+
+/* Capabilities as the portal lists them under Settings › Universal Agents › Installed Capabilities */
+const UACAPS = [
+  {id:'bgp', ui:'BGP Proxy', aka:'kbgp', icon:'route', s:'Routers peer with the agent', sd:'TCP 179 from routers', chip:'BGP', cpu:2, ram:2},
+  {id:'synth', ui:'Connectivity Test', icon:'probe', s:'Tests to sites and apps', sd:'TCP 8877 · UDP 9977', chip:'Tests', cpu:2, ram:2},
+  {id:'ssh', ui:'Device Configuration Sync', icon:'terminal', s:'Config backups over SSH', sd:'TCP 22 to management IPs', chip:'Config', cpu:0, ram:0},
+  {id:'dns', ui:'DNS OTT Tap', icon:'dns', s:'DNS queries as flow', sd:'DNSTAP, SPAN or on-server', chip:'DNS', cpu:1, ram:1},
+  {id:'flow', ui:'Flow Proxy: Forwarding', icon:'flow', s:'NetFlow, sFlow, IPFIX', sd:'Listens on UDP 9995', chip:'Flow', cpu:1, ram:2},
+  {id:'trap', ui:'SNMP Trap Receiver', icon:'bolt', s:'Real-time device events', sd:'Listens on UDP 162', chip:'Traps', cpu:0, ram:0},
+  {id:'snmp', ui:'SNMP/ST', icon:'gauge', s:'Health and interfaces', sd:'UDP 161 · gNMI · ICMP', chip:'SNMP/ST', cpu:2, ram:8},
+  {id:'syslog', ui:'Syslog Server', icon:'list', s:'Device and server logs', sd:'Listens on UDP/TCP 514', chip:'Syslog', cpu:1, ram:1}
+];
+const UAC = Object.fromEntries(UACAPS.map(c => [c.id, c]));
+const DRAW_ORDER = ['flow', 'snmp', 'trap', 'syslog', 'dns', 'synth', 'ssh', 'bgp'];   // order inside the agent box, matching the device lines
+const DC_DEF = ['flow', 'snmp', 'trap', 'syslog'], BR_DEF = ['flow', 'snmp', 'synth'];
+const BR_MAX = 10;
+
+/* ----- Data center helpers ----- */
 const isDC = v => typeof v === 'string' && /^dc[2-6]?$/.test(v);
 const dcId = i => i === 1 ? 'dc' : 'dc' + i;
 const dcIndex = v => v === 'dc' ? 1 : +v.slice(2);
 const dcIds = () => Array.from({length:S.dcN}, (_, k) => dcId(k + 1));
-const modOf = v => isDC(v) || v === 'dcs' ? 'dc' : MOD[v] ? v : null;
 function dcCustom(i){ return String(S.dcNames[i - 1] || '').trim(); }
 function dcDefault(i){ return S.dcN > 1 ? 'Data center ' + i : 'Data center'; }
 function dcName(i){ return dcCustom(i) || dcDefault(i); }
-function dcMod(id){ return Object.assign({}, MOD.dc, {id, name:dcName(dcIndex(id))}); }
+
+/* ----- Branch helpers ----- */
+const isBR = v => typeof v === 'string' && /^br([1-9]|10)$/.test(v);
+const brId = i => 'br' + i;
+const brIndex = v => +v.slice(2);
+const brIds = () => Array.from({length:S.brN}, (_, k) => brId(k + 1));
+function brCustom(i){ return String(S.brNames[i - 1] || '').trim(); }
+function brDefault(i){ return S.brN > 1 ? 'Branch ' + i : 'Branch office'; }
+function brName(i){ return brCustom(i) || brDefault(i); }
+const brUA = i => !!S.brUA[i - 1];
+const dcOn = () => S.sel.has('dc');
+const brOn = () => S.sel.has('branch');
+function brTarget(i){ if(!dcOn()) return 0; const t = +S.brTo[i - 1] || 1; return t >= 1 && t <= S.dcN ? t : 1; }
+function feeders(dc){ return brOn() ? brIds().map(brIndex).filter(i => !brUA(i) && brTarget(i) === dc) : []; }
+
+const modOf = v => isDC(v) || v === 'dcs' ? 'dc' : isBR(v) || v === 'brs' ? 'branch' : MOD[v] ? v : null;
+
+/* ----- Per-agent capabilities and install method ----- */
+function capsOf(kind, i){
+  const arr = kind === 'dc' ? S.dcCaps : S.brCaps;
+  if(!arr[i - 1]) arr[i - 1] = new Set(kind === 'dc' ? DC_DEF : BR_DEF);
+  return arr[i - 1];
+}
+function instOf(kind, i){ return (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] === 'docker' ? 'docker' : 'linux'; }
+const capList = (kind, i) => DRAW_ORDER.filter(c => capsOf(kind, i).has(c));
+function sizing(kind, i){
+  const list = capList(kind, i);
+  const cpu = list.reduce((a, c) => a + UAC[c].cpu, 0), ram = list.reduce((a, c) => a + UAC[c].ram, 0);
+  return {cpu, ram, rc:list.length ? Math.max(2, Math.ceil(cpu * 1.3)) : 0, rr:list.length ? Math.max(2, Math.ceil(ram * 1.3)) : 0};
+}
+/* Every agent that has Connectivity Test on: private test points for site-to-site tests */
+function testAgents(){
+  const out = [];
+  if(dcOn()) for(let i = 1; i <= S.dcN; i++) if(capsOf('dc', i).has('synth')) out.push(dcName(i));
+  if(brOn()) for(let i = 1; i <= S.brN; i++) if(brUA(i) && capsOf('br', i).has('synth')) out.push(brName(i));
+  return out;
+}
 function meshMath(n){ const sub = n * (n - 1), run = sub * 2.5; return {sub, run, month:run * 43200}; }
 const fmt = v => v.toLocaleString('en-US', {maximumFractionDigits:1});
 
-/* One data center: the full data center scene, named for this site */
-const REMOTE_MULTI = {t:'Other DCs, SaaS', go:['dcs', 'saas'],
-  i:{h:'Synthetic test targets: the agents in your other data centers, Kentik’s global and public cloud agents, SaaS apps, websites and DNS servers.',
-     d:['Agent-to-agent and mesh tests between data centers need TCP 8877 and UDP 9977 open between the agents.', 'Open All data centers to see every site and the tests between them.']}};
-function dcScene(i){
-  const base = SC.dc, n = S.dcN, name = dcName(i);
-  return Object.assign({}, base, {
-    frames:base.frames.map((f, k) => k ? f : Object.assign({}, f, {label:name + ' (on-prem)', labeld:n > 1 ? name + ' (on-prem) · site ' + i + ' of ' + n : name + ' (on-prem)'})),
-    nodes:base.nodes.map(nd => nd.id === 'remote' && n > 1 ? Object.assign({}, nd, REMOTE_MULTI) : nd)
-  });
+function dcMod(id){
+  const i = dcIndex(id), f = feeders(i).length, caps = capList('dc', i);
+  return Object.assign({}, MOD.dc, {id, name:dcName(i),
+    sub:f ? 'Also collects for ' + f + (f > 1 ? ' branches' : ' branch') : caps.length + ' capabilit' + (caps.length === 1 ? 'y' : 'ies') + ' on',
+    subd:f ? 'Branches send across the WAN to this agent' : MOD.dc.subd,
+    chips:caps.length ? caps.map(c => [c, UAC[c].chip]) : [['more', 'No capabilities on']]});
 }
 
-/* Every data center at once: one row per site, each with its own agent */
+/* ===== One site with a Universal Agent: the layout follows the capabilities that are on ===== */
+function agentScene(kind, i){
+  const dc = kind === 'dc', caps = capsOf(kind, i), on = c => caps.has(c), inst = instOf(kind, i);
+  const name = dc ? dcName(i) : brName(i);
+  const L = dc ? {ux:316, uw:236, cx:328, cw:212, fw:744} : {ux:304, uw:244, cx:316, cw:220, fw:552};
+  const frames = [], nodes = [], edges = [], notes = [];
+  frames.push({x:16, y:16, w:L.fw, h:588, label:name + (dc ? ' (on-prem)' : ''),
+    labeld:dc ? (S.dcN > 1 ? name + ' (on-prem) · site ' + i + ' of ' + S.dcN : name + ' (on-prem)') : name + ' · agent at the branch'});
+  frames.push(dc ? DC_NETGRP : BR_NETGRP);
+  nodes.push(...(dc ? DC_DEVICES : BR_DEVICES));
+
+  /* Left column under the devices: only what the capabilities need */
+  const feeds = dc ? feeders(i) : [];
+  const left = [];
+  if(dc && on('syslog')) left.push(Object.assign({}, DC_SRV));
+  if(on('dns')) left.push(Object.assign({}, dc ? DC_DNS : BR_DNS));
+  if(!dc) left.push(Object.assign({}, BR_USERS));
+  if(feeds.length){
+    const one = feeds.length === 1;
+    left.push({id:'brin', k:'net', icon:'store', h:64, t:one ? brName(feeds[0]) : feeds.length + ' branch offices', s:'No agent at the branch',
+      sd:'Flow, traps, syslog over the WAN', go:one ? brId(feeds[0]) : 'brs',
+      i:{h:(one ? brName(feeds[0]) + ' has' : 'These branches have') + ' no agent of its own. Branch routers, switches and Wi-Fi send flow, traps and syslog across the WAN to this agent, and the agent polls them back across the WAN.',
+         d:['Allow UDP 9995 (flow), UDP 162 (traps) and UDP or TCP 514 (syslog) from branch devices to this agent, through WAN firewalls and SD-WAN policies.',
+            'Allow UDP 161 and ICMP (SNMP/ST) and TCP 22 (Device Configuration Sync) from this agent to the branch devices.',
+            'In Kentik, set this agent as the collection agent for the branch devices, and assign the devices to the branch Site so they still group by location.',
+            'Size this agent for the branch flow and devices too.']}});
+  }
+  let y = 298;
+  left.forEach(n => { n.x = 32; n.w = 240; n.h = n.h || 52; n.y = y; y += n.h + 14; });
+  nodes.push(...left);
+  const byId = id => left.find(n => n.id === id);
+
+  /* Agent box and its capability chips */
+  const list = DRAW_ORDER.filter(on), top = 118, step = 52;
+  const chips = list.map((c, k) => ({id:'c-' + c, x:L.cx, y:top + k * step, w:L.cw, h:46, k:'chip', icon:UAC[c].icon, t:UAC[c].ui, s:UAC[c].s, sd:UAC[c].sd, i:CAP[c], cap:c}));
+  if(!chips.length) chips.push({id:'c-none', x:L.cx, y:top, w:L.cw, h:46, k:'opt', icon:'agent', t:'No capabilities on', s:'Toggle them in the side panel', sd:'Installed Capabilities',
+    i:{h:'This agent is installed but has no capabilities on yet. Toggle capabilities in the side panel, the same way you do under Installed Capabilities in the portal.', d:[]}});
+  const chipBottom = chips[chips.length - 1].y + 46;
+  const brin = byId('brin');
+  const uh = Math.max(chipBottom + 40 - 58, brin ? brin.y + brin.h + 12 - 58 : 0, !dc && on('synth') ? 352 : 230);
+  const ua = {id:'ua', x:L.ux, y:58, w:L.uw, h:uh, k:'ua', icon:'agent', t:'Universal Agent', s:inst === 'docker' ? 'In Docker' : 'On a Linux host',
+    sd:inst === 'docker' ? 'docker run from the portal' : 'Debian, Ubuntu, Oracle Linux',
+    foot:list.length + ' of 8 capabilities on', footd:'Toggle capabilities in the side panel', i:dc ? UA_DC_I : UA_BR_I};
+  nodes.push(ua, ...chips);
+  const cy = c => top + list.indexOf(c) * step + 23;
+  const ex = 16 + L.fw, ey = !dc && on('synth') ? 380 : Math.round(Math.min(Math.max(58 + uh / 2, 150), 440));   // under the branch test targets
+  nodes.push(EGRESS(ex, ey), KEN());
+  edges.push({t:'https', a:'ua', b:'kentik', p:[[L.ux + L.uw, ey], [780, ey]], lab:'HTTPS, TLS 1.2+', labd:'TCP 443, outbound only', lp:[dc ? 652 : 674, ey - 12]});
+
+  /* Device lines, only for capabilities that are on */
+  const cx = L.cx, rx = L.cx + L.cw;
+  if(on('flow')) edges.push({t:'flow', a:'netgrp', b:'c-flow', p:[[272, 104], [cx, cy('flow')]]});
+  if(on('snmp')) edges.push({t:'snmp', a:'c-snmp', b:'netgrp', p:[[cx, cy('snmp')], [272, 148]], bi:true});
+  if(on('trap')) edges.push({t:'trap', a:'netgrp', b:'c-trap', p:[[272, 192], [cx, cy('trap')]]});
+  if(on('syslog')){
+    edges.push({t:'syslog', a:'netgrp', b:'c-syslog', p:[[272, 236], [cx, cy('syslog')]]});
+    const srv = byId('srv');
+    if(srv) edges.push({t:'syslog', a:'srv', b:'c-syslog', p:[[272, srv.y + 26], [cx, cy('syslog') + 10]]});
+  }
+  if(on('dns')){ const d = byId('dnsn'); edges.push({t:'dns', a:'dnsn', b:'c-dns', p:[[272, d.y + 26], [cx, cy('dns')]]}); }
+  if(on('ssh')) edges.push({t:'ssh', a:'c-ssh', b:'netgrp', p:[[cx, cy('ssh')], [298, cy('ssh')], [298, 268], [272, 268]]});
+  const router = dc ? 'edge' : 'wan';
+  const ur = L.ux + L.uw;
+  if(on('bgp') && dc) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [ur + 12, 50], [ur + 12, cy('bgp')], [rx, cy('bgp')]], lab:'BGP: routers peer with the agent', labd:'BGP Proxy, TCP 179 to the agent', lp:[(236 + ur) / 2 + 6, 50]});
+  else if(on('bgp')) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [294, 50], [294, cy('bgp')], [cx, cy('bgp')]], lab:'BGP', labd:'TCP 179', lp:[265, 50]});
+  else if(dc) edges.push({t:'bgp', a:'edge', b:'kentik', p:[[236, 90], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179 (BGP Proxy off)', lp:[566, 50]});
+
+  /* Branches with no agent of their own, across the WAN */
+  if(brin){
+    const r = 272, l = L.ux, b0 = brin.y;
+    const ins = [['flow', 14], ['trap', 38], ['syslog', 50]].filter(c => on(c[0]));
+    ins.forEach(([c, dy]) => edges.push({t:c, a:'brin', b:'c-' + c, p:[[r, b0 + dy], [l, b0 + dy]]}));
+    if(on('snmp')) edges.push({t:'snmp', a:'c-snmp', b:'brin', p:[[l, b0 + 26], [r, b0 + 26]], bi:true});
+  }
+
+  /* Connectivity Test targets */
+  if(on('synth')){
+    if(dc){
+      nodes.push(S.dcN > 1 ? Object.assign({}, REMOTE, REMOTE_MULTI) : REMOTE);
+      edges.push({t:'synth', a:'c-synth', b:'remote', p:[[rx, cy('synth')], [ur + 28, cy('synth')], [ur + 28, 524], [780, 524]], lab:'Tests to other sites and apps', labd:'Ping, traceroute, DNS, HTTP', lp:[676, 512]});
+    } else {
+      const T = BR_TARGETS(dcOn() ? dcId(brTarget(i) || 1) : 'dc');
+      frames.push(T.frame);
+      nodes.push(...T.nodes);
+      T.nodes.forEach(n => edges.push({t:'synth', a:'c-synth', b:n.id, p:[[rx, cy('synth')], [592, n.y + 26]], bi:n.id === 't-dc' || n.id === 't-cloud'}));
+    }
+  }
+
+  /* Notes, under the left column */
+  const ny = Math.max(y + 8, 446);
+  if(ny < 590){
+    const warn = brin && !on('flow') ? 'Turn on Flow Proxy to collect branch flow.' : '';
+    if(dc) notes.push({x:32, y:ny, t:warn || 'Point devices at the agent.', td:warn || 'All agent connections are outbound.'},
+                      {x:32, y:ny + 17, t:'It forwards everything to Kentik.', td:'A web proxy works (https_proxy).'});
+    else notes.push({x:32, y:ny, t:'Local flow, health and tests,', td:'Agent-to-agent tests need TCP 8877'},
+                    {x:32, y:ny + 17, t:'without crossing the WAN.', td:'and UDP 9977 open between agents.'});
+  }
+  return {frames, nodes, edges, notes};
+}
+
+/* ===== A branch with no agent: its devices send across the WAN to a data center agent ===== */
+function branchRemoteScene(i){
+  const name = brName(i), t = brTarget(i);
+  const frames = [
+    {x:16, y:16, w:280, h:588, label:name, labeld:name + ' · no agent'},
+    Object.assign({}, BR_NETGRP, {w:248}),
+    {id:'wan', x:312, y:58, w:150, h:296, label:'WAN or SD-WAN', cls:'sframe', ghost:true,
+     i:{h:'Branch telemetry crosses your WAN to the data center agent. Flow, traps and syslog are small next to user traffic, but they need to be allowed through.',
+        d:['Allow UDP 9995, UDP 162 and UDP or TCP 514 from the branch devices to the data center agent.',
+           'Allow UDP 161, ICMP and TCP 22 from the data center agent back to the branch devices.',
+           'SD-WAN: make sure these flows are permitted by the overlay policy and any branch firewall.']}}
+  ];
+  const nodes = BR_DEVICES.map(n => Object.assign({}, n, {w:224}));
+  nodes.push(Object.assign({}, BR_USERS, {x:32, y:300, w:248, h:52}));
+  const edges = [], notes = [];
+  if(!t){
+    frames.push({x:478, y:16, w:286, h:588, label:'No data center yet', cls:'frame', ghost:true});
+    nodes.push({id:'nodc', x:494, y:150, w:254, h:64, k:'opt', icon:'building', t:'Add a data center', s:'Its agent collects this branch', sd:'Or give this branch an agent', go:'dc',
+      i:{h:'This branch has no agent and there is no data center agent to send to. Add a data center, or turn on an agent at this branch.', d:[]}});
+    nodes.push(KEN());
+    notes.push({x:32, y:384, t:'Nothing collects this branch yet.', td:'Nothing collects this branch yet.'});
+    return {frames, nodes, edges, notes};
+  }
+  const caps = capsOf('dc', t), on = c => caps.has(c), dname = dcName(t);
+  const rel = ['flow', 'snmp', 'trap', 'syslog', 'ssh', 'synth'].filter(on);
+  frames.push({x:478, y:16, w:286, h:588, label:dname + ' (on-prem)', labeld:dname + ' · collects for this branch', go:dcId(t)});
+  const uh = Math.max(220, 64 + Math.max(rel.length, 1) * 22 + 28);
+  nodes.push({id:'ua', x:494, y:90, w:254, h:uh, k:'ua', icon:'agent', t:'Universal Agent', s:'In ' + dname, sd:instOf('dc', t) === 'docker' ? 'In Docker' : 'On a Linux host', go:dcId(t),
+    lines:rel.length ? rel.map(c => UAC[c].ui) : ['No capabilities on'], linesd:rel.length ? rel.map(c => UAC[c].ui + ' · ' + UAC[c].sd.replace('Listens on ', '')) : ['Toggle them on in ' + dname],
+    foot:'Collects for this branch', footd:'Size it for the branch load too',
+    i:{h:'The ' + dname + ' agent collects for this branch. Only the capabilities that are on at ' + dname + ' reach the branch devices.', d:UA_DC_I.d}});
+  const ex = 764, ey = 90 + Math.round(uh / 2);
+  nodes.push(EGRESS(ex, ey), KEN());
+  edges.push({t:'https', a:'ua', b:'kentik', p:[[748, ey], [780, ey]]});
+  const R = 280, U = 494;
+  if(on('flow')) edges.push({t:'flow', a:'netgrp', b:'ua', p:[[R, 104], [U, 104]], lab:'Flow over the WAN', labd:'UDP 9995', lp:[387, 104]});
+  if(on('snmp')) edges.push({t:'snmp', a:'ua', b:'netgrp', p:[[U, 130], [R, 130]], bi:true, lab:'SNMP polls', labd:'UDP 161 · ICMP', lp:[387, 130]});
+  if(on('trap')) edges.push({t:'trap', a:'netgrp', b:'ua', p:[[R, 156], [U, 156]], lab:'Traps', labd:'UDP 162', lp:[387, 156]});
+  if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'ua', p:[[R, 182], [U, 182]], lab:'Syslog', labd:'UDP/TCP 514', lp:[387, 182]});
+  if(on('ssh')) edges.push({t:'ssh', a:'ua', b:'netgrp', p:[[U, 208], [R, 208]], lab:'Config sync', labd:'SSH, TCP 22', lp:[387, 208]});
+  if(on('synth')) edges.push({t:'synth', a:'ua', b:'wan', p:[[U, 240], [R, 240]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 240]});
+  const miss = ['flow', 'snmp', 'trap', 'syslog'].filter(c => !on(c)).map(c => UAC[c].ui);
+  notes.push({x:32, y:384, t:'No agent here: devices send to', td:'No local tests: test the branch'},
+             {x:32, y:401, t:'the ' + dname + ' agent.', td:'router from the data center agent.'});
+  if(miss.length) notes.push({x:494, y:90 + uh + 26, t:'Off at ' + dname + ':', td:'Off at ' + dname + ':'}, {x:494, y:90 + uh + 43, t:miss.join(', '), td:miss.join(', ')});
+  return {frames, nodes, edges, notes};
+}
+
+/* ===== Every data center at once: one row per site, each with its own agent ===== */
+const REMOTE_MULTI = {t:'Other DCs, SaaS', go:['dcs', 'saas'],
+  i:{h:'Connectivity Test targets: the agents in your other data centers, Kentik’s global and public cloud agents, SaaS apps, websites and DNS servers.',
+     d:['Agent-to-agent and mesh tests between data centers need TCP 8877 and UDP 9977 open between the agents.', 'Open All data centers to see every site and the tests between them.']}};
 function dcsScene(){
   const n = S.dcN, top = 58, bottom = 530, gap = n > 4 ? 8 : 14;
   const rowH = Math.min(118, Math.floor((bottom - top - (n - 1) * gap) / n));
@@ -1391,73 +1595,109 @@ function dcsScene(){
     rows.push({y, ny, cy:ny + nodeH / 2});
   }
   rows.forEach((r, k) => {
-    const i = k + 1, name = dcName(i);
+    const i = k + 1, name = dcName(i), caps = capList('dc', i), f = feeders(i).length;
     frames.push({id:'site-' + i, x:32, y:r.y, w:520, h:rowH, label:name, cls:'sframe', go:dcId(i),
       i:{h:name + ' has its own Universal Agent. The site’s devices send to that agent, and the agent sends everything to Kentik over outbound HTTPS.',
-         d:['Same install command, capabilities and ports as every other site.', 'Assign the agent to this site’s Site in Kentik so devices and tests group by location.']}});
-    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:'Routers, switches, firewalls', sd:'Flow, SNMP, traps, syslog',
-      i:{h:'The routers, switches and firewalls at ' + name + ' export flow to the local agent, send it traps and syslog, and answer its SNMP polls.',
+         d:['Same install command and ports as every other site; the capabilities can differ per agent.', 'Assign the agent to this site’s Site in Kentik so devices and tests group by location.']}});
+    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls', sd:'Flow, SNMP, traps, syslog',
+      i:{h:'The routers, switches and firewalls at ' + name + (f ? ', plus the devices of ' + f + ' branch office' + (f > 1 ? 's' : '') + ' with no agent,' : '') + ' send to the local agent and answer its polls.',
          d:['Devices → agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.', 'Agent → devices: UDP 161 SNMP, ICMP, gNMI and TCP 22 for SSH.']}});
-    nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:'Linux host or Docker', sd:'Out: TCP 443 only', go:dcId(i),
-      i:{h:'The Universal Agent for ' + name + ', on a Linux host or in Docker, with the capabilities this site needs switched on.',
-         d:['Install: Settings › Universal Agents › Deploy Agent gives a Linux or Docker command. Portal tokens last 1 hour.', 'Size the host for the sum of its capabilities: for example SNMP/ST 2 cores / 8 GB, Synthetics 2 cores / 2 GB.', 'Agent-to-agent tests with the other sites use TCP 8877 and UDP 9977.']}});
+    nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:caps.length + ' of 8 capabilities on', sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(i),
+      i:{h:'The Universal Agent for ' + name + ', ' + (instOf('dc', i) === 'docker' ? 'in Docker' : 'on a Linux host') + '. On: ' + (caps.length ? caps.map(c => UAC[c].ui).join(', ') : 'nothing yet') + '.',
+         d:['Install: Settings › Universal Agents › Deploy Agent gives a Linux or Docker command. Portal tokens last 1 hour.', 'Size the host for the sum of its capabilities: for example SNMP/ST 2 cores / 8 GB, Connectivity Test 2 cores / 2 GB.', 'Agent-to-agent tests with the other sites use TCP 8877 and UDP 9977.']}});
     nodes.push(Object.assign(EGRESS(760, r.cy), {id:'egress-' + i}));
-    edges.push({t:'flow', a:'dev-' + i, b:'ua-' + i, p:[[270, r.cy - 7], [320, r.cy - 7]]});
-    edges.push({t:'snmp', a:'ua-' + i, b:'dev-' + i, p:[[320, r.cy + 7], [270, r.cy + 7]], bi:true});
+    if(caps.includes('flow')) edges.push({t:'flow', a:'dev-' + i, b:'ua-' + i, p:[[270, r.cy - 7], [320, r.cy - 7]]});
+    if(caps.includes('snmp')) edges.push({t:'snmp', a:'ua-' + i, b:'dev-' + i, p:[[320, r.cy + 7], [270, r.cy + 7]], bi:true});
     edges.push(Object.assign({t:'https', a:'ua-' + i, b:'kentik', p:[[536, r.cy], [780, r.cy]]},
       k ? {} : {lab:'HTTPS, TLS 1.2+', labd:'TCP 443, outbound only', lp:[652, r.cy - 13]}));
-    if(k < n - 1){
+    if(k < n - 1 && caps.includes('synth') && capsOf('dc', i + 1).has('synth')){
       const nx = rows[k + 1], y1 = r.ny + nodeH, y2 = nx.ny;
-      edges.push(Object.assign({t:'synth', a:'ua-' + i, b:'ua-' + (i + 1), p:[[428, y1], [428, y2]], c:'v', bi:true},
-        k ? {} : {lab:'Agent-to-agent tests', labd:'TCP 8877 · UDP 9977', lp:[438, (y1 + y2) / 2], anchor:'start'}));
+      edges.push({t:'synth', a:'ua-' + i, b:'ua-' + (i + 1), p:[[428, y1], [428, y2]], c:'v', bi:true, lab:'Agent-to-agent tests', labd:'TCP 8877 · UDP 9977', lp:[438, (y1 + y2) / 2], anchor:'start'});
     }
   });
   const kh = Math.max(300, used), ky = Math.round(y0 + used / 2 - kh / 2);
   nodes.push(KEN({y:ky, h:kh, s:'One account, all sites'}));
-  const m = meshMath(n);
+  const ta = testAgents().length, m = meshMath(ta);
   const notes = n > 1
-    ? [{x:32, y:552, t:'Every site runs the same agent with the same install, all managed in one portal.', td:'Mesh of ' + n + ' agents every minute: ' + m.sub + ' subtests, ' + fmt(m.run) + ' credits per run, about ' + fmt(m.month) + ' a month.'},
-       {x:32, y:569, t:'The agents test the paths between your sites.', td:'Edge routers at each site peer BGP with Kentik directly on TCP 179.'}]
+    ? [{x:32, y:552, t:'Every site runs the same agent with its own capabilities, all managed in one portal.', td:ta > 1 ? 'Mesh of the ' + ta + ' agents with Connectivity Test, every minute: ' + m.sub + ' subtests, ' + fmt(m.run) + ' credits per run.' : 'Turn on Connectivity Test at two or more agents to build a mesh.'},
+       {x:32, y:569, t:'Agents with Connectivity Test on test the paths between sites.', td:'Edge routers peer BGP with their agent (BGP Proxy) or with Kentik on TCP 179.'}]
     : [{x:32, y:552, t:'Add a data center with + to see more sites and the tests between them.', td:'Add a data center to see mesh test credits for your sites.'}];
   return {frames, nodes, edges, notes};
 }
 
-function getScene(v){ return isDC(v) ? dcScene(dcIndex(v)) : v === 'dcs' ? dcsScene() : SC[v] || null; }
+/* ===== Every branch at once, and where each one sends its data ===== */
+function brsScene(){
+  const n = S.brN, ids = Array.from({length:n}, (_, k) => k + 1);
+  const order = ids.filter(i => !brUA(i)).sort((a, b) => brTarget(a) - brTarget(b) || a - b).concat(ids.filter(brUA));   // grouped by the data center they send to
+  const top = 58, bottom = 590, gap = 8;
+  const rh = Math.min(52, Math.floor((bottom - top - (n - 1) * gap) / n));
+  const frames = [{x:16, y:16, w:330, h:588, label:n > 1 ? 'Your ' + n + ' branch offices' : 'Your branch office'}];
+  const nodes = [], edges = [], notes = [], pos = {};
+  order.forEach((i, k) => {
+    const y = top + k * (rh + gap), ua = brUA(i), t = brTarget(i), caps = ua ? capList('br', i) : [];
+    pos[i] = y + rh / 2;
+    nodes.push({id:'b-' + i, x:32, y, w:298, h:rh, k:ua ? 'uas' : 'net', icon:ua ? 'agent' : 'store', t:brName(i),
+      s:ua ? 'Own agent · ' + caps.length + ' capabilit' + (caps.length === 1 ? 'y' : 'ies') : t ? 'No agent · sends to ' + dcName(t) : 'No agent and no data center yet',
+      sd:ua ? (caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on') : 'Flow, traps, syslog over the WAN', go:brId(i),
+      i:{h:ua ? brName(i) + ' has its own Universal Agent, which sends straight to Kentik over HTTPS.' : t ? brName(i) + ' has no agent. Its devices send across the WAN to the ' + dcName(t) + ' agent.' : brName(i) + ' has no agent, and there is no data center agent to send to yet.', d:[]}});
+  });
+  const targets = [...new Set(order.filter(i => !brUA(i) && brTarget(i)).map(brTarget))].sort((a, b) => a - b);
+  if(targets.length){
+    frames.push({x:362, y:16, w:310, h:588, label:'Data center agents'});
+    const remote = order.filter(i => !brUA(i));
+    const yTop = top, yBot = top + remote.length * (rh + gap) - gap, dh = Math.max(rh, 46);
+    const slot = (yBot - yTop) / targets.length;
+    targets.forEach((t, k) => {
+      const y = Math.round(yTop + slot * k + (slot - dh) / 2), caps = capList('dc', t);
+      nodes.push({id:'d-' + t, x:378, y, w:278, h:dh, k:'uas', icon:'building', t:dcName(t), s:'Universal Agent · collects ' + feeders(t).length, sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(t),
+        i:{h:'The ' + dcName(t) + ' agent collects for the branches that point at it.', d:['Size it for its own site plus those branches.']}});
+      edges.push({t:'https', a:'d-' + t, b:'kentik', p:[[656, y + dh / 2], [780, y + dh / 2]]});
+      feeders(t).forEach(i => {
+        const tp = capsOf('dc', t).has('flow') ? 'flow' : capsOf('dc', t).has('syslog') ? 'syslog' : capsOf('dc', t).has('trap') ? 'trap' : 'snmp';
+        edges.push({t:tp, a:'b-' + i, b:'d-' + t, p:[[330, pos[i]], [378, y + dh / 2]]});
+      });
+    });
+  }
+  let first = true;
+  order.filter(brUA).forEach(i => {
+    edges.push(Object.assign({t:'https', a:'b-' + i, b:'kentik', p:[[330, pos[i]], [780, pos[i]]]}, first ? {lab:'Branch agents send straight to Kentik', labd:'TCP 443, outbound only', lp:[560, pos[i] - 12]} : {}));
+    first = false;
+  });
+  nodes.push(KEN({y:58, h:532, s:'One account, every site'}));
+  return {frames, nodes, edges, notes};
+}
+
+function getScene(v){
+  if(isDC(v)) return agentScene('dc', dcIndex(v));
+  if(isBR(v)) return brUA(brIndex(v)) ? agentScene('br', brIndex(v)) : branchRemoteScene(brIndex(v));
+  if(v === 'dcs') return dcsScene();
+  if(v === 'brs') return brsScene();
+  return SC[v] || null;
+}
 
 function dcsInfo(){
-  const n = S.dcN, m = meshMath(n);
-  const hl = `<p class="lead">Every data center gets its own Universal Agent, installed on a Linux host or in Docker. Each agent sends its own site’s data to the same Kentik account over outbound HTTPS, and the agents test the paths between sites.</p>
+  const n = S.dcN, ta = testAgents().length, m = meshMath(ta);
+  const hl = `<p class="lead">Every data center gets its own Universal Agent, installed on a Linux host or in Docker. Each agent runs only the capabilities its site needs, sends to the same Kentik account over outbound HTTPS, and agents with Connectivity Test on test the paths between sites.</p>
 <h3>What changes when you add a site</h3><ul>
 <li>One more Linux host, or Docker host, running the Universal Agent</li>
 <li>The site’s routers, switches and firewalls point at their local agent</li>
-<li>The new agent joins your site-to-site tests</li>
-<li>Kentik SaaS stays the same: one account and one portal for every agent</li></ul>
-<h3>What stays the same at every site</h3><ul>
-<li>The install command, capabilities and ports</li>
-<li>Outbound TCP 443 only, nothing inbound from the Internet</li>
-<li>Agents update themselves and show Up or Down in Settings › Universal Agents</li></ul>`;
-  const dd = `<p class="lead">Repeat the same install at each site, then add the agents to a mesh test.</p>
+<li>Branches can point at the nearest data center agent instead of getting their own</li>
+<li>Kentik SaaS stays the same: one account and one portal for every agent</li></ul>`;
+  const dd = `<p class="lead">Repeat the same install at each site, toggle on what each site needs, then add the agents to a mesh test.</p>
 <h3>Checklist for each site</h3><ol style="padding-left:18px;margin:0 0 8px">
-<li>A Linux host or Docker host sized for the capabilities you turn on. Add up the sizing for each capability.</li>
+<li>A Linux host or Docker host sized for the capabilities you turn on, plus any branches that send to it.</li>
 <li>Run the Linux or Docker command from Settings › Universal Agents › Deploy Agent, then authorize the agent. Portal tokens last 1 hour.</li>
-<li>Assign the agent to its Site in Kentik.</li>
+<li>Assign the agent to its Site in Kentik, and toggle on its capabilities.</li>
 <li>Point devices at the agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.</li>
 <li>Allow UDP 161, ICMP and TCP 22 from the agent to the devices.</li>
 <li>Allow TCP 443 out to Kentik.</li></ol>
-<p>Rolling out many sites? Create provisioning tokens with the API. They take <code>maxUsageCount</code>, <code>expiresAt</code>, <code>requiresApproval</code> and <code>config.siteId</code>, so each agent registers into its own Site.</p>
-<h3>Between sites</h3>
-<table><thead><tr><th style="width:34%">Direction</th><th style="width:32%">Port</th><th>Used by</th></tr></thead><tbody>
-<tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Agent-to-agent and mesh tests</td></tr>
-<tr><td>Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>Every site, outbound only</td></tr>
-<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP from each site’s edge routers</td></tr>
-</tbody></table>
 <h3>Mesh test credits</h3>
-${n > 1 ? `<table><thead><tr><th style="width:64%">A mesh of your ${n} agents</th><th>Value</th></tr></thead><tbody>
-<tr><td>Subtests per run (${n} × ${n - 1})</td><td>${m.sub}</td></tr>
+${ta > 1 ? `<table><thead><tr><th style="width:64%">A mesh of your ${ta} agents with Connectivity Test</th><th>Value</th></tr></thead><tbody>
+<tr><td>Subtests per run (${ta} × ${ta - 1})</td><td>${m.sub}</td></tr>
 <tr><td>Credits per run, at 2.5 per private subtest</td><td>${fmt(m.run)}</td></tr>
 <tr><td>Credits per month, running every minute</td><td>${fmt(m.month)}</td></tr>
 </tbody></table>
-<p class="muted" style="font-size:12.5px">Every minute is 43,200 runs in a 30-day month, and longer intervals cost less. This matches the KB example: 4 private agents every minute is 12 subtests, 30 credits per run.</p>` : '<p>Add a second data center to build a mesh between sites.</p>'}
+<p class="muted" style="font-size:12.5px">Every minute is 43,200 runs in a 30-day month, and longer intervals cost less. This matches the KB example: 4 private agents every minute is 12 subtests, 30 credits per run.</p>` : '<p>Turn on Connectivity Test at two or more agents to build a mesh between sites.</p>'}
 <h3>Licensing</h3><ul>
 <li>Devices at every site count toward FlowPak and NMS (DevicePak) licenses.</li>
 <li>Private agents need no extra license. Their subtests cost 2.5 credits per run.</li></ul>`;
@@ -1465,31 +1705,96 @@ ${n > 1 ? `<table><thead><tr><th style="width:64%">A mesh of your ${n} agents</t
     src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['UA Deployment','https://kb.kentik.com/docs/ua-deployment'],['UA Portal Management','https://kb.kentik.com/docs/ua-portal-management'],['Test Types Reference','https://kb.kentik.com/docs/test-types'],['Test Credits','https://kb.kentik.com/docs/test-credits']]};
 }
 
+const INFO_BR_REMOTE = {kick:'Drill-in · On-prem', title:'Branch office with no agent',
+hl:`<p class="lead">Most branches don’t get their own agent. The branch routers, switches and Wi-Fi send their telemetry across the WAN to a Universal Agent in a data center, and that agent polls them back.</p>
+<h3>What you deploy at the branch</h3><ul>
+<li>Nothing new: just device configuration</li>
+<li>Flow export, trap and syslog targets pointing at the data center agent</li>
+<li>SNMP and read-only SSH credentials for the data center agent to use</li></ul>
+<h3>What you give up</h3><ul>
+<li>No tests from the branch itself, so no view of what users there experience. A data center agent can still test to the branch router.</li>
+<li>Telemetry crosses the WAN, so allow it through WAN firewalls and SD-WAN policy</li></ul>
+<p class="note">Turn on <b>Universal Agent at this branch</b> in the panel when the site needs local tests or its own collection.</p>`,
+dd:`<p class="lead">Branch devices are configured to use the data center agent as their collector.</p>
+<h3>Across the WAN</h3>
+<table><thead><tr><th style="width:38%">Direction</th><th style="width:30%">Port</th><th>Used by</th></tr></thead><tbody>
+<tr><td>Branch devices → DC agent</td><td>UDP 9995</td><td>Flow Proxy: Forwarding</td></tr>
+<tr><td>Branch devices → DC agent</td><td>UDP 162</td><td>SNMP Trap Receiver</td></tr>
+<tr><td>Branch devices → DC agent</td><td>UDP and TCP 514</td><td>Syslog Server</td></tr>
+<tr><td>DC agent → branch devices</td><td>UDP 161, ICMP</td><td>SNMP/ST</td></tr>
+<tr><td>DC agent → branch devices</td><td>TCP 22</td><td>Device Configuration Sync</td></tr>
+</tbody></table>
+<h3>In Kentik</h3><ul>
+<li>Add the branch devices with the data center agent as their collection agent (SNMP tab: Flow Enrichment or Full Monitoring via Universal Agent).</li>
+<li>Assign the devices to the branch Site, so dashboards and maps still group them by location.</li>
+<li>Set each device’s flow sample rate in Kentik to match the router.</li></ul>
+<h3>Sizing</h3><p>Add the branch flow rate and device count to the data center agent’s sizing: SNMP/ST covers up to 500 devices per 2 cores / 8 GB, and Flow Proxy: Forwarding about 20,000 flows per second per core.</p>`,
+src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['Device Settings','https://kb.kentik.com/docs/device-settings'],['Router Configuration','https://kb.kentik.com/docs/router-configuration'],['NMS Setup','https://kb.kentik.com/docs/nms-setup']]};
+
+function brsInfo(){
+  const n = S.brN, own = brIds().filter(id => brUA(brIndex(id))).length;
+  return {kick:'Drill-in · On-prem', title:n > 1 ? 'All ' + n + ' branch offices' : 'Your branch office',
+    hl:`<p class="lead">${own ? own + ' of ' + n + ' branch' + (n > 1 ? 'es have' : ' has') + ' an agent of their own.' : 'No branch has an agent of its own.'} The others send across the WAN to the data center agent they point at.</p>
+<h3>When to give a branch an agent</h3><ul><li>You want tests from where the users are</li><li>The site is large, or far from a data center</li><li>You want to keep its telemetry off the WAN</li></ul>`,
+    dd:`<p class="lead">Branches without an agent need UDP 9995, 162 and 514 allowed toward their data center agent, and UDP 161, ICMP and TCP 22 back. Branches with an agent need only TCP 443 out, plus TCP 8877 and UDP 9977 for agent-to-agent tests.</p>`,
+    src:INFO_BR_REMOTE.src};
+}
+
 function getInfo(v){
-  if(isDC(v)) return Object.assign({}, INFO.dc, {title:dcName(dcIndex(v)) + ' with a Universal Agent', site:dcIndex(v)});
-  if(v === 'dcs') return Object.assign(dcsInfo(), {sites:true});
+  if(isDC(v)) return Object.assign({}, INFO.dc, {title:dcName(dcIndex(v)) + ' with a Universal Agent', site:['dc', dcIndex(v)]});
+  if(isBR(v)){ const i = brIndex(v); return Object.assign({}, brUA(i) ? INFO.branch : INFO_BR_REMOTE, {title:brName(i) + (brUA(i) ? ' with a Universal Agent' : ': no agent, sends to ' + (brTarget(i) ? dcName(brTarget(i)) : 'a data center')), site:['br', i]}); }
+  if(v === 'dcs') return Object.assign(dcsInfo(), {sites:'dc'});
+  if(v === 'brs') return Object.assign(brsInfo(), {sites:'br'});
   return INFO[v];
 }
 
-/* Panel cards to rename, add and remove data centers */
+/* ===== Panel cards: rename sites, choose where a branch sends, toggle capabilities ===== */
 const BLDG = '<svg class="ico ico-left" aria-hidden="true"><use href="#i-building"/></svg>';
-function siteCard(i){
-  const n = S.dcN;
-  return `<div class="card site"><h4>${BLDG}${n > 1 ? 'Site ' + i + ' of ' + n : 'This data center'}<span class="tag">Universal Agent</span></h4>
-<label class="fld"><span>Site name</span><input type="text" id="dcNameIn" data-dc="${i}" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(dcCustom(i))}" placeholder="${esc(dcDefault(i))}"></label>
-<div class="btns"><button type="button" data-dcadd="1"${n < DC_MAX ? '' : ' disabled'}>+ Add a data center</button>${n > 1 ? `<button type="button" data-dcdel="${i}">Remove this site</button><button type="button" data-go="dcs">All ${n} together ›</button>` : ''}</div></div>`;
+const STORE = '<svg class="ico ico-left" aria-hidden="true"><use href="#i-store"/></svg>';
+function instSeg(kind, i){
+  const v = instOf(kind, i);
+  return `<div class="fld"><span>Install the agent</span><div class="seg mini" role="group" aria-label="Install method">${[['linux', 'Linux host'], ['docker', 'Docker']].map(o => `<button type="button" data-inst="${kind}:${i}:${o[0]}" aria-pressed="${v === o[0]}">${o[1]}</button>`).join('')}</div></div>`;
 }
-function sitesCard(){
-  const n = S.dcN;
-  return `<div class="card site"><h4>${BLDG}${n > 1 ? n + ' data centers' : '1 data center'}<span class="tag">Up to ${DC_MAX}</span></h4>
-<p>Each site has its own Universal Agent. Open a site to rename it or see its details.</p>
-<div class="btns">${dcIds().map((id, k) => `<button type="button" data-go="${id}">${esc(dcName(k + 1))} ›</button>`).join('')}<button type="button" data-dcadd="1"${n < DC_MAX ? '' : ' disabled'}>+ Add</button>${n > 1 ? '<button type="button" data-dcstep="-1">− Remove the last</button>' : ''}</div></div>`;
+function capsCard(kind, i, dd){
+  const caps = capsOf(kind, i), n = caps.size;
+  const rows = UACAPS.map(c => `<div class="caprow${caps.has(c.id) ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${caps.has(c.id)}" data-cap="${kind}:${i}:${c.id}" aria-label="${esc(c.ui)}"><span></span></button><div class="capt"><b>${esc(c.ui)}${c.aka ? ' <span class="aka">(AKA ' + c.aka + ')</span>' : ''}</b><span>${esc(dd ? c.sd : c.s)}</span></div></div>`).join('');
+  const z = sizing(kind, i);
+  const size = dd ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${n ? `Host for these capabilities at the KB baseline: ${z.cpu} cores / ${z.ram} GB, about <b>${z.rc} vCPU / ${z.rr} GB</b> with 30% headroom.` : 'Nothing to size yet.'}</p>` : '';
+  return `<div class="card caps"><div class="caphead"><div><h4>Installed capabilities</h4><p>Running on this agent. The diagram follows what you turn on.</p></div><span class="capn" aria-label="${n} on">${n}</span></div>${rows}
+<div class="btns" style="margin-top:6px"><button type="button" data-capall="${kind}:${i}:1">Turn all on</button><button type="button" data-capall="${kind}:${i}:0">Turn all off</button></div>${size}</div>`;
+}
+function siteCard(i, dd){
+  const n = S.dcN, f = feeders(i).length;
+  return `<div class="card site"><h4>${BLDG}${n > 1 ? 'Site ' + i + ' of ' + n : 'This data center'}<span class="tag">Universal Agent</span></h4>
+<label class="fld"><span>Site name</span><input type="text" class="nameIn" data-name="dc:${i}" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(dcCustom(i))}" placeholder="${esc(dcDefault(i))}"></label>
+${instSeg('dc', i)}${f ? `<p style="font-size:12.5px">Collects for ${f} branch${f > 1 ? 'es' : ''} with no agent.</p>` : ''}
+<div class="btns"><button type="button" data-dcadd="1"${n < DC_MAX ? '' : ' disabled'}>+ Add a data center</button>${n > 1 ? `<button type="button" data-dcdel="${i}">Remove this site</button><button type="button" data-go="dcs">All ${n} together ›</button>` : ''}</div></div>` + capsCard('dc', i, dd);
+}
+function branchCard(i, dd){
+  const n = S.brN, ua = brUA(i), t = brTarget(i);
+  const sel = dcOn() ? `<label class="fld"><span>Sends its data to</span><select class="toSel" data-to="${i}">${dcIds().map((id, k) => `<option value="${k + 1}"${t === k + 1 ? ' selected' : ''}>${esc(dcName(k + 1))} agent</option>`).join('')}</select></label>`
+    : '<p class="note">No data center is selected, so nothing collects this branch. Add a data center or turn on an agent here.</p>';
+  return `<div class="card site"><h4>${STORE}${n > 1 ? 'Branch ' + i + ' of ' + n : 'This branch'}<span class="tag">${ua ? 'Universal Agent' : 'No agent'}</span></h4>
+<label class="fld"><span>Branch name</span><input type="text" class="nameIn" data-name="br:${i}" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(brCustom(i))}" placeholder="${esc(brDefault(i))}"></label>
+<div class="caprow solo${ua ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${ua}" data-brua="${i}" aria-label="Universal Agent at this branch"><span></span></button><div class="capt"><b>Universal Agent at this branch</b><span>${ua ? 'Collects locally and tests from the branch' : 'Off: devices send across the WAN to a data center'}</span></div></div>
+${ua ? instSeg('br', i) : sel}
+<div class="btns"><button type="button" data-bradd="1"${n < BR_MAX ? '' : ' disabled'}>+ Add a branch</button><button type="button" data-brdel="${i}">Remove this branch</button>${n > 1 ? `<button type="button" data-go="brs">All ${n} branches ›</button>` : ''}</div></div>` + (ua ? capsCard('br', i, dd) : '');
+}
+function sitesCard(kind){
+  const dc = kind === 'dc', n = dc ? S.dcN : S.brN, max = dc ? DC_MAX : BR_MAX;
+  const ids = dc ? dcIds() : brIds(), nm = k => dc ? dcName(k) : brName(k);
+  return `<div class="card site"><h4>${dc ? BLDG : STORE}${n} ${dc ? 'data center' : 'branch office'}${n === 1 ? '' : dc ? 's' : 's'}<span class="tag">Up to ${max}</span></h4>
+<p>${dc ? 'Each data center has its own Universal Agent.' : 'Each branch either has an agent or sends to a data center agent.'} Open a site to rename it or toggle its capabilities.</p>
+<div class="btns">${ids.map((id, k) => `<button type="button" data-go="${id}">${esc(nm(k + 1))} ›</button>`).join('')}<button type="button" data-${dc ? 'dcadd' : 'bradd'}="1"${n < max ? '' : ' disabled'}>+ Add</button>${n > 1 ? `<button type="button" data-${dc ? 'dcstep' : 'brstep'}="-1">− Remove the last</button>` : ''}</div></div>`;
 }
 /* ---------- Rendering: helpers, state and the overview ---------- */
 const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
-const S = {mode:'high', sel:new Set(['dc','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED, dcN:1, dcNames:[]};
+const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
+  dcN:1, dcNames:[], dcCaps:[], dcInst:[],
+  brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
+  meta:{cu:'', pb:'', rg:'US'}};
 const VB = [0, 0, 1000, 620];
 const FIT = [];       // texts that had to shrink to fit; empty means every label fits at its design size
 let OVR = {};         // overview card rectangles, used by the zoom transition
@@ -1656,35 +1961,72 @@ function drawHub(gN, h, dd){
   txt(g, h.x + h.w / 2, h.y + h.h - 11, 'See inside ›', 'drill', {'text-anchor':'middle'});
 }
 
+/* A branch office tile in the row along the bottom of the overview */
+function drawBranchTile(gN, r, i, dd){
+  const ua = brUA(i), t = brTarget(i), caps = ua ? capList('br', i) : [];
+  const status = ua ? (dd ? 'Own agent · TCP 443 out' : 'Own Universal Agent') : t ? (dd ? 'UDP 9995/162/514 → ' : 'Sends to ') + dcName(t) : 'Nothing collects it yet';
+  const g = el('g', {class:'card-ov' + (!ua && !t ? ' warn' : ''), role:'button', tabindex:0, 'data-go':brId(i), 'aria-label':brName(i) + '. ' + status + '. Press Enter to drill in.'}, gN);
+  el('rect', {class:'bg', x:r.x, y:r.y, width:r.w, height:r.h, rx:10}, g);
+  icon(g, ua ? 'agent' : 'store', r.x + 9, r.y + 9, 17, 'ico ' + (ua ? 'ico-ktk' : 'ico-left'));
+  fit(txt(g, r.x + 31, r.y + 22, brName(i), 't-label', {style:'font-size:12.5px'}), r.w - 40);
+  fit(txt(g, r.x + 10, r.y + 41, status, 't-sub'), r.w - 20);
+  if(r.h >= 70){
+    const dots = ua ? caps : t ? ['flow', 'snmp', 'trap', 'syslog'].filter(c => capsOf('dc', t).has(c)) : [];
+    dots.forEach((c, k) => el('circle', {class:'dot-' + c, cx:r.x + 14 + k * 11, cy:r.y + 58, r:3.6}, g));
+    const lab = ua ? (caps.length ? '' : 'No capabilities on') : t ? 'over the WAN' : 'Add a data center';
+    if(lab) fit(txt(g, r.x + 14 + dots.length * 11 + (dots.length ? 2 : -4), r.y + 62, lab, 'chiptxt'), r.w - 24 - dots.length * 11);
+  }
+  return g;
+}
+
+/* Branch row geometry: one row, or two staggered rows so lines from the back row pass between the tiles in front */
+function branchBand(rightCol){
+  const brs = brIds().map(brIndex), add = S.brN < BR_MAX;
+  const x0 = M, x1 = rightCol ? VB[2] - M - SW - 26 : VB[2] - M, rowW = x1 - x0, g = 10;
+  const per = Math.max(2, Math.floor((rowW + g) / (100 + g)));
+  let slots = brs.length + (add ? 1 : 0), rows = 1, k1 = slots;
+  if(slots > per){ rows = 2; k1 = Math.ceil((slots + 1) / 2); if(k1 > per){ k1 = per; slots = Math.min(slots, 2 * per - 1); } }
+  const tw = Math.min(rows === 1 ? 188 : 160, (rowW - (k1 - 1) * g) / k1), th = rows === 1 ? 74 : 52;
+  const top = VB[3] - M - (rows * th + (rows - 1) * 10), ox = x0 + (rowW - (k1 * tw + (k1 - 1) * g)) / 2;
+  const tiles = [];
+  for(let j = 0; j < slots; j++){
+    const row = j < k1 ? 0 : 1, col = row ? j - k1 : j;
+    tiles.push({i:j < brs.length ? brs[j] : 0, x:ox + col * (tw + g) + (row ? (tw + g) / 2 : 0), y:top + row * (th + 10), w:tw, h:th});
+  }
+  return {top, bus:top - 13, tiles};
+}
+
 function renderOverview(){
   const svg = $('#ov');
   svg.innerHTML = '';
   OVR = {};
   const dd = S.mode === 'deep';
-  const many = S.sel.has('dc') && S.dcN > 1;
-  const ids = CHIP_ORDER.filter(id => S.sel.has(id)).flatMap(id => id === 'dc' ? dcIds() : [id]);
-  const sideOf = id => isDC(id) ? 'left' : id === 'branch' && many ? 'bottom' : MOD[id].side;   // with several data centers the branch moves to the bottom
+  const ids = CHIP_ORDER.filter(id => S.sel.has(id) && id !== 'branch').flatMap(id => id === 'dc' ? dcIds() : [id]);
+  const sideOf = id => isDC(id) ? 'left' : MOD[id].side;
   const modFor = id => isDC(id) ? dcMod(id) : MOD[id];
   const side = s => ids.filter(id => sideOf(id) === s);
-  const L = side('left'), R = side('right'), T = side('top'), B = side('bottom');
+  const L = side('left'), R = side('right'), T = side('top');
   const gE = el('g', {class:'edges'}, svg), gP = el('g', {class:'pts'}, svg), gN = el('g', {class:'nodes'}, svg), gL = el('g', {class:'labels'}, svg);
 
-  const column = (list, x) => {
+  const band = brOn() ? branchBand(R.length > 0) : null;
+  const remote = band ? band.tiles.filter(t => t.i && !brUA(t.i) && brTarget(t.i)) : [];
+  const lx = remote.length ? 46 : M;
+  const column = (list, x, y0, y1) => {
     if(!list.length) return [];
-    const each = (VB[3] - 2 * M - (list.length - 1) * GAP) / list.length;
+    const H = y1 - y0, each = (H - (list.length - 1) * GAP) / list.length;
     const lays = list.map(id => {
       const m = modFor(id);
       for(const v of ['full', 'compact', 'one']){ const f = cardLayout(m, SW, v); if(f.h <= each) return f; }
       return cardLayout(m, SW, 'mini');
     });
-    let y = (VB[3] - lays.reduce((a, l) => a + l.h, 0) - (list.length - 1) * GAP) / 2;
-    return list.map((id, i) => { const r = {id, x, y, w:SW, h:lays[i].h, lay:lays[i]}; y += r.h + GAP; return r; });
+    const sum = lays.reduce((a, l) => a + l.h, 0), gp = list.length > 1 ? Math.max(4, Math.min(GAP, (H - sum) / (list.length - 1))) : 0;
+    let y = y0 + Math.max(0, (H - sum - (list.length - 1) * gp) / 2);
+    return list.map((id, i) => { const r = {id, x, y, w:SW, h:lays[i].h, lay:lays[i]}; y += r.h + gp; return r; });
   };
-  const left = column(L, M), right = column(R, VB[2] - M - SW);
-  const both = T.length && B.length;
-  const center = (id, atTop) => { const lay = cardLayout(modFor(id), CW, both ? 'compact' : 'full'); return {id, x:(VB[2] - CW) / 2, y:atTop ? M : VB[3] - M - lay.h, w:CW, h:lay.h, lay}; };
-  const top = T.length ? center(T[0], true) : null, bot = B.length ? center(B[0], false) : null;
-  const y1 = top ? top.y + top.h : 0, y2 = bot ? bot.y : VB[3];
+  const leftBottom = band ? band.bus - 12 : VB[3] - M;
+  const left = column(L, lx, M, leftBottom), right = column(R, VB[2] - M - SW, M, VB[3] - M);
+  const top = T.length ? (() => { const lay = cardLayout(modFor(T[0]), CW, band ? 'compact' : 'full'); return {id:T[0], x:(VB[2] - CW) / 2, y:M, w:CW, h:lay.h, lay}; })() : null;
+  const y1 = top ? top.y + top.h : 0, y2 = band ? band.bus - 4 : VB[3];
   const hub = {x:(VB[2] - HW) / 2, w:HW, h:HH, y:Math.round((y1 + y2) / 2 - HH / 2)};
   OVR.kentik = [hub.x, hub.y, hub.w, hub.h];
 
@@ -1693,7 +2035,7 @@ function renderOverview(){
   const sideEdges = (cards, fromRight) => {
     const list = [];
     cards.forEach(r => {
-      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2;   // BGP from the data center, while there is room for it
+      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2 && !capsOf('dc', dcIndex(r.id)).has('bgp');   // direct BGP from the data center, when BGP Proxy is off and there is room
       list.push({r, e:OV_EDGE[modOf(r.id)], y:two ? cy - 12 : cy});
       if(two) list.push({r, e:OV_BGP, y:cy + 12});
     });
@@ -1710,23 +2052,56 @@ function renderOverview(){
   sideEdges(right, true);
   const cx = VB[2] / 2;
   if(top) edges.push(Object.assign({}, OV_EDGE[top.id], {a:top.id, b:'kentik', c:'v', p:[[cx, top.y + top.h], [cx, hub.y]], lp:[cx, (top.y + top.h + hub.y) / 2]}));
-  if(bot) edges.push(Object.assign({}, OV_EDGE[bot.id], {a:bot.id, b:'kentik', c:'v', p:[[cx, bot.y], [cx, hub.y + hub.h]], lp:[cx, (bot.y + hub.y + hub.h) / 2]}));
+
+  /* Branches: their own agent goes up to Kentik; no agent goes across the WAN to a data center agent */
+  if(band){
+    const own = band.tiles.filter(t => t.i && brUA(t.i));
+    own.forEach((t, k) => {
+      const hx = own.length === 1 ? cx : hub.x + 26 + (hub.w - 52) * k / (own.length - 1), sx = t.x + t.w / 2;
+      edges.push(Object.assign({t:'https', a:brId(t.i), b:'kentik', c:'v', p:[[sx, t.y], [hx, hub.y + hub.h]]},
+        k ? {} : {lab:'HTTPS', labd:'TCP 443', lp:[(sx + hx) / 2, (t.y + hub.y + hub.h) / 2]}));
+    });
+    const dcR = Object.fromEntries(left.filter(r => isDC(r.id)).map(r => [dcIndex(r.id), r]));
+    const tgts = [...new Set(remote.map(t => brTarget(t.i)))].filter(d => dcR[d]);
+    const maxCx = Math.max(...remote.map(t => t.x + t.w / 2));
+    let labeled = false;
+    remote.forEach(t => {
+      const d = brTarget(t.i), r = dcR[d];
+      if(!r) return;
+      const caps = capsOf('dc', d), tp = ['flow', 'trap', 'syslog', 'snmp'].find(c => caps.has(c));
+      if(!tp) return;
+      const gx = lx - 10 - tgts.filter(x => x > d).length * 6, dy = r.y + r.h / 2, sx = t.x + t.w / 2;
+      const e = {t:tp, a:brId(t.i), b:dcId(d), p:[[sx, t.y], [sx, band.bus], [gx, band.bus], [gx, dy], [lx, dy]]};
+      if(!labeled){ Object.assign(e, {lab:'Branch telemetry over the WAN', labd:'UDP 9995 · 162 · 514 to the agent', lp:[(gx + maxCx) / 2, band.bus]}); labeled = true; }
+      edges.push(e);
+    });
+  }
   edges.forEach((e, i) => drawEdge(gE, gL, e, i, dd, false));
 
-  [...left, ...right, top, bot].filter(Boolean).forEach(r => { drawCard(gN, r, modFor(r.id), dd); OVR[r.id] = [r.x, r.y, r.w, r.h]; });
+  [...left, ...right, top].filter(Boolean).forEach(r => { drawCard(gN, r, modFor(r.id), dd); OVR[r.id] = [r.x, r.y, r.w, r.h]; });
+  if(band){
+    band.tiles.forEach(t => {
+      if(t.i){ drawBranchTile(gN, t, t.i, dd); OVR[brId(t.i)] = [t.x, t.y, t.w, t.h]; return; }
+      const g = el('g', {class:'addbtn', role:'button', tabindex:0, 'data-bradd':1, 'aria-label':'Add a branch office'}, gN);
+      el('rect', {x:t.x, y:t.y, width:t.w, height:t.h, rx:10}, g);
+      txt(g, t.x + t.w / 2, t.y + t.h / 2 + 4, '+ Add a branch', '', {'text-anchor':'middle'});
+    });
+    const xs = band.tiles.map(t => t.x), ys = band.tiles.map(t => t.y);
+    OVR.brs = [Math.min(...xs), Math.min(...ys), Math.max(...band.tiles.map(t => t.x + t.w)) - Math.min(...xs), Math.max(...band.tiles.map(t => t.y + t.h)) - Math.min(...ys)];
+  }
   const dcs = left.filter(r => isDC(r.id));
   if(dcs.length){
     const last = dcs[dcs.length - 1];
     OVR.dcs = [last.x, dcs[0].y, last.w, last.y + last.h - dcs[0].y];
     const ay = last.y + last.h + 8;
-    if(S.dcN < DC_MAX && !left.some(r => r.y > last.y) && ay + 26 <= VB[3] - 4){
+    if(S.dcN < DC_MAX && !left.some(r => r.y > last.y) && ay + 26 <= leftBottom + 6){
       const g = el('g', {class:'addbtn', role:'button', tabindex:0, 'data-dcadd':1, 'aria-label':'Add a data center'}, gN);
       el('rect', {x:last.x, y:ay, width:last.w, height:26, rx:9}, g);
       txt(g, last.x + last.w / 2, ay + 17, '+ Add a data center', '', {'text-anchor':'middle'});
     }
   }
   drawHub(gN, hub, dd);
-  if(!ids.length) txt(gN, cx, hub.y + hub.h + 42, 'Pick a starting point or deployments above', 'empty-t', {'text-anchor':'middle'});
+  if(!ids.length && !band) txt(gN, cx, hub.y + hub.h + 42, 'Pick a starting point or deployments above', 'empty-t', {'text-anchor':'middle'});
   svg._edges = edges;
 }
 
@@ -1744,8 +2119,9 @@ function buildPicker(){
   $('#presets').innerHTML = PRESETS.map(p => `<button type="button" class="pbtn" data-preset="${p.id}" aria-pressed="false">${esc(p.n)}</button>`).join('');
   $('#chips').innerHTML = CHIP_ORDER.map((id, i) => {
     const chip = `<button type="button" class="chip" data-chip="${id}" aria-pressed="false" title="Show or hide. Key ${i + 1} drills in."><span class="box" aria-hidden="true"></span><span class="lab">${esc(CHIP_NAMES[id])}</span></button>`;
-    if(id !== 'dc') return chip;
-    return `<span class="dcset">${chip}<span class="step" role="group" aria-label="Number of data centers"><button type="button" data-dcstep="-1" aria-label="Remove a data center" title="Remove a data center (key −)">−</button><span class="num" id="dcNum" aria-live="polite">1</span><button type="button" data-dcstep="1" aria-label="Add a data center" title="Add a data center (key +)">+</button></span></span>`;
+    if(id === 'dc') return `<span class="dcset">${chip}<span class="step" role="group" aria-label="Number of data centers"><button type="button" data-dcstep="-1" aria-label="Remove a data center" title="Remove a data center (key −)">−</button><span class="num" id="dcNum" aria-live="polite">1</span><button type="button" data-dcstep="1" aria-label="Add a data center" title="Add a data center (key +)">+</button></span></span>`;
+    if(id === 'branch') return `<span class="dcset">${chip}<span class="step" role="group" aria-label="Number of branch offices"><button type="button" data-brstep="-1" aria-label="Remove a branch office" title="Remove a branch office">−</button><span class="num" id="brNum" aria-live="polite">1</span><button type="button" data-brstep="1" aria-label="Add a branch office" title="Add a branch office">+</button></span></span>`;
+    return chip;
   }).join('');
 }
 function syncPicker(){
@@ -1756,6 +2132,11 @@ function syncPicker(){
   $('#chips [data-chip="dc"] .lab').textContent = shown > 1 ? 'Data centers' : 'Data center';
   $('#chips [data-dcstep="-1"]').disabled = shown === 0;
   $('#chips [data-dcstep="1"]').disabled = shown >= DC_MAX;
+  const bs = S.sel.has('branch') ? S.brN : 0;
+  $('#brNum').textContent = bs;
+  $('#chips [data-chip="branch"] .lab').textContent = bs > 1 ? 'Branches' : 'Branch';
+  $('#chips [data-brstep="-1"]').disabled = bs === 0;
+  $('#chips [data-brstep="1"]').disabled = bs >= BR_MAX;
 }
 /* ---------- Rendering: drill-in views, panel, motion and controls ---------- */
 function nodeText(n, dd){
@@ -1801,20 +2182,22 @@ function drawFrame(gF, f, dd){
   return g;
 }
 
-let SCN = null;   // the scene on screen: fixed data, or built for the current data centers
+let SCN = null;   // the scene on screen: fixed data, or built for the current sites and capabilities
 function renderDetail(){
   const svg = $('#dt');
-  svg.innerHTML = '';
   const sc = SCN = getScene(S.view);
+  drawScene(svg, sc, S.mode === 'deep');
+  if(sc) svg.setAttribute('aria-label', viewName(S.view) + ' detail view');
+}
+function drawScene(svg, sc, dd){
+  svg.innerHTML = '';
   if(!sc){ svg._edges = []; return; }
-  const dd = S.mode === 'deep';
   const gF = el('g', {class:'frames'}, svg), gE = el('g', {class:'edges'}, svg), gP = el('g', {class:'pts'}, svg);
   const gN = el('g', {class:'nodes'}, svg), gT = el('g', {class:'notes'}, svg), gL = el('g', {class:'labels'}, svg);
   sc.frames.forEach(f => drawFrame(gF, f, dd));
   sc.edges.forEach((e, i) => drawEdge(gE, gL, e, i, dd, true));
   sc.nodes.forEach(n => drawNode(gN, n, dd));
   (sc.notes || []).forEach(n => { const s = dd ? n.td : n.t; if(s) txt(gT, n.x, n.y, s, 't-note'); });
-  svg.setAttribute('aria-label', viewName(S.view) + ' detail view');
   svg._edges = sc.edges;
 }
 
@@ -1823,12 +2206,14 @@ function viewName(v){
   if(v === 'ov') return 'All deployments';
   if(v === 'kentik') return 'Kentik SaaS';
   if(v === 'dcs') return S.dcN > 1 ? 'All data centers' : 'Your data center';
+  if(v === 'brs') return S.brN > 1 ? 'All branches' : 'Your branch';
   if(isDC(v)) return dcName(dcIndex(v));
+  if(isBR(v)) return brName(brIndex(v));
   return MOD[v] ? MOD[v].name : v;
 }
 function findItem(id){ const sc = SCN; if(!sc || S.view === 'ov') return null; return sc.nodes.find(n => n.id === id) || sc.frames.find(f => f.id === id) || null; }
 function itemName(id){
-  if(S.view === 'ov') return id === 'kentik' ? 'Kentik SaaS' : isDC(id) ? dcName(dcIndex(id)) : MOD[id] ? MOD[id].name : id;
+  if(S.view === 'ov') return id === 'kentik' ? 'Kentik SaaS' : isDC(id) ? dcName(dcIndex(id)) : isBR(id) ? brName(brIndex(id)) : MOD[id] ? MOD[id].name : id;
   const it = findItem(id);
   return it ? (it.t || it.label || it.tip || id) : id;
 }
@@ -1906,7 +2291,12 @@ function dcOverviewCard(dd){
   const btns = n > 1
     ? `<button type="button" data-go="dcs">All ${n} together ›</button>` + dcIds().map((id, k) => `<button type="button" data-go="${id}">${esc(dcName(k + 1))} ›</button>`).join('')
     : '<button type="button" data-go="dc">Drill in ›</button>';
-  return `<div class="card"><h4>${BLDG}${n > 1 ? n + ' data centers' : esc(dcName(1))}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}${n > 1 ? ' Each data center has its own agent.' : ''}</p><div class="btns">${btns}${n < DC_MAX ? '<button type="button" data-dcadd="1">+ Add a data center</button>' : ''}</div></div>`;
+  return `<div class="card"><h4>${BLDG}${n > 1 ? n + ' data centers' : esc(dcName(1))}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}${n > 1 ? ' Each data center has its own agent.' : ''} Open one to toggle its capabilities.</p><div class="btns">${btns}${n < DC_MAX ? '<button type="button" data-dcadd="1">+ Add a data center</button>' : ''}</div></div>`;
+}
+function brOverviewCard(dd){
+  const m = MOD.branch, n = S.brN, own = brIds().filter(id => brUA(brIndex(id))).length;
+  const btns = (n > 1 ? `<button type="button" data-go="brs">All ${n} together ›</button>` : '') + brIds().map((id, k) => `<button type="button" data-go="${id}">${esc(brName(k + 1))} ›</button>`).join('');
+  return `<div class="card"><h4>${STORE}${n > 1 ? n + ' branch offices' : esc(brName(1))}<span class="tag">${own ? own + ' with an agent' : 'No agents'}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><div class="btns">${btns}${n < BR_MAX ? '<button type="button" data-bradd="1">+ Add a branch</button>' : ''}</div></div>`;
 }
 function renderPanel(){
   const P = $('#panel'), dd = S.mode === 'deep';
@@ -1914,13 +2304,13 @@ function renderPanel(){
     P.innerHTML = typeBlock() + (dd ? OV_DD : OV_HL);
     const box = P.querySelector('#ov-sel'), ids = CHIP_ORDER.filter(id => S.sel.has(id));
     box.innerHTML = ids.length
-      ? ids.map(id => { if(id === 'dc') return dcOverviewCard(dd); const m = MOD[id]; return `<div class="card"><h4><svg class="ico ico-${m.side}" aria-hidden="true"><use href="#i-${m.icon}"/></svg>${esc(m.name)}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><button type="button" data-go="${id}">Drill in ›</button></div>`; }).join('')
+      ? ids.map(id => { if(id === 'dc') return dcOverviewCard(dd); if(id === 'branch') return brOverviewCard(dd); const m = MOD[id]; return `<div class="card"><h4><svg class="ico ico-${m.side}" aria-hidden="true"><use href="#i-${m.icon}"/></svg>${esc(m.name)}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><button type="button" data-go="${id}">Drill in ›</button></div>`; }).join('')
         + `<div class="card"><h4><svg class="ico ico-ktk" aria-hidden="true"><use href="#i-ib"/></svg>Kentik SaaS<span class="tag">Platform</span></h4><p>${dd ? 'Hosting, encryption, retention, the Kentik Data Engine and Firehose.' : 'What happens to your data once it reaches Kentik.'}</p><button type="button" data-go="kentik">See inside ›</button></div>`
       : '<p class="muted">Nothing selected yet. Pick a starting point or a deployment above.</p>';
     return;
   }
   const inf = getInfo(S.view);
-  const site = inf.site ? siteCard(inf.site) : inf.sites ? sitesCard() : '';
+  const site = inf.site ? (inf.site[0] === 'dc' ? siteCard(inf.site[1], dd) : branchCard(inf.site[1], dd)) : inf.sites ? sitesCard(inf.sites) : '';
   P.innerHTML = typeBlock() + focusBlock(dd) + `<p class="kick">${esc(inf.kick)}</p><h2 class="ttl">${esc(inf.title)}</h2>` + site + (dd ? inf.dd : inf.hl) + srcList(inf.src);
 }
 
@@ -2007,6 +2397,8 @@ const WIDE = [-100, -62, 1200, 744];
 function refresh(){ renderChrome(); renderPanel(); renderLegend(); buildParticles(); applyHighlight(); saveHash(); }
 
 function go(view, instant){
+  if(view === 'branch') view = 'br1';
+  if(isBR(view) && brIndex(view) > S.brN) view = brId(S.brN);
   const mod = modOf(view);
   if(mod && !S.sel.has(mod)){ S.sel.add(mod); renderOverview(); }
   const prev = S.view, ov = $('#ov'), dt = $('#dt'), ms = instant ? 0 : 420;
@@ -2048,12 +2440,13 @@ function setSelection(set){
 }
 function toggleMotion(){ S.anim = !S.anim; refresh(); }
 
-/* ===== Adding, removing and renaming data centers ===== */
+/* ===== Adding, removing and renaming sites, and toggling capabilities ===== */
+const siteView = v => isDC(v) || v === 'dcs' || isBR(v) || v === 'brs';
 function dcRefresh(target){
   renderOverview();
-  const v = S.view, dcView = isDC(v) || v === 'dcs';
-  if(dcView && target && target !== v){ go(target); return; }
-  if(dcView){ S.focus = null; S.hl = null; renderDetail(); }
+  const v = S.view;
+  if(siteView(v) && target && target !== v){ go(target); return; }
+  if(siteView(v)){ S.focus = null; S.hl = null; renderDetail(); }
   refresh();
 }
 function setDCCount(n){
@@ -2070,42 +2463,102 @@ function setDCCount(n){
 const stepDC = d => setDCCount((S.sel.has('dc') ? S.dcN : 0) + d);
 function removeDC(i){
   if(S.dcN <= 1){ setDCCount(0); return; }
-  S.dcNames.splice(i - 1, 1);
+  [S.dcNames, S.dcCaps, S.dcInst].forEach(a => a.splice(i - 1, 1));
+  S.brTo = S.brTo.map(t => { t = +t || 1; return t === i ? 1 : t > i ? t - 1 : t; });   // branches that pointed at the removed site move to the first one
   S.dcN--;
   dcRefresh('dcs');
 }
-function renameDC(i, v){
-  S.dcNames[i - 1] = String(v).slice(0, 32);
+function setBRCount(n){
+  const shown = Math.max(0, Math.min(BR_MAX, n)), v = S.view, sel = new Set(S.sel);
+  if(shown === 0) sel.delete('branch'); else { sel.add('branch'); S.brN = shown; }
+  S.sel = sel;
+  let target = v;
+  if(isBR(v) || v === 'brs'){
+    if(!sel.has('branch')) target = 'ov';
+    else if(isBR(v) && brIndex(v) > S.brN) target = brId(S.brN);
+  }
+  dcRefresh(target);
+}
+const stepBR = d => setBRCount((S.sel.has('branch') ? S.brN : 0) + d);
+function addBR(){ const was = S.sel.has('branch') ? S.brN : 0; setBRCount(was + 1); if(S.view !== 'ov' && S.brN > was) go(brId(S.brN)); }
+function removeBR(i){
+  if(S.brN <= 1){ setBRCount(0); return; }
+  [S.brNames, S.brUA, S.brTo, S.brCaps, S.brInst].forEach(a => a.splice(i - 1, 1));
+  S.brN--;
+  dcRefresh(S.brN > 1 ? 'brs' : 'br1');
+}
+function renameSite(kind, i, v){
+  (kind === 'dc' ? S.dcNames : S.brNames)[i - 1] = String(v).slice(0, 32);
   renderOverview();
-  if(isDC(S.view) || S.view === 'dcs'){ renderDetail(); buildParticles(); applyHighlight(); }
+  if(siteView(S.view)){ renderDetail(); buildParticles(); applyHighlight(); }
   renderChrome(); saveHash();
   const h = $('#panel h2.ttl');
   if(h) h.textContent = getInfo(S.view).title;
 }
+/* Any change to an agent: redraw everything that depends on it and keep the panel where it was */
+function siteChanged(){
+  const top = $('#panel').scrollTop;
+  renderOverview();
+  if(S.view !== 'ov'){ S.focus = null; renderDetail(); }
+  refresh();
+  $('#panel').scrollTop = top;
+}
+function toggleCap(kind, i, c){ const s = capsOf(kind, i); if(s.has(c)) s.delete(c); else s.add(c); siteChanged(); }
+function setAllCaps(kind, i, on){ (kind === 'dc' ? S.dcCaps : S.brCaps)[i - 1] = new Set(on ? DRAW_ORDER : []); siteChanged(); }
+function setInst(kind, i, v){ (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
+function toggleBRUA(i){ S.brUA[i - 1] = !brUA(i); siteChanged(); }
+function setBRTarget(i, t){ S.brTo[i - 1] = +t; siteChanged(); }
 
 /* ===== URL hash keeps the current view shareable ===== */
-function saveHash(){
+const capCode = set => DRAW_ORDER.filter(c => set.has(c)).join('.');
+function stateHash(){
   let h = 'v=' + S.view + '&m=' + S.mode + '&s=' + CHIP_ORDER.filter(id => S.sel.has(id)).join('.');
-  if(S.dcN > 1) h += '&n=' + S.dcN;
-  const names = S.dcNames.slice(0, S.dcN).map(s => String(s || '').trim());
-  if(names.some(Boolean)) h += '&dn=' + names.map(encodeURIComponent).join('|');
-  try { history.replaceState(null, '', '#' + h); } catch(e){}
+  h += '&n=' + S.dcN + '&b=' + S.brN;
+  const enc = list => list.map(x => encodeURIComponent(String(x || '').trim())).join('|');
+  const dn = S.dcNames.slice(0, S.dcN), bn = S.brNames.slice(0, S.brN);
+  if(dn.some(x => String(x || '').trim())) h += '&dn=' + enc(dn);
+  if(bn.some(x => String(x || '').trim())) h += '&bn=' + enc(bn);
+  h += '&dc=' + dcIds().map((id, k) => capCode(capsOf('dc', k + 1))).join('|');
+  h += '&di=' + dcIds().map((id, k) => instOf('dc', k + 1)[0]).join('');
+  h += '&bu=' + brIds().map((id, k) => brUA(k + 1) ? 1 : 0).join('');
+  h += '&bt=' + brIds().map((id, k) => +S.brTo[k] || 1).join('.');
+  h += '&bc=' + brIds().map((id, k) => capCode(capsOf('br', k + 1))).join('|');
+  h += '&bi=' + brIds().map((id, k) => instOf('br', k + 1)[0]).join('');
+  if(S.meta.cu) h += '&cu=' + encodeURIComponent(S.meta.cu);
+  if(S.meta.pb) h += '&pb=' + encodeURIComponent(S.meta.pb);
+  if(S.meta.rg !== 'US') h += '&rg=' + S.meta.rg;
+  return h;
 }
+function saveHash(){ try { history.replaceState(null, '', '#' + stateHash()); } catch(e){} }
 function loadHash(){
   let h = '';
   try { h = location.hash.slice(1); } catch(e){}
+  if(!h && typeof window.IBK_STATE === 'string') h = window.IBK_STATE;   // a saved HTML file opens on the design it was saved with
   if(!h) return;
   const q = {}, raw = {};
   h.split('&').forEach(kv => {
     const i = kv.indexOf('=');
     if(i > 0){ const k = kv.slice(0, i), v = kv.slice(i + 1); raw[k] = v; try { q[k] = decodeURIComponent(v); } catch(e){ q[k] = v; } }
   });
+  const dec = s => s.split('|').map(x => { try { return decodeURIComponent(x).slice(0, 32); } catch(e){ return ''; } });
+  const caps = s => new Set(s.split('.').filter(c => UAC[c]));
   if(q.s !== undefined) S.sel = new Set(q.s.split('.').filter(id => MOD[id]));
   if(q.m === 'deep' || q.m === 'high') S.mode = q.m;
   if(q.n) S.dcN = Math.max(1, Math.min(DC_MAX, parseInt(q.n, 10) || 1));
-  if(raw.dn) S.dcNames = raw.dn.split('|').map(s => { try { return decodeURIComponent(s).slice(0, 32); } catch(e){ return ''; } });
+  if(q.b) S.brN = Math.max(1, Math.min(BR_MAX, parseInt(q.b, 10) || 1));
+  if(raw.dn) S.dcNames = dec(raw.dn);
+  if(raw.bn) S.brNames = dec(raw.bn);
+  if(q.dc !== undefined) S.dcCaps = q.dc.split('|').map(caps);
+  if(q.bc !== undefined) S.brCaps = q.bc.split('|').map(caps);
+  if(q.di) S.dcInst = [...q.di].map(c => c === 'd' ? 'docker' : 'linux');
+  if(q.bi) S.brInst = [...q.bi].map(c => c === 'd' ? 'docker' : 'linux');
+  if(q.bu) S.brUA = [...q.bu].map(c => c === '1');
+  if(q.bt) S.brTo = q.bt.split('.').map(x => parseInt(x, 10) || 1);
+  if(q.cu) S.meta.cu = q.cu.slice(0, 80);
+  if(q.pb) S.meta.pb = q.pb.slice(0, 80);
+  if(q.rg === 'EU') S.meta.rg = 'EU';
   const v = q.v;
-  if(v === 'ov' || v === 'kentik' || v === 'dcs' || (isDC(v) ? dcIndex(v) <= S.dcN : !!SC[v])) S.view = v;
+  if(v === 'ov' || v === 'kentik' || v === 'dcs' || v === 'brs' || (isDC(v) ? dcIndex(v) <= S.dcN : isBR(v) ? brIndex(v) <= S.brN : !!SC[v])) S.view = v;
   const mod = modOf(S.view);
   if(mod) S.sel.add(mod);
 }
@@ -2113,6 +2566,7 @@ function loadHash(){
 /* ===== Events ===== */
 $('#ov').addEventListener('click', ev => {
   if(ev.target.closest('[data-dcadd]')){ stepDC(1); return; }
+  if(ev.target.closest('[data-bradd]')){ stepBR(1); return; }
   const g = ev.target.closest('[data-go]');
   if(g) go(g.dataset.go);
 });
@@ -2130,11 +2584,25 @@ $('#panel').addEventListener('click', ev => {
   if(del){ removeDC(+del.dataset.dcdel); return; }
   const st = t.closest('[data-dcstep]');
   if(st){ stepDC(+st.dataset.dcstep); return; }
+  if(t.closest('[data-bradd]')){ addBR(); return; }
+  const bd = t.closest('[data-brdel]');
+  if(bd){ removeBR(+bd.dataset.brdel); return; }
+  const bs = t.closest('[data-brstep]');
+  if(bs){ stepBR(+bs.dataset.brstep); return; }
+  const cp = t.closest('[data-cap]');
+  if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, +i, c); return; }
+  const ca = t.closest('[data-capall]');
+  if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, +i, on === '1'); return; }
+  const ins = t.closest('[data-inst]');
+  if(ins){ const [k, i, v] = ins.dataset.inst.split(':'); setInst(k, +i, v); return; }
+  const bu = t.closest('[data-brua]');
+  if(bu){ toggleBRUA(+bu.dataset.brua); return; }
   const g = t.closest('[data-go]');
   if(g){ go(g.dataset.go); return; }
   if(t.closest('[data-clear]')) setFocus(null);
 });
-$('#panel').addEventListener('input', ev => { const t = ev.target; if(t && t.id === 'dcNameIn') renameDC(+t.dataset.dc, t.value); });
+$('#panel').addEventListener('input', ev => { const t = ev.target; if(t && t.classList.contains('nameIn')){ const [k, i] = t.dataset.name.split(':'); renameSite(k, +i, t.value); } });
+$('#panel').addEventListener('change', ev => { const t = ev.target; if(t && t.classList.contains('toSel')) setBRTarget(+t.dataset.to, t.value); });
 $('#crumbs').addEventListener('click', ev => {
   const b = ev.target.closest('[data-nav]');
   if(!b) return;
@@ -2151,6 +2619,8 @@ $('#presets').addEventListener('click', ev => { const b = ev.target.closest('[da
 $('#chips').addEventListener('click', ev => {
   const st = ev.target.closest('[data-dcstep]');
   if(st){ stepDC(+st.dataset.dcstep); return; }
+  const bs = ev.target.closest('[data-brstep]');
+  if(bs){ stepBR(+bs.dataset.brstep); return; }
   const b = ev.target.closest('[data-chip]');
   if(!b) return;
   const s = new Set(S.sel), id = b.dataset.chip;
@@ -2169,7 +2639,8 @@ $('#themeBtn').addEventListener('click', () => {
 document.addEventListener('keydown', ev => {
   if(ev.ctrlKey || ev.metaKey || ev.altKey) return;
   const tg = ev.target, k = ev.key;
-  if(tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable)) return;
+  if(tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT' || tg.isContentEditable)) return;
+  if(document.querySelector('dialog[open]')) return;
   if((k === 'Enter' || k === ' ') && tg instanceof SVGElement && tg.getAttribute('role') === 'button'){
     ev.preventDefault(); tg.dispatchEvent(new MouseEvent('click', {bubbles:true})); return;
   }
@@ -2183,7 +2654,7 @@ document.addEventListener('keydown', ev => {
   if(k === 'm' || k === 'M'){ toggleMotion(); return; }
   if((k === 'ArrowRight' || k === 'ArrowLeft') && S.view !== 'ov'){
     const list = [];
-    CHIP_ORDER.filter(id => S.sel.has(id)).forEach(id => { if(id === 'dc'){ list.push(...dcIds()); if(S.dcN > 1) list.push('dcs'); } else list.push(id); });
+    CHIP_ORDER.filter(id => S.sel.has(id)).forEach(id => { if(id === 'dc'){ list.push(...dcIds()); if(S.dcN > 1) list.push('dcs'); } else if(id === 'branch'){ list.push(...brIds()); if(S.brN > 1) list.push('brs'); } else list.push(id); });
     list.push('kentik');
     const i = list.indexOf(S.view);
     go(list[(i + (k === 'ArrowRight' ? 1 : list.length - 1)) % list.length]);
@@ -2208,6 +2679,182 @@ document.addEventListener('visibilitychange', () => { if(!document.hidden && S.a
     buildParticles(); applyHighlight();
   });
 })();
+/* ---------- Save as HTML, the deployment guide PDF, and the setup file ---------- */
+const APP = !!window.IBK_APP;   // set when the page is served by the Python configurator app
+
+function applyMeta(){
+  const cu = S.meta.cu;
+  $('.brand h1').textContent = cu ? 'Kentik deployment for ' + cu : 'Kentik deployment explorer';
+  document.title = cu ? 'Infoblox Kentik deployment · ' + cu : 'Infoblox Kentik Deployment Explorer';
+}
+const slug = s => String(s || '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'design';
+function download(name, blob){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+
+/* The page as it was loaded, plus the current design baked in, so the file opens exactly here */
+function savedHTML(){
+  const h = PRISTINE.replace(/<script id="ibk-(?:app|state)">[\s\S]*?<\/script>\n?/g, '');
+  const tag = 'scr' + 'ipt';   // split so this source never matches the pattern above
+  const st = '<' + tag + ' id="ibk-state">window.IBK_STATE=' + JSON.stringify(stateHash()).replace(/</g, '\\u003c') + ';<\/' + tag + '>\n';
+  return h.replace('</head>', st + '</head>');
+}
+
+/* The design in the shape the Python app's deployment guide expects */
+function exportCfg(){
+  const sites = [];
+  if(dcOn()) for(let i = 1; i <= S.dcN; i++){
+    sites.push({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:!capsOf('dc', i).has('bgp')});
+  }
+  if(brOn()) for(let i = 1; i <= S.brN; i++){
+    const ua = brUA(i), t = brTarget(i);
+    sites.push({name:brName(i), kind:'branch', agent:ua, install:instOf('br', i), capabilities:ua ? capList('br', i) : [], send_to:ua || !t ? '' : dcName(t), bgp:false});
+  }
+  const clouds = {};
+  ['aws', 'azure', 'gcp', 'oci'].forEach(c => { clouds[c] = {enabled:S.sel.has(c)}; });
+  return {customer:S.meta.cu || 'Example Customer', prepared_by:S.meta.pb, region:S.meta.rg, detail:S.mode, sites, clouds,
+    synthetics:{enabled:S.sel.has('saas') || testAgents().length > 0, site_mesh:true, bgp_monitor:S.sel.has('saas')},
+    explorer_state:stateHash()};
+}
+
+/* Draw a view off screen and turn it into a PNG. CSS variables do not resolve inside an SVG image,
+   so every element gets its computed style written inline (light theme). */
+const INLINE = ['fill', 'fill-opacity', 'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin', 'opacity', 'color',
+  'font-family', 'font-size', 'font-weight'];
+function inlineStyles(live, copy){
+  const a = [live, ...live.querySelectorAll('*')], b = [copy, ...copy.querySelectorAll('*')];
+  a.forEach((e, i) => {
+    const c = b[i];
+    if(!c || e.tagName !== c.tagName) return;
+    if(e.closest('symbol')) return;   // icons draw with currentColor from the <use> that shows them
+    const cs = getComputedStyle(e);
+    c.setAttribute('style', INLINE.map(p => p + ':' + cs.getPropertyValue(p)).join(';'));
+    c.removeAttribute('class');
+  });
+}
+function svgPNG(svg, scale){
+  const c = svg.cloneNode(true);
+  inlineStyles(svg, c);
+  c.setAttribute('xmlns', NS);
+  c.setAttribute('viewBox', VB.join(' '));
+  c.setAttribute('width', VB[2] * scale);
+  c.setAttribute('height', VB[3] * scale);
+  c.style.opacity = 1;
+  c.querySelectorAll('g.pts, [data-pts]').forEach(g => { g.innerHTML = ''; });
+  const liveDefs = document.querySelector('#sprite defs'), defs = liveDefs.cloneNode(true);
+  inlineStyles(liveDefs, defs);
+  defs.removeAttribute('style');
+  const bg = document.createElementNS(NS, 'rect');
+  ['x', 'y'].forEach(k => bg.setAttribute(k, 0));
+  bg.setAttribute('width', VB[2]); bg.setAttribute('height', VB[3]); bg.setAttribute('fill', '#fbfbfb');
+  c.insertBefore(bg, c.firstChild); c.insertBefore(defs, c.firstChild);
+  const src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(c));
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      cv.width = VB[2] * scale; cv.height = VB[3] * scale;
+      const g = cv.getContext('2d');
+      g.fillStyle = '#fbfbfb'; g.fillRect(0, 0, cv.width, cv.height);
+      g.drawImage(img, 0, 0, cv.width, cv.height);
+      res(cv.toDataURL('image/jpeg', 0.92));
+    };
+    img.onerror = () => rej(new Error('could not draw ' + (svg.getAttribute('aria-label') || 'a view')));
+    img.src = src;
+  });
+}
+function exportViews(){
+  const v = [['ov', 'All deployments']];
+  if(dcOn()){ dcIds().forEach((id, k) => v.push([id, dcName(k + 1)])); if(S.dcN > 1) v.push(['dcs', 'All data centers']); }
+  if(brOn()){ brIds().forEach((id, k) => v.push([id, brName(k + 1)])); if(S.brN > 1) v.push(['brs', 'All branch offices']); }
+  ['aws', 'azure', 'gcp', 'oci', 'saas'].filter(id => S.sel.has(id)).forEach(id => v.push([id, MOD[id].name]));
+  return v;
+}
+async function viewImages(onStep){
+  const dd = S.mode === 'deep', out = [];
+  const host = document.createElement('div');
+  host.style.cssText = 'position:absolute;left:-20000px;top:0;width:1000px;height:620px;visibility:hidden';
+  const svg = el('svg', {viewBox:VB.join(' '), width:1000, height:620}, host);
+  document.body.appendChild(host);
+  const theme = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', 'light');   // measure and draw with the light theme
+  try {
+    const views = exportViews();
+    for(let k = 0; k < views.length; k++){
+      const [id, title] = views[k];
+      if(onStep) onStep(k + 1, views.length, title);
+      if(id === 'ov'){ renderOverview(); svg.innerHTML = $('#ov').innerHTML; }
+      else drawScene(svg, getScene(id), dd);
+      svg.querySelectorAll('.dimmed, .sel').forEach(e => e.classList.remove('dimmed', 'sel'));
+      svg.querySelectorAll('g.pts').forEach(g => { g.innerHTML = ''; });
+      out.push({id, title, png:await svgPNG(svg, 2)});
+    }
+  } finally {
+    if(theme) document.documentElement.setAttribute('data-theme', theme); else document.documentElement.removeAttribute('data-theme');
+    host.remove();
+    renderOverview(); if(S.view !== 'ov') renderDetail(); refresh();
+  }
+  return out;
+}
+
+/* ===== The dialog ===== */
+const XD = $('#xdlg');
+function setStat(s){ $('#xStat').textContent = s; }
+function openExport(){
+  $('#xCu').value = S.meta.cu; $('#xPb').value = S.meta.pb; $('#xRg').value = S.meta.rg;
+  $('#xJson').hidden = !APP;
+  $('#xPdfNote').textContent = APP ? 'Diagrams plus install steps, sizing, firewall rules and cloud setup'
+    : 'Runs in the configurator app: python3 run.py in kentik-configurator';
+  $('#xPdf').disabled = !APP;
+  setStat('');
+  if(XD.showModal) XD.showModal(); else XD.setAttribute('open', '');
+}
+function readMeta(){
+  S.meta.cu = $('#xCu').value.trim().slice(0, 80);
+  S.meta.pb = $('#xPb').value.trim().slice(0, 80);
+  S.meta.rg = $('#xRg').value === 'EU' ? 'EU' : 'US';
+  applyMeta(); saveHash();
+}
+['xCu', 'xPb', 'xRg'].forEach(id => $('#' + id).addEventListener('change', readMeta));
+$('#exportBtn').addEventListener('click', openExport);
+XD.addEventListener('click', ev => { if(ev.target === XD || ev.target.closest('[data-xclose]')) XD.close(); });
+$('#xHtml').addEventListener('click', () => {
+  readMeta();
+  download('infoblox-kentik-' + slug(S.meta.cu || 'design') + '.html', new Blob([savedHTML()], {type:'text/html'}));
+  setStat('Saved. Open the file in any browser.');
+});
+$('#xJson').addEventListener('click', () => {
+  readMeta();
+  download('infoblox-kentik-setup-' + slug(S.meta.cu || 'design') + '.json', new Blob([JSON.stringify(exportCfg(), null, 2)], {type:'application/json'}));
+  setStat('Saved the setup file.');
+});
+$('#xPdf').addEventListener('click', async () => {
+  readMeta();
+  const b = $('#xPdf');
+  b.disabled = true;
+  try {
+    const images = await viewImages((k, n, t) => setStat('Drawing ' + k + ' of ' + n + ': ' + t + '…'));
+    setStat('Building the PDF…');
+    const r = await fetch('/api/pdf', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cfg:exportCfg(), images})});
+    if(!r.ok) throw new Error(await r.text());
+    download('infoblox-kentik-deployment-guide-' + slug(S.meta.cu || 'design') + '.pdf', await r.blob());
+    setStat('Saved the deployment guide.');
+  } catch(e){
+    setStat('Could not build the PDF: ' + e.message);
+  } finally { b.disabled = false; }
+});
+document.addEventListener('keydown', ev => {
+  if(ev.ctrlKey || ev.metaKey || ev.altKey || XD.open) return;
+  const tg = ev.target;
+  if(tg && (tg.tagName === 'INPUT' || tg.tagName === 'SELECT' || tg.tagName === 'TEXTAREA')) return;
+  if(ev.key === 'e' || ev.key === 'E') openExport();
+});
+applyMeta();
 </script>
 </body>
 </html>

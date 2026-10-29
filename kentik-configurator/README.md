@@ -1,12 +1,14 @@
 # Infoblox Kentik Deployment Configurator
 
-A small Python app for designing a Kentik deployment and exporting it for a customer:
+A small Python app for designing a Kentik deployment and exporting it for a customer. It serves the same interactive Infoblox deployment explorer as `explorer/infoblox-kentik-deployment-explorer.html`, so what you build in the app looks exactly like the explorer.
 
-- **Configure** on-prem sites (as many data centers and branches as you need, each with one Universal Agent and its capabilities), AWS, Azure, Google Cloud and Oracle Cloud, and synthetic monitoring.
-- **See** the topology update live, in High level or Deep dive (ports and permissions) mode.
-- **Export** either
-  - a one-page **topology PDF**, or
-  - a full **deployment guide PDF**: roles and permissions, firewall rules per site, Universal Agent sizing and install steps, capability configuration, cloud setup with IAM policies and roles, a synthetic test plan with credit estimates, a go-live checklist, security and licensing, and the Kentik KB pages every fact came from.
+- **Design** data centers (up to six) and branch offices (up to ten), plus AWS, Azure, Google Cloud, Oracle Cloud and SaaS, in High level or Deep dive (ports and permissions) mode.
+- **Branches without an agent.** By default a branch has no Universal Agent: its routers, switches and firewalls send flow, SNMP, traps and syslog across the WAN to a data center agent. Turn on "Universal Agent at this branch" for any branch that needs its own (for example to run Connectivity Tests from that site).
+- **Capability toggles.** Each Universal Agent has the same eight switches as Installed Capabilities in the Kentik portal: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy: Forwarding, SNMP Trap Receiver, SNMP/ST and Syslog Server. Only the ones you turn on are drawn, sized and given firewall rules.
+- **Export** (Export button, or press E):
+  - **Save as HTML**: a single file that opens on your design in any browser, no app needed.
+  - **Deployment guide PDF**: every diagram you see, then roles and permissions, firewall rules per site, Universal Agent sizing and install steps, capability configuration, branches without an agent, cloud setup with IAM policies, a synthetic test plan with credit estimates, a go-live checklist, and the Kentik KB sources.
+  - **Setup JSON**: the design in the format the command line export reads.
 
 Everything carries Infoblox branding.
 
@@ -26,20 +28,23 @@ Your browser opens at http://127.0.0.1:8765. Use `--port 9000` to change the por
 
 In the app:
 
-1. Fill in the customer and pick the Kentik region (US or EU).
-2. Start from a preset, or add sites with **+ Add data center** / **+ Add branch**. Each site gets its own Universal Agent; tick the capabilities it needs and enter rough load (flows per second, devices, syslog rate) to size the host.
-3. Turn on the clouds in scope and pick what to collect.
-4. Set up synthetic tests (site mesh, SaaS apps to test, BGP Monitor).
-5. Click **Export topology PDF** or **Export deployment guide PDF**. **Save setup** writes a JSON file you can load again later.
+1. Pick the deployments in scope at the top. Use the steppers to add data centers and branch offices.
+2. Click a site to open it. Name it, choose Linux or Docker, and flip capabilities on or off; the diagram and sizing follow. For a branch, choose whether it has its own agent or which data center it sends to.
+3. Click **Export**, fill in the customer, who prepared it and the Kentik region (US or EU), and pick an export.
 
-The app remembers your last setup in the browser.
+The design is kept in the page address, so a bookmark or a reload brings it back.
+
+The app page is `configurator/static/explorer.html`, built from `explorer/source-infoblox/` by `sh explorer/source-infoblox/build.sh` (which writes both copies). Do not edit it by hand.
 
 ## Export from the command line
 
 ```bash
 python3 run.py export examples/hybrid-two-dc.json            # both PDFs into ./exports
 python3 run.py export my-setup.json --out out --only guide    # just the guide
+python3 run.py export my-setup.json --only html               # the HTML page, if the JSON came from the app
 ```
+
+The command line guide draws its own simpler diagram; the guide exported from the app uses the explorer's diagrams.
 
 ## Samples
 
@@ -50,6 +55,8 @@ python3 run.py export my-setup.json --out out --only guide    # just the guide
 | `single-dc-aws.json` | One data center on Docker plus AWS, high level |
 | `hybrid-two-dc.json` | Two data centers and a branch, AWS (4 accounts) and Azure, deep dive |
 | `global-multicloud-eu.json` | Four data centers and two branches, all four clouds, EU region, deep dive |
+
+`infoblox-kentik-deployment-guide-from-app.pdf` was exported from the app (two data centers, four branches without agents, AWS, Azure and SaaS) and shows the explorer diagrams in the guide.
 
 ## Branding
 
@@ -69,9 +76,10 @@ Planning assumptions worth knowing:
 run.py                     start the app, or export from the command line
 configurator/catalog.py    Kentik KB facts and sources
 configurator/model.py      setup defaults, sizing, firewall rules, test credits
-configurator/topology.py   diagram layout, drawn as SVG (preview) and into PDFs
+configurator/topology.py   fallback diagram for command line PDFs
 configurator/pdf.py        topology PDF and deployment guide PDF
-configurator/web.py        local web server and the app page
+configurator/web.py        local web server: serves the explorer, builds PDFs
+configurator/static/       explorer.html (build output of explorer/source-infoblox)
 configurator/brand.py      Infoblox branding
 examples/                  sample setups
 samples/                   sample exports

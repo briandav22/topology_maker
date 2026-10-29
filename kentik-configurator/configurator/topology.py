@@ -72,7 +72,7 @@ def build(cfg):
     # --- Internet & SaaS box (top center) -------------------------------------
     y_cursor_center = TOP
     saas_box = None
-    synth_sites = [s for s in cfg["sites"] if "synth" in s["capabilities"]]
+    synth_sites = [s for s in cfg["sites"] if s["agent"] and "synth" in s["capabilities"]]
     show_saas = syn["enabled"] and (synth_sites or syn["saas_targets"] or syn["global_agents"] or syn["bgp_monitor"])
     if show_saas:
         bx, bw = HUB_X - 30, HUB_W + 60
@@ -101,9 +101,25 @@ def build(cfg):
     site_boxes = []
     y = TOP
     for s in cfg["sites"]:
-        h = draw_site(sc, s, SITE_X, y, deep, compact)
+        if not s["agent"]:
+            continue
+        h = draw_site(sc, s, SITE_X, y, deep, compact, cfg)
         site_boxes.append((s, SITE_X, y, SITE_W, h))
         y += h + 16
+    # Branches with no agent: a small box each, with a line to the data center agent they send to
+    for s in M.remote_branches(cfg):
+        h = 40
+        sc.rect(SITE_X, y, SITE_W, h, fill=B.WHITE, stroke=B.LINE, sw=1)
+        sc.rect(SITE_X, y, 5, h, fill=B.TEAL, r=2)
+        sc.text(SITE_X + 14, y + 17, fit(s["name"], 11, SITE_W - 140, True), 11, B.NAVY, True)
+        sc.text(SITE_X + SITE_W - 12, y + 17, "BRANCH · NO AGENT", 7.5, B.TEAL, True, "end")
+        note = (f"Devices send flow, traps and syslog across the WAN to the {s['send_to']} agent" if s["send_to"] else "Nothing collects this branch yet")
+        sc.text(SITE_X + 14, y + 31, fit(note + (" (UDP 9995, 162, 514)" if deep and s["send_to"] else ""), 7.5, SITE_W - 28), 7.5, B.MUTED)
+        dc = next((b for b in site_boxes if b[0]["name"] == s["send_to"]), None)
+        if dc:
+            gx = SITE_X - 10
+            sc.line([(SITE_X, y + h / 2), (gx, y + h / 2), (gx, dc[2] + dc[4] - 14), (SITE_X, dc[2] + dc[4] - 14)], B.FLOW_COLORS["flow"], 1.1, dash=(4, 2))
+        y += h + 12
     left_bottom = y
 
     # --- Clouds (right) --------------------------------------------------------
@@ -231,9 +247,9 @@ def build(cfg):
     return sc
 
 
-def draw_site(sc, s, x, y, deep, compact):
+def draw_site(sc, s, x, y, deep, compact, cfg=None):
     caps = s["capabilities"]
-    size = M.site_sizing(s)
+    size = M.site_sizing(s, cfg)
     kind = "Data center" if s["kind"] == "dc" else "Branch office"
     accent = B.BLUE if s["kind"] == "dc" else B.TEAL
     cols = 2 if compact and len(caps) > 3 else 1
@@ -287,7 +303,7 @@ def draw_site(sc, s, x, y, deep, compact):
             sc.text(cx + 9, cy + 13, cap["name"], 8, B.INK, True)
             sc.text(cx + cw - 6, cy + 13, cap["port_label"], 7, B.MUTED, False, "end")
         else:
-            short = {"snmp": "SNMP / ST", "trap": "Trap Receiver", "ssh": "SSH config"}.get(cid, cap["name"])
+            short = {"flow": "Flow Proxy", "trap": "Trap Receiver", "ssh": "Config Sync", "synth": "Connectivity Test"}.get(cid, cap["name"])
             sc.text(cx + 9, cy + chip_h / 2 + 3, fit(short, 7.5, cw - 12, True), 7.5, B.INK, True)
     if not caps:
         sc.text(ux + 10, uy + 50, "No capabilities selected", 8, B.MUTED)
