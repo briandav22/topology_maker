@@ -3,10 +3,11 @@ const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
 const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
-  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[], dcFm:[], dcSz:[], brFm:[], brSz:[], szOpen:false, awsNested:false,
+  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[], dcFm:[], dcSz:[], brFm:[], brSz:[], szOpen:false, awsNested:false, panelOpen:true,
   brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
   meta:{cu:'', pb:'', rg:'US'}};
-const VB = [0, 0, 1000, 620];
+const VB = [0, 0, 1000, 620];    // the overview canvas; its width follows the free space (see fitOverview)
+const DVB = [0, 0, 1000, 620];   // drill-in scenes always draw on 1000 x 620
 const FIT = [];       // texts that had to shrink to fit; empty means every label fits at its design size
 let OVR = {};         // overview card rectangles, used by the zoom transition
 
