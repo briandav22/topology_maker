@@ -1,7 +1,7 @@
 """Local web app: the Infoblox Kentik deployment explorer, plus HTML and PDF exports. Standard library only (plus reportlab).
 
-The page is the same explorer as explorer/infoblox-kentik-deployment-explorer.html, so what you design here looks
-exactly like the standalone page. The app adds two things the browser cannot do alone: the deployment guide PDF
+The page is the deployment explorer built from ui/ by ui/build.sh, so what you design here looks
+exactly like a saved HTML export. The app adds two things the browser cannot do alone: the deployment guide PDF
 (built here with reportlab) and the setup file for the command line.
 """
 import json
@@ -85,7 +85,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def serve(host="127.0.0.1", port=8765, open_browser=True):
     if not os.path.exists(EXPLORER):
-        raise SystemExit(f"Missing {EXPLORER}. Build it with: sh ../explorer/source-infoblox/build.sh")
+        raise SystemExit(f"Missing {EXPLORER}. Build it with: sh ui/build.sh")
     httpd = ThreadingHTTPServer((host, port), Handler)
     url = f"http://{host}:{port}/"
     print(f"Infoblox Kentik Deployment Configurator running at {url}  (Ctrl+C to stop)")

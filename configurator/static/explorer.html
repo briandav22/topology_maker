@@ -2964,7 +2964,7 @@ function openExport(){
   $('#xCu').value = S.meta.cu; $('#xPb').value = S.meta.pb; $('#xRg').value = S.meta.rg;
   $('#xJson').hidden = !APP;
   $('#xPdfNote').textContent = APP ? 'Diagrams plus install steps, sizing, firewall rules and cloud setup'
-    : 'Runs in the configurator app: python3 run.py in kentik-configurator';
+    : 'Runs in the configurator app: start it with python3 run.py';
   $('#xPdf').disabled = !APP;
   setStat('');
   if(XD.showModal) XD.showModal(); else XD.setAttribute('open', '');
