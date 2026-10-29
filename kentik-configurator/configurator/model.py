@@ -5,18 +5,19 @@ import math
 
 from . import catalog as C
 
-DC_CAPS = ["flow", "snmp", "trap", "syslog", "dns", "synth", "ssh"]
-BRANCH_CAPS = ["flow", "snmp", "trap", "syslog", "synth"]
+# Defaults match the explorer: not everything on, the user toggles what each agent needs
+DC_CAPS = ["flow", "snmp", "trap", "syslog"]
+BRANCH_CAPS = ["flow", "snmp", "synth"]
 
 
 def new_site(kind="dc", n=1):
     if kind == "dc":
         return {"name": f"Data Center {n}", "kind": "dc", "location": "", "install": "linux",
-                "capabilities": list(DC_CAPS), "flow_mode": "edge", "fps": 20000, "devices": 200,
-                "syslog_eps": 2000, "dns_lps": 0, "bgp": True, "proxy": False}
+                "capabilities": list(DC_CAPS), "flow_mode": "forward", "fps": 20000, "devices": 200,
+                "syslog_eps": 2000, "dns_lps": 0, "bgp": True, "proxy": False, "agent": True, "send_to": ""}
     return {"name": f"Branch {n}", "kind": "branch", "location": "", "install": "docker",
             "capabilities": list(BRANCH_CAPS), "flow_mode": "forward", "fps": 2000, "devices": 20,
-            "syslog_eps": 200, "dns_lps": 0, "bgp": False, "proxy": False}
+            "syslog_eps": 200, "dns_lps": 0, "bgp": False, "proxy": False, "agent": False, "send_to": ""}
 
 
 def new_cloud(cid):
@@ -76,8 +77,21 @@ def normalize(cfg):
         if site["install"] not in ("linux", "docker"):
             site["install"] = "linux"
         if site["flow_mode"] not in ("edge", "forward"):
-            site["flow_mode"] = "edge"
+            site["flow_mode"] = "forward"
+        if kind == "branch" and "agent" not in s:
+            site["agent"] = bool(s.get("capabilities"))  # setups saved before agent-less branches existed
+        site["agent"] = True if kind == "dc" else bool(site["agent"])
+        if not site["agent"]:
+            site["capabilities"] = []
+            site["bgp"] = False
+        if "bgp" in site["capabilities"]:
+            site["bgp"] = False  # routers peer with the agent, not directly with Kentik
         sites.append(site)
+    # A branch with no agent sends to a data center agent; default to the first one
+    dc_names = [s["name"] for s in sites if s["kind"] == "dc"]
+    for s in sites:
+        if not s["agent"]:
+            s["send_to"] = s["send_to"] if s["send_to"] in dc_names else (dc_names[0] if dc_names else "")
     out["sites"] = sites
     for cid in C.CLOUD_ORDER:
         src = (cfg.get("clouds") or {}).get(cid) or {}
@@ -111,10 +125,25 @@ def enabled_clouds(cfg):
     return [cid for cid in C.CLOUD_ORDER if cfg["clouds"][cid]["enabled"]]
 
 
-def site_sizing(site):
-    """Sum KB per-capability sizing for one agent host, then add headroom."""
+def agent_sites(cfg):
+    return [s for s in cfg["sites"] if s["agent"]]
+
+
+def remote_branches(cfg, site=None):
+    """Branches with no agent, optionally only those that send to one data center."""
+    return [s for s in cfg["sites"] if not s["agent"] and (site is None or s["send_to"] == site["name"])]
+
+
+def site_sizing(site, cfg=None):
+    """Sum KB per-capability sizing for one agent host, then add headroom. Includes branches that send to it."""
     rows = []
     caps = site["capabilities"]
+    if not site["agent"]:
+        return {"rows": [], "cpu": 0, "ram": 0, "rec_cpu": 0, "rec_ram": 0}
+    feeds = remote_branches(cfg, site) if cfg else []
+    if feeds:
+        site = dict(site, fps=site["fps"] + sum(b["fps"] for b in feeds), devices=site["devices"] + sum(b["devices"] for b in feeds),
+                    syslog_eps=site["syslog_eps"] + sum(b["syslog_eps"] for b in feeds))
 
     def add(key, units, qty_label):
         s = C.SIZING[key]
@@ -142,6 +171,8 @@ def site_sizing(site):
         add("trap", 1, "event driven")
     if "ssh" in caps:
         add("ssh", 1, "per fetch interval")
+    if "bgp" in caps:
+        add("bgp", 1, "per agent")
     cpu = sum(r[3] for r in rows)
     ram = sum(r[4] for r in rows)
     rec_cpu = max(2, math.ceil(cpu * (1 + C.HEADROOM)))
@@ -151,6 +182,24 @@ def site_sizing(site):
 
 def site_firewall(site, cfg):
     region = C.REGIONS[cfg["region"]]
+    if not site["agent"]:
+        dc = next((s for s in cfg["sites"] if s["name"] == site["send_to"]), None)
+        if not dc:
+            return []
+        to = f"{dc['name']} Universal Agent (across the WAN)"
+        rules = []
+        caps = dc["capabilities"]
+        if "flow" in caps:
+            rules.append(("Branch devices", to, "UDP 9995", "Flow export"))
+        if "trap" in caps:
+            rules.append(("Branch devices", to, "UDP 162", "SNMP traps"))
+        if "syslog" in caps:
+            rules.append(("Branch devices", to, "UDP and TCP 514", "Syslog"))
+        if "snmp" in caps:
+            rules.append((to.replace(" (across the WAN)", ""), "Branch devices", "UDP 161, ICMP", "SNMP/ST polling across the WAN"))
+        if "ssh" in caps:
+            rules.append((to.replace(" (across the WAN)", ""), "Branch device management IPs", "TCP 22", "Device Configuration Sync across the WAN"))
+        return rules
     rules = [("Universal Agent", "Kentik SaaS (" + ", ".join(region["hosts"]) + ")", "TCP 443, TLS 1.2+", "All telemetry, control and updates (outbound only)")]
     if "flow" in site["capabilities"]:
         rules.append(("Universal Agent", "Kentik SaaS", "UDP 40010 (optional)", "Flow Proxy base port"))
@@ -169,7 +218,7 @@ def site_firewall(site, cfg):
 
 def synth_agents(cfg):
     """Private test points: sites with Synthetics on, plus cloud test agents."""
-    agents = [s["name"] for s in cfg["sites"] if "synth" in s["capabilities"]]
+    agents = [s["name"] for s in cfg["sites"] if s["agent"] and "synth" in s["capabilities"]]
     for cid in enabled_clouds(cfg):
         if cfg["clouds"][cid].get("test_agent"):
             agents.append(f"{C.CLOUDS[cid]['name']} test agent")
@@ -216,4 +265,4 @@ def fmt_num(x):
 def summary_counts(cfg):
     dcs = [s for s in cfg["sites"] if s["kind"] == "dc"]
     br = [s for s in cfg["sites"] if s["kind"] == "branch"]
-    return {"dcs": len(dcs), "branches": len(br), "agents": len(cfg["sites"]), "clouds": enabled_clouds(cfg)}
+    return {"dcs": len(dcs), "branches": len(br), "agents": len(agent_sites(cfg)), "remote": len(remote_branches(cfg)), "clouds": enabled_clouds(cfg)}

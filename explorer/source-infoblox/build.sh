@@ -12,7 +12,11 @@ ICON='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%
   cat p1.html
   printf '</head>\n<body>\n'
   cat p2.html
-  printf '<script>\n'; cat d1.js d2.js d3.js d4.js d5.js r1.js r2.js; printf '</script>\n'
+  printf '<script>\n'; cat d1.js d2.js d3.js d4.js d5.js r1.js r2.js r3.js; printf '</script>\n'
   printf '</body>\n</html>\n'
 } > "$OUT"
 wc -c "$OUT"
+# The configurator app serves the same page; keep its copy in step when it sits next to this folder
+for APPDIR in ../../kentik-configurator/configurator/static ../../../kentik-configurator/configurator/static; do
+  if [ -d "$(dirname "$APPDIR")" ]; then mkdir -p "$APPDIR"; cp "$OUT" "$APPDIR/explorer.html"; echo "copied to $APPDIR/explorer.html"; break; fi
+done

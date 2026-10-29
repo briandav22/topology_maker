@@ -3,7 +3,7 @@
 
   python3 run.py                         start the web app and open it in a browser
   python3 run.py --port 9000 --no-browser
-  python3 run.py export setup.json       write the topology PDF and deployment guide for a saved setup
+  python3 run.py export setup.json       write the deployment guide, topology PDF and (for setups saved from the app) the HTML page
   python3 run.py export setup.json --out exports --only guide
 """
 import argparse
@@ -20,7 +20,7 @@ def main():
     ex = sub.add_parser("export", help="build PDFs from a saved setup JSON file")
     ex.add_argument("setup", help="setup JSON saved from the app (Save setup), or one in examples/")
     ex.add_argument("--out", default="exports", help="output folder (default: exports)")
-    ex.add_argument("--only", choices=["topology", "guide"], help="build just one of the two PDFs")
+    ex.add_argument("--only", choices=["topology", "guide", "html"], help="build just one of the exports")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--no-browser", action="store_true")
@@ -34,8 +34,10 @@ def main():
     if args.cmd == "export":
         from configurator import model, pdf
         from configurator.web import slug
+        from configurator.web import html_export
         with open(args.setup) as f:
-            cfg = model.normalize(json.load(f))
+            raw = json.load(f)
+        cfg = model.normalize(raw)
         os.makedirs(args.out, exist_ok=True)
         name = slug(cfg["customer"])
         if args.only in (None, "topology"):
@@ -45,6 +47,10 @@ def main():
         if args.only in (None, "guide"):
             p = os.path.join(args.out, f"infoblox-kentik-deployment-guide-{name}.pdf")
             open(p, "wb").write(pdf.guide_pdf(cfg))
+            print("wrote", p)
+        if args.only in (None, "html") and raw.get("explorer_state"):
+            p = os.path.join(args.out, f"infoblox-kentik-{name}.html")
+            open(p, "w", encoding="utf-8").write(html_export(raw["explorer_state"]))
             print("wrote", p)
         return
 

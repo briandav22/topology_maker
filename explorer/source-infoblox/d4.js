@@ -228,7 +228,7 @@ SC.kentik = {
     {id:'portal', x:748, y:70, w:220, h:72, k:'ktk', icon:'portal', t:'Portal', s:'Data Explorer, Kentik Map', s2:'NMS, Synthetics, Cloud', sd:'portal.kentik.com', sd2:'SAML SSO, MFA, roles',
      i:{h:'The Kentik portal: Data Explorer, Kentik Map, NMS, Synthetics, the Cloud section and dashboards.', d:['SAML 2.0 SSO or local accounts, MFA you can require, and user, admin and super admin roles.']}},
     {id:'ai', x:748, y:158, w:220, h:52, k:'ktk', icon:'spark', t:'AI Advisor', s:'Investigations in context', sd:'Read-only show commands',
-     i:{h:'AI Advisor answers questions and runs investigations across your Kentik data.', d:['With SSH config access on a Universal Agent, it can run read-only show commands on supported devices.']}},
+     i:{h:'AI Advisor answers questions and runs investigations across your Kentik data.', d:['With Device Configuration Sync on a Universal Agent, it can run read-only show commands on supported devices.']}},
     {id:'alerts', x:748, y:226, w:220, h:52, k:'ktk', icon:'bell', t:'Alerts and mitigation', s:'Notify your tools', sd:'RTBH and Flowspec via BGP',
      i:{h:'Alert policies watch traffic, metrics, events and tests, and notify your channels.', d:['BGP peering also enables RTBH and Flowspec mitigation.']}},
     {id:'api', x:748, y:294, w:220, h:52, k:'ktk', icon:'api', t:'APIs', s:'Query, config, automation', sd:'api.kentik.com, user tokens',

@@ -55,6 +55,7 @@
         <button type="button" data-mode="deep" aria-pressed="false" title="Permissions, ports and setup details (key D)">Deep dive</button>
       </div>
       <button type="button" class="tbtn" id="motionBtn" aria-pressed="true" title="Animate data moving along the lines (key M)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Motion</button>
+      <button type="button" class="tbtn" id="exportBtn" title="Save this design as an HTML file, or export the deployment guide (key E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 20h14"/></svg>Export</button>
       <button type="button" class="tbtn icon-only" id="themeBtn" title="Switch between light and dark" aria-label="Switch between light and dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg></button>
     </div>
   </header>
@@ -80,3 +81,19 @@
     </div>
   </div>
 </div>
+<dialog class="xdlg" id="xdlg" aria-labelledby="xdlgT">
+  <div class="xin">
+    <button type="button" class="xclose" data-xclose="1" aria-label="Close">×</button>
+    <h2 id="xdlgT">Save or export this design</h2>
+    <p>Everything you set here, the sites, branches, capabilities and clouds, goes into the export.</p>
+    <label>Customer<input type="text" id="xCu" maxlength="80" autocomplete="off" placeholder="Customer name"></label>
+    <label>Prepared by<input type="text" id="xPb" maxlength="80" autocomplete="off" placeholder="Your name or team"></label>
+    <label>Kentik region<select id="xRg"><option value="US">United States (Ashburn, VA)</option><option value="EU">European Union (Frankfurt)</option></select></label>
+    <div class="xbtns">
+      <button type="button" class="pri" id="xHtml">Save as HTML<span>One file that opens in any browser, on this exact design</span></button>
+      <button type="button" id="xPdf">Deployment guide PDF<span id="xPdfNote">Diagrams plus install steps, sizing, firewall rules and cloud setup</span></button>
+      <button type="button" id="xJson" hidden>Setup file (JSON)<span>For python3 run.py export on the command line</span></button>
+    </div>
+    <p class="xstat" id="xStat" role="status"></p>
+  </div>
+</dialog>

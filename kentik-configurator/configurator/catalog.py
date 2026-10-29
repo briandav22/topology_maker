@@ -64,13 +64,13 @@ REGIONS = {
 # Universal Agent capabilities. "cpu"/"ram" are per unit of "per" from the KB sizing table.
 CAPABILITIES = {
     "flow": {
-        "name": "Flow Proxy", "kb_id": "kproxy / ktraffic", "color": "flow",
+        "name": "Flow Proxy: Forwarding", "kb_id": "ktraffic (Edge Processing: kproxy)", "color": "flow",
         "short": "NetFlow, sFlow, IPFIX", "port_label": "UDP 9995 in",
         "purpose": "Receives NetFlow, sFlow and IPFIX from routers, switches and firewalls, enriches it and forwards it to Kentik over TLS.",
         "inbound": [("Network devices", "UDP 9995", "Flow export (NetFlow, sFlow, IPFIX)")],
         "outbound_local": [],
         "setup": [
-            "Enable Flow Proxy on the agent. Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.",
+            "Toggle on Flow Proxy: Forwarding on the agent. Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.",
             "On each device, export flow to the agent's IP on UDP 9995. Sample ingress on every interface; never ingress and egress on the same interface.",
             "The sample rate on the device must match the rate set for that device in Kentik.",
             "Vendor configuration snippets for flow, SNMP and BGP: github.com/kentik/config-snippets.",
@@ -80,7 +80,7 @@ CAPABILITIES = {
         "kb": ["universal-agents", "router-configuration", "flow-overview", "kproxy-migration"],
     },
     "snmp": {
-        "name": "SNMP / Streaming Telemetry", "kb_id": "ranger", "color": "snmp",
+        "name": "SNMP/ST", "kb_id": "ranger", "color": "snmp",
         "short": "Health and interfaces", "port_label": "UDP 161 out",
         "purpose": "Discovers devices and collects health, interface and hardware metrics by SNMP polling or gNMI streaming telemetry. It also enriches flow with interface names and speeds.",
         "inbound": [],
@@ -140,7 +140,7 @@ CAPABILITIES = {
         "kb": ["universal-agents"],
     },
     "synth": {
-        "name": "Synthetics", "kb_id": "ksynth (capability)", "color": "synth",
+        "name": "Connectivity Test", "kb_id": "ksynth (capability)", "color": "synth",
         "short": "Tests to sites and apps", "port_label": "TCP 8877 / UDP 9977",
         "purpose": "Makes this agent a private test point. It measures latency, loss and jitter to other sites, clouds, SaaS apps and DNS servers, and gives AI Advisor on-demand ping and traceroute.",
         "inbound": [("Other Universal Agents", "TCP 8877 and UDP 9977", "Agent-to-agent and mesh tests")],
@@ -148,7 +148,7 @@ CAPABILITIES = {
                            ("Test targets", "ICMP, TCP or UDP", "Ping and traceroute"),
                            ("Test targets", "TCP 80 and 443", "HTTP(S) and API tests")],
         "setup": [
-            "Enable the Synthetics (Connectivity Test) capability on the agent.",
+            "Toggle on Connectivity Test on the agent.",
             "Open TCP 8877 and UDP 9977 between every pair of agents that will test each other.",
             "Create tests in Synthetics: agent-to-agent, network mesh, server IP or hostname, DNS server monitor and HTTP(S) or API tests.",
             "Confirm which continuous test types run on the Universal Agent today with the Kentik account team.",
@@ -157,7 +157,7 @@ CAPABILITIES = {
         "kb": ["universal-agents", "synthetics-overview", "test-types", "test-credits"],
     },
     "ssh": {
-        "name": "SSH config access", "kb_id": "SSH", "color": "ssh",
+        "name": "Device Configuration Sync", "kb_id": "SSH", "color": "ssh",
         "short": "Config backup, show cmds", "port_label": "TCP 22 out",
         "purpose": "Backs up configs, shows what changed, and runs read-only show commands during an AI Advisor investigation.",
         "inbound": [],
@@ -172,18 +172,36 @@ CAPABILITIES = {
         "kb": ["ssh-command-access", "device-settings"],
     },
 }
-CAP_ORDER = ["flow", "snmp", "trap", "syslog", "dns", "synth", "ssh"]
+CAPABILITIES["bgp"] = {
+    "name": "BGP Proxy", "kb_id": "kbgp", "color": "bgp",
+    "short": "Routers peer with the agent", "port_label": "TCP 179 in",
+    "purpose": "Lets routers peer BGP with the agent instead of with Kentik. The agent relays routes to Kentik over outbound HTTPS, so routers in private networks need no session to the Internet.",
+    "inbound": [("Edge routers", "TCP 179", "BGP peering with the agent (BGP Proxy)")],
+    "outbound_local": [],
+    "setup": [
+        "Toggle on BGP Proxy on the agent.",
+        "On each edge router, configure a BGP session to the agent's IP on TCP 179 (in Kentik device settings, BGP tab, pick the agent as the peer).",
+        "Filter the default route toward the agent so it does not override the destination AS for unmatched flows.",
+        "BGP here is telemetry only; routing is unaffected.",
+        "BGP Proxy shows in Installed Capabilities in the portal, while the KB page still lists it as coming soon: confirm availability for the account with the Infoblox account team.",
+    ],
+    "license": "FlowPak (BGP enrichment of flow)",
+    "kb": ["universal-agents", "device-settings"],
+}
+# Order used in tables and the PDF. The portal lists them alphabetically under Installed Capabilities.
+CAP_ORDER = ["flow", "snmp", "trap", "syslog", "dns", "synth", "ssh", "bgp"]
 
 # Sizing from the KB (Universal Agents page). None = not published.
 SIZING = {
     "flow_edge": {"label": "Flow Proxy (Edge Processing)", "cpu": 8, "ram": 32, "per": 25000, "unit": "flows/s", "scale": False},
-    "flow_forward": {"label": "Flow Proxy (Forwarding, beta)", "cpu": 1, "ram": 2, "per": 20000, "unit": "flows/s", "scale": False},
+    "flow_forward": {"label": "Flow Proxy: Forwarding", "cpu": 1, "ram": 2, "per": 20000, "unit": "flows/s", "scale": False},
     "snmp": {"label": "SNMP/ST", "cpu": 2, "ram": 8, "per": 500, "unit": "devices"},
     "syslog": {"label": "Syslog Server", "cpu": 1, "ram": 1, "per": 8000, "unit": "events/s"},
     "dns": {"label": "DNS OTT Tap", "cpu": 1, "ram": 1, "per": 400000, "unit": "lookups/s"},
-    "synth": {"label": "Synthetics", "cpu": 2, "ram": 2, "per": None, "unit": None},
+    "synth": {"label": "Connectivity Test", "cpu": 2, "ram": 2, "per": None, "unit": None},
     "trap": {"label": "SNMP Trap Receiver", "cpu": None, "ram": None, "per": None, "unit": None},
-    "ssh": {"label": "SSH config access", "cpu": None, "ram": None, "per": None, "unit": None},
+    "ssh": {"label": "Device Configuration Sync", "cpu": None, "ram": None, "per": None, "unit": None},
+    "bgp": {"label": "BGP Proxy", "cpu": 2, "ram": 2, "per": None, "unit": None},
 }
 HEADROOM = 0.30  # KB: add 20-30% for bursty flow, syslog and traps; we plan for the top of that range.
 
@@ -221,7 +239,7 @@ BGP = {
         "Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.",
         "Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.",
         "BGP here is telemetry only; customer routing is unaffected. Peering also enables RTBH and Flowspec mitigation.",
-        "The Universal Agent BGP Proxy capability is listed as coming soon, so routers peer with Kentik directly today.",
+        "Sites that use the BGP Proxy capability peer with their Universal Agent instead (see BGP Proxy below).",
     ],
     "port": "TCP 179",
     "kb": ["device-settings", "universal-agents"],
@@ -394,5 +412,6 @@ OPEN_ITEMS = [
     "Which continuous synthetic test types run on the Universal Agent today (the KB names the capability Connectivity Test).",
     "Licensing names and entitlements per contract (FlowPak, NMS/DevicePak, CloudPak, Synthetics credits).",
     "Disk sizing for Universal Agent hosts is not published in the KB.",
-    "BGP Proxy on the Universal Agent is listed as coming soon; until then edge routers peer with Kentik directly.",
+    "BGP Proxy shows in Installed Capabilities in the portal, but the KB page still lists it as coming soon. Confirm it is available for this account before relying on it.",
+    "Flow Proxy: Forwarding is marked beta in the KB. Confirm the flavor (Forwarding or Edge Processing) per site.",
 ]

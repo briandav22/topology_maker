@@ -42,20 +42,22 @@ function drawFrame(gF, f, dd){
   return g;
 }
 
-let SCN = null;   // the scene on screen: fixed data, or built for the current data centers
+let SCN = null;   // the scene on screen: fixed data, or built for the current sites and capabilities
 function renderDetail(){
   const svg = $('#dt');
-  svg.innerHTML = '';
   const sc = SCN = getScene(S.view);
+  drawScene(svg, sc, S.mode === 'deep');
+  if(sc) svg.setAttribute('aria-label', viewName(S.view) + ' detail view');
+}
+function drawScene(svg, sc, dd){
+  svg.innerHTML = '';
   if(!sc){ svg._edges = []; return; }
-  const dd = S.mode === 'deep';
   const gF = el('g', {class:'frames'}, svg), gE = el('g', {class:'edges'}, svg), gP = el('g', {class:'pts'}, svg);
   const gN = el('g', {class:'nodes'}, svg), gT = el('g', {class:'notes'}, svg), gL = el('g', {class:'labels'}, svg);
   sc.frames.forEach(f => drawFrame(gF, f, dd));
   sc.edges.forEach((e, i) => drawEdge(gE, gL, e, i, dd, true));
   sc.nodes.forEach(n => drawNode(gN, n, dd));
   (sc.notes || []).forEach(n => { const s = dd ? n.td : n.t; if(s) txt(gT, n.x, n.y, s, 't-note'); });
-  svg.setAttribute('aria-label', viewName(S.view) + ' detail view');
   svg._edges = sc.edges;
 }
 
@@ -64,12 +66,14 @@ function viewName(v){
   if(v === 'ov') return 'All deployments';
   if(v === 'kentik') return 'Kentik SaaS';
   if(v === 'dcs') return S.dcN > 1 ? 'All data centers' : 'Your data center';
+  if(v === 'brs') return S.brN > 1 ? 'All branches' : 'Your branch';
   if(isDC(v)) return dcName(dcIndex(v));
+  if(isBR(v)) return brName(brIndex(v));
   return MOD[v] ? MOD[v].name : v;
 }
 function findItem(id){ const sc = SCN; if(!sc || S.view === 'ov') return null; return sc.nodes.find(n => n.id === id) || sc.frames.find(f => f.id === id) || null; }
 function itemName(id){
-  if(S.view === 'ov') return id === 'kentik' ? 'Kentik SaaS' : isDC(id) ? dcName(dcIndex(id)) : MOD[id] ? MOD[id].name : id;
+  if(S.view === 'ov') return id === 'kentik' ? 'Kentik SaaS' : isDC(id) ? dcName(dcIndex(id)) : isBR(id) ? brName(brIndex(id)) : MOD[id] ? MOD[id].name : id;
   const it = findItem(id);
   return it ? (it.t || it.label || it.tip || id) : id;
 }
@@ -147,7 +151,12 @@ function dcOverviewCard(dd){
   const btns = n > 1
     ? `<button type="button" data-go="dcs">All ${n} together ›</button>` + dcIds().map((id, k) => `<button type="button" data-go="${id}">${esc(dcName(k + 1))} ›</button>`).join('')
     : '<button type="button" data-go="dc">Drill in ›</button>';
-  return `<div class="card"><h4>${BLDG}${n > 1 ? n + ' data centers' : esc(dcName(1))}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}${n > 1 ? ' Each data center has its own agent.' : ''}</p><div class="btns">${btns}${n < DC_MAX ? '<button type="button" data-dcadd="1">+ Add a data center</button>' : ''}</div></div>`;
+  return `<div class="card"><h4>${BLDG}${n > 1 ? n + ' data centers' : esc(dcName(1))}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}${n > 1 ? ' Each data center has its own agent.' : ''} Open one to toggle its capabilities.</p><div class="btns">${btns}${n < DC_MAX ? '<button type="button" data-dcadd="1">+ Add a data center</button>' : ''}</div></div>`;
+}
+function brOverviewCard(dd){
+  const m = MOD.branch, n = S.brN, own = brIds().filter(id => brUA(brIndex(id))).length;
+  const btns = (n > 1 ? `<button type="button" data-go="brs">All ${n} together ›</button>` : '') + brIds().map((id, k) => `<button type="button" data-go="${id}">${esc(brName(k + 1))} ›</button>`).join('');
+  return `<div class="card"><h4>${STORE}${n > 1 ? n + ' branch offices' : esc(brName(1))}<span class="tag">${own ? own + ' with an agent' : 'No agents'}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><div class="btns">${btns}${n < BR_MAX ? '<button type="button" data-bradd="1">+ Add a branch</button>' : ''}</div></div>`;
 }
 function renderPanel(){
   const P = $('#panel'), dd = S.mode === 'deep';
@@ -155,13 +164,13 @@ function renderPanel(){
     P.innerHTML = typeBlock() + (dd ? OV_DD : OV_HL);
     const box = P.querySelector('#ov-sel'), ids = CHIP_ORDER.filter(id => S.sel.has(id));
     box.innerHTML = ids.length
-      ? ids.map(id => { if(id === 'dc') return dcOverviewCard(dd); const m = MOD[id]; return `<div class="card"><h4><svg class="ico ico-${m.side}" aria-hidden="true"><use href="#i-${m.icon}"/></svg>${esc(m.name)}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><button type="button" data-go="${id}">Drill in ›</button></div>`; }).join('')
+      ? ids.map(id => { if(id === 'dc') return dcOverviewCard(dd); if(id === 'branch') return brOverviewCard(dd); const m = MOD[id]; return `<div class="card"><h4><svg class="ico ico-${m.side}" aria-hidden="true"><use href="#i-${m.icon}"/></svg>${esc(m.name)}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><button type="button" data-go="${id}">Drill in ›</button></div>`; }).join('')
         + `<div class="card"><h4><svg class="ico ico-ktk" aria-hidden="true"><use href="#i-ib"/></svg>Kentik SaaS<span class="tag">Platform</span></h4><p>${dd ? 'Hosting, encryption, retention, the Kentik Data Engine and Firehose.' : 'What happens to your data once it reaches Kentik.'}</p><button type="button" data-go="kentik">See inside ›</button></div>`
       : '<p class="muted">Nothing selected yet. Pick a starting point or a deployment above.</p>';
     return;
   }
   const inf = getInfo(S.view);
-  const site = inf.site ? siteCard(inf.site) : inf.sites ? sitesCard() : '';
+  const site = inf.site ? (inf.site[0] === 'dc' ? siteCard(inf.site[1], dd) : branchCard(inf.site[1], dd)) : inf.sites ? sitesCard(inf.sites) : '';
   P.innerHTML = typeBlock() + focusBlock(dd) + `<p class="kick">${esc(inf.kick)}</p><h2 class="ttl">${esc(inf.title)}</h2>` + site + (dd ? inf.dd : inf.hl) + srcList(inf.src);
 }
 
@@ -248,6 +257,8 @@ const WIDE = [-100, -62, 1200, 744];
 function refresh(){ renderChrome(); renderPanel(); renderLegend(); buildParticles(); applyHighlight(); saveHash(); }
 
 function go(view, instant){
+  if(view === 'branch') view = 'br1';
+  if(isBR(view) && brIndex(view) > S.brN) view = brId(S.brN);
   const mod = modOf(view);
   if(mod && !S.sel.has(mod)){ S.sel.add(mod); renderOverview(); }
   const prev = S.view, ov = $('#ov'), dt = $('#dt'), ms = instant ? 0 : 420;
@@ -289,12 +300,13 @@ function setSelection(set){
 }
 function toggleMotion(){ S.anim = !S.anim; refresh(); }
 
-/* ===== Adding, removing and renaming data centers ===== */
+/* ===== Adding, removing and renaming sites, and toggling capabilities ===== */
+const siteView = v => isDC(v) || v === 'dcs' || isBR(v) || v === 'brs';
 function dcRefresh(target){
   renderOverview();
-  const v = S.view, dcView = isDC(v) || v === 'dcs';
-  if(dcView && target && target !== v){ go(target); return; }
-  if(dcView){ S.focus = null; S.hl = null; renderDetail(); }
+  const v = S.view;
+  if(siteView(v) && target && target !== v){ go(target); return; }
+  if(siteView(v)){ S.focus = null; S.hl = null; renderDetail(); }
   refresh();
 }
 function setDCCount(n){
@@ -311,42 +323,102 @@ function setDCCount(n){
 const stepDC = d => setDCCount((S.sel.has('dc') ? S.dcN : 0) + d);
 function removeDC(i){
   if(S.dcN <= 1){ setDCCount(0); return; }
-  S.dcNames.splice(i - 1, 1);
+  [S.dcNames, S.dcCaps, S.dcInst].forEach(a => a.splice(i - 1, 1));
+  S.brTo = S.brTo.map(t => { t = +t || 1; return t === i ? 1 : t > i ? t - 1 : t; });   // branches that pointed at the removed site move to the first one
   S.dcN--;
   dcRefresh('dcs');
 }
-function renameDC(i, v){
-  S.dcNames[i - 1] = String(v).slice(0, 32);
+function setBRCount(n){
+  const shown = Math.max(0, Math.min(BR_MAX, n)), v = S.view, sel = new Set(S.sel);
+  if(shown === 0) sel.delete('branch'); else { sel.add('branch'); S.brN = shown; }
+  S.sel = sel;
+  let target = v;
+  if(isBR(v) || v === 'brs'){
+    if(!sel.has('branch')) target = 'ov';
+    else if(isBR(v) && brIndex(v) > S.brN) target = brId(S.brN);
+  }
+  dcRefresh(target);
+}
+const stepBR = d => setBRCount((S.sel.has('branch') ? S.brN : 0) + d);
+function addBR(){ const was = S.sel.has('branch') ? S.brN : 0; setBRCount(was + 1); if(S.view !== 'ov' && S.brN > was) go(brId(S.brN)); }
+function removeBR(i){
+  if(S.brN <= 1){ setBRCount(0); return; }
+  [S.brNames, S.brUA, S.brTo, S.brCaps, S.brInst].forEach(a => a.splice(i - 1, 1));
+  S.brN--;
+  dcRefresh(S.brN > 1 ? 'brs' : 'br1');
+}
+function renameSite(kind, i, v){
+  (kind === 'dc' ? S.dcNames : S.brNames)[i - 1] = String(v).slice(0, 32);
   renderOverview();
-  if(isDC(S.view) || S.view === 'dcs'){ renderDetail(); buildParticles(); applyHighlight(); }
+  if(siteView(S.view)){ renderDetail(); buildParticles(); applyHighlight(); }
   renderChrome(); saveHash();
   const h = $('#panel h2.ttl');
   if(h) h.textContent = getInfo(S.view).title;
 }
+/* Any change to an agent: redraw everything that depends on it and keep the panel where it was */
+function siteChanged(){
+  const top = $('#panel').scrollTop;
+  renderOverview();
+  if(S.view !== 'ov'){ S.focus = null; renderDetail(); }
+  refresh();
+  $('#panel').scrollTop = top;
+}
+function toggleCap(kind, i, c){ const s = capsOf(kind, i); if(s.has(c)) s.delete(c); else s.add(c); siteChanged(); }
+function setAllCaps(kind, i, on){ (kind === 'dc' ? S.dcCaps : S.brCaps)[i - 1] = new Set(on ? DRAW_ORDER : []); siteChanged(); }
+function setInst(kind, i, v){ (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
+function toggleBRUA(i){ S.brUA[i - 1] = !brUA(i); siteChanged(); }
+function setBRTarget(i, t){ S.brTo[i - 1] = +t; siteChanged(); }
 
 /* ===== URL hash keeps the current view shareable ===== */
-function saveHash(){
+const capCode = set => DRAW_ORDER.filter(c => set.has(c)).join('.');
+function stateHash(){
   let h = 'v=' + S.view + '&m=' + S.mode + '&s=' + CHIP_ORDER.filter(id => S.sel.has(id)).join('.');
-  if(S.dcN > 1) h += '&n=' + S.dcN;
-  const names = S.dcNames.slice(0, S.dcN).map(s => String(s || '').trim());
-  if(names.some(Boolean)) h += '&dn=' + names.map(encodeURIComponent).join('|');
-  try { history.replaceState(null, '', '#' + h); } catch(e){}
+  h += '&n=' + S.dcN + '&b=' + S.brN;
+  const enc = list => list.map(x => encodeURIComponent(String(x || '').trim())).join('|');
+  const dn = S.dcNames.slice(0, S.dcN), bn = S.brNames.slice(0, S.brN);
+  if(dn.some(x => String(x || '').trim())) h += '&dn=' + enc(dn);
+  if(bn.some(x => String(x || '').trim())) h += '&bn=' + enc(bn);
+  h += '&dc=' + dcIds().map((id, k) => capCode(capsOf('dc', k + 1))).join('|');
+  h += '&di=' + dcIds().map((id, k) => instOf('dc', k + 1)[0]).join('');
+  h += '&bu=' + brIds().map((id, k) => brUA(k + 1) ? 1 : 0).join('');
+  h += '&bt=' + brIds().map((id, k) => +S.brTo[k] || 1).join('.');
+  h += '&bc=' + brIds().map((id, k) => capCode(capsOf('br', k + 1))).join('|');
+  h += '&bi=' + brIds().map((id, k) => instOf('br', k + 1)[0]).join('');
+  if(S.meta.cu) h += '&cu=' + encodeURIComponent(S.meta.cu);
+  if(S.meta.pb) h += '&pb=' + encodeURIComponent(S.meta.pb);
+  if(S.meta.rg !== 'US') h += '&rg=' + S.meta.rg;
+  return h;
 }
+function saveHash(){ try { history.replaceState(null, '', '#' + stateHash()); } catch(e){} }
 function loadHash(){
   let h = '';
   try { h = location.hash.slice(1); } catch(e){}
+  if(!h && typeof window.IBK_STATE === 'string') h = window.IBK_STATE;   // a saved HTML file opens on the design it was saved with
   if(!h) return;
   const q = {}, raw = {};
   h.split('&').forEach(kv => {
     const i = kv.indexOf('=');
     if(i > 0){ const k = kv.slice(0, i), v = kv.slice(i + 1); raw[k] = v; try { q[k] = decodeURIComponent(v); } catch(e){ q[k] = v; } }
   });
+  const dec = s => s.split('|').map(x => { try { return decodeURIComponent(x).slice(0, 32); } catch(e){ return ''; } });
+  const caps = s => new Set(s.split('.').filter(c => UAC[c]));
   if(q.s !== undefined) S.sel = new Set(q.s.split('.').filter(id => MOD[id]));
   if(q.m === 'deep' || q.m === 'high') S.mode = q.m;
   if(q.n) S.dcN = Math.max(1, Math.min(DC_MAX, parseInt(q.n, 10) || 1));
-  if(raw.dn) S.dcNames = raw.dn.split('|').map(s => { try { return decodeURIComponent(s).slice(0, 32); } catch(e){ return ''; } });
+  if(q.b) S.brN = Math.max(1, Math.min(BR_MAX, parseInt(q.b, 10) || 1));
+  if(raw.dn) S.dcNames = dec(raw.dn);
+  if(raw.bn) S.brNames = dec(raw.bn);
+  if(q.dc !== undefined) S.dcCaps = q.dc.split('|').map(caps);
+  if(q.bc !== undefined) S.brCaps = q.bc.split('|').map(caps);
+  if(q.di) S.dcInst = [...q.di].map(c => c === 'd' ? 'docker' : 'linux');
+  if(q.bi) S.brInst = [...q.bi].map(c => c === 'd' ? 'docker' : 'linux');
+  if(q.bu) S.brUA = [...q.bu].map(c => c === '1');
+  if(q.bt) S.brTo = q.bt.split('.').map(x => parseInt(x, 10) || 1);
+  if(q.cu) S.meta.cu = q.cu.slice(0, 80);
+  if(q.pb) S.meta.pb = q.pb.slice(0, 80);
+  if(q.rg === 'EU') S.meta.rg = 'EU';
   const v = q.v;
-  if(v === 'ov' || v === 'kentik' || v === 'dcs' || (isDC(v) ? dcIndex(v) <= S.dcN : !!SC[v])) S.view = v;
+  if(v === 'ov' || v === 'kentik' || v === 'dcs' || v === 'brs' || (isDC(v) ? dcIndex(v) <= S.dcN : isBR(v) ? brIndex(v) <= S.brN : !!SC[v])) S.view = v;
   const mod = modOf(S.view);
   if(mod) S.sel.add(mod);
 }
@@ -354,6 +426,7 @@ function loadHash(){
 /* ===== Events ===== */
 $('#ov').addEventListener('click', ev => {
   if(ev.target.closest('[data-dcadd]')){ stepDC(1); return; }
+  if(ev.target.closest('[data-bradd]')){ stepBR(1); return; }
   const g = ev.target.closest('[data-go]');
   if(g) go(g.dataset.go);
 });
@@ -371,11 +444,25 @@ $('#panel').addEventListener('click', ev => {
   if(del){ removeDC(+del.dataset.dcdel); return; }
   const st = t.closest('[data-dcstep]');
   if(st){ stepDC(+st.dataset.dcstep); return; }
+  if(t.closest('[data-bradd]')){ addBR(); return; }
+  const bd = t.closest('[data-brdel]');
+  if(bd){ removeBR(+bd.dataset.brdel); return; }
+  const bs = t.closest('[data-brstep]');
+  if(bs){ stepBR(+bs.dataset.brstep); return; }
+  const cp = t.closest('[data-cap]');
+  if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, +i, c); return; }
+  const ca = t.closest('[data-capall]');
+  if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, +i, on === '1'); return; }
+  const ins = t.closest('[data-inst]');
+  if(ins){ const [k, i, v] = ins.dataset.inst.split(':'); setInst(k, +i, v); return; }
+  const bu = t.closest('[data-brua]');
+  if(bu){ toggleBRUA(+bu.dataset.brua); return; }
   const g = t.closest('[data-go]');
   if(g){ go(g.dataset.go); return; }
   if(t.closest('[data-clear]')) setFocus(null);
 });
-$('#panel').addEventListener('input', ev => { const t = ev.target; if(t && t.id === 'dcNameIn') renameDC(+t.dataset.dc, t.value); });
+$('#panel').addEventListener('input', ev => { const t = ev.target; if(t && t.classList.contains('nameIn')){ const [k, i] = t.dataset.name.split(':'); renameSite(k, +i, t.value); } });
+$('#panel').addEventListener('change', ev => { const t = ev.target; if(t && t.classList.contains('toSel')) setBRTarget(+t.dataset.to, t.value); });
 $('#crumbs').addEventListener('click', ev => {
   const b = ev.target.closest('[data-nav]');
   if(!b) return;
@@ -392,6 +479,8 @@ $('#presets').addEventListener('click', ev => { const b = ev.target.closest('[da
 $('#chips').addEventListener('click', ev => {
   const st = ev.target.closest('[data-dcstep]');
   if(st){ stepDC(+st.dataset.dcstep); return; }
+  const bs = ev.target.closest('[data-brstep]');
+  if(bs){ stepBR(+bs.dataset.brstep); return; }
   const b = ev.target.closest('[data-chip]');
   if(!b) return;
   const s = new Set(S.sel), id = b.dataset.chip;
@@ -410,7 +499,8 @@ $('#themeBtn').addEventListener('click', () => {
 document.addEventListener('keydown', ev => {
   if(ev.ctrlKey || ev.metaKey || ev.altKey) return;
   const tg = ev.target, k = ev.key;
-  if(tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable)) return;
+  if(tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT' || tg.isContentEditable)) return;
+  if(document.querySelector('dialog[open]')) return;
   if((k === 'Enter' || k === ' ') && tg instanceof SVGElement && tg.getAttribute('role') === 'button'){
     ev.preventDefault(); tg.dispatchEvent(new MouseEvent('click', {bubbles:true})); return;
   }
@@ -424,7 +514,7 @@ document.addEventListener('keydown', ev => {
   if(k === 'm' || k === 'M'){ toggleMotion(); return; }
   if((k === 'ArrowRight' || k === 'ArrowLeft') && S.view !== 'ov'){
     const list = [];
-    CHIP_ORDER.filter(id => S.sel.has(id)).forEach(id => { if(id === 'dc'){ list.push(...dcIds()); if(S.dcN > 1) list.push('dcs'); } else list.push(id); });
+    CHIP_ORDER.filter(id => S.sel.has(id)).forEach(id => { if(id === 'dc'){ list.push(...dcIds()); if(S.dcN > 1) list.push('dcs'); } else if(id === 'branch'){ list.push(...brIds()); if(S.brN > 1) list.push('brs'); } else list.push(id); });
     list.push('kentik');
     const i = list.indexOf(S.view);
     go(list[(i + (k === 'ArrowRight' ? 1 : list.length - 1)) % list.length]);

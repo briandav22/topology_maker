@@ -236,6 +236,44 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 .panel ol li{margin:2px 0}
 .panel .gobtn{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent-text);border-radius:8px;padding:4px 10px;font-size:12.5px;cursor:pointer;font-weight:500;margin:2px 6px 6px 0}
 .panel .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--surface-2)}
+/* Installed capabilities: toggles like Settings › Universal Agents */
+.panel .caps .caphead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.panel .caps .caphead h4{margin:0 0 1px}
+.panel .caps .caphead p{margin:0;font-size:12px}
+.capn{flex:none;min-width:28px;height:28px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);display:grid;place-items:center;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.caprow{display:flex;align-items:center;gap:11px;border:1px solid var(--border);border-radius:9px;padding:7px 10px;margin:0 0 6px;background:var(--surface)}
+.caprow.solo{margin:4px 0 8px}
+.caprow .capt{display:flex;flex-direction:column;min-width:0}
+.caprow .capt b{font-size:13px;font-weight:600;line-height:1.3}
+.caprow .capt span{font-size:11.5px;color:var(--muted);line-height:1.3}
+.caprow .capt .aka{display:inline;font-weight:400;font-size:12px}
+.caprow:not(.on) .capt b{color:var(--muted)}
+.panel .card button.sw,.sw{flex:none;width:38px;height:22px;border-radius:999px;border:0;background:var(--faint);position:relative;cursor:pointer;padding:0;transition:background .15s}
+.sw span{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+.panel .card button.sw[aria-checked="true"],.sw[aria-checked="true"]{background:var(--ib-green)}
+.sw[aria-checked="true"] span{left:19px}
+.sw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel .card .seg button{border:0;background:transparent;padding:3px 11px;font-size:12px;border-radius:7px}
+.panel .card .seg button[aria-pressed="true"]{background:var(--ib-green);color:#000}
+.panel .fld .seg{align-self:flex-start}
+.panel .fld select{font:inherit;font-size:13.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 8px;width:100%}
+.card-ov.warn rect.bg{stroke:var(--l-trap);stroke-dasharray:4 3}
+/* Save and export */
+dialog.xdlg{border:1px solid var(--border);border-radius:14px;padding:0;background:var(--surface);color:var(--text);width:min(460px,calc(100vw - 32px));box-shadow:0 12px 40px rgba(0,0,0,.25)}
+dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
+.xdlg .xin{padding:16px 18px 18px}
+.xdlg h2{font-size:17px;margin:0 0 4px}
+.xdlg p{margin:0 0 10px;color:var(--muted);font-size:13px}
+.xdlg label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);margin:0 0 9px}
+.xdlg input,.xdlg select{font:inherit;font-size:13.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 9px}
+.xdlg .xbtns{display:flex;flex-direction:column;gap:7px;margin:12px 0 6px}
+.xdlg .xbtns button{border:1px solid var(--border);background:var(--surface-2);border-radius:9px;padding:8px 12px;cursor:pointer;text-align:left;font-size:13.5px;font-weight:600}
+.xdlg .xbtns button span{display:block;font-weight:400;font-size:12px;color:var(--muted)}
+.xdlg .xbtns button.pri{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-text)}
+.xdlg .xbtns button:disabled{opacity:.5;cursor:default}
+.xdlg .xstat{font-size:12.5px;color:var(--accent-text);min-height:18px;margin:0}
+.xdlg .xclose{float:right;border:0;background:none;font-size:20px;line-height:1;cursor:pointer;color:var(--muted);padding:0 2px}
+@media print{ .top .controls,.top .presets-nav,.picker,.legend,.panel{display:none!important} .main{grid-template-columns:1fr} }
 @media (max-width:1000px){
   .app{height:auto;min-height:100vh}
   .body{flex:none}

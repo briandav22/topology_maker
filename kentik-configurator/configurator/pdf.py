@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import letter, landscape, TABLOID
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import (BaseDocTemplate, Frame, PageTemplate, Paragraph, Spacer, Table, TableStyle,
-                                PageBreak, NextPageTemplate, KeepTogether, Preformatted, CondPageBreak)
+                                PageBreak, NextPageTemplate, KeepTogether, Preformatted, CondPageBreak, Flowable)
 
 from . import brand as B
 from . import catalog as C
@@ -73,8 +73,27 @@ def page_chrome(c, doc_title, cfg, page_w, page_h, page_no=None):
 
 # ---------------------------------------------------------------- topology PDF
 
-def topology_pdf(cfg):
+def decode_images(images):
+    """Explorer views sent by the browser: [{"title", "png": "data:image/png;base64,..."}] -> [(title, ImageReader)]."""
+    import base64
+    from reportlab.lib.utils import ImageReader
+    out = []
+    for im in images or []:
+        data = str(im.get("png") or "")
+        if "," in data:
+            data = data.split(",", 1)[1]
+        try:
+            out.append((str(im.get("title") or ""), ImageReader(io.BytesIO(base64.b64decode(data)))))
+        except Exception:
+            continue
+    return out
+
+
+def topology_pdf(cfg, images=None):
     cfg = M.normalize(cfg)
+    shots = decode_images(images)
+    if shots:
+        return _topology_pages(cfg, shots)
     sc = T.build(cfg)
     buf = io.BytesIO()
     from reportlab.pdfgen import canvas
@@ -120,6 +139,48 @@ def topology_pdf(cfg):
     c.showPage()
     c.save()
     return buf.getvalue()
+
+
+def _topology_pages(cfg, shots):
+    """One landscape page per explorer view, drawn exactly as on screen."""
+    from reportlab.pdfgen import canvas
+    buf = io.BytesIO()
+    pw, ph = landscape(letter)
+    c = canvas.Canvas(buf, pagesize=(pw, ph))
+    c.setTitle(f"Kentik deployment topology - {cfg['customer']}")
+    c.setAuthor(cfg["prepared_by"] or B.NAME)
+    for n, (title, img) in enumerate(shots, 1):
+        page_chrome(c, "Kentik deployment topology", cfg, pw, ph, page_no=n)
+        c.setFillColor(HexColor(B.NAVY))
+        c.setFont("Helvetica-Bold", 15)
+        c.drawString(36, ph - 72, title if n > 1 else f"{cfg['customer']}: Kentik deployment topology")
+        draw_shot(c, img, 36, 44, pw - 72, ph - 47 - 44 - 40)
+        c.showPage()
+    c.save()
+    return buf.getvalue()
+
+
+def draw_shot(c, img, x, y, w, h):
+    iw, ih = img.getSize()
+    s = min(w / iw, h / ih)
+    dw, dh = iw * s, ih * s
+    c.setStrokeColor(HexColor(B.LINE))
+    c.setLineWidth(0.6)
+    c.roundRect(x + (w - dw) / 2 - 1, y + (h - dh) / 2 - 1, dw + 2, dh + 2, 6, stroke=1, fill=0)
+    c.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh)
+
+
+class ShotFlowable(Flowable):
+    """An explorer view (PNG) scaled to fit the frame, with a hairline border."""
+
+    def __init__(self, img, w, h):
+        super().__init__()
+        iw, ih = img.getSize()
+        s = min(w / iw, h / ih)
+        self.img, self.width, self.height = img, iw * s, ih * s
+
+    def draw(self):
+        draw_shot(self.canv, self.img, 0, 0, self.width, self.height)
 
 
 # ---------------------------------------------------------------- guide PDF
@@ -271,14 +332,17 @@ def H1(text, num=None):
     return [t, Spacer(1, 8)]
 
 
-def guide_pdf(cfg):
+def guide_pdf(cfg, images=None):
     cfg = M.normalize(cfg)
+    shots = decode_images(images)
     buf = io.BytesIO()
     doc = GuideDoc(buf, cfg)
     W = 7.0 * inch
     region = C.REGIONS[cfg["region"]]
     clouds = M.enabled_clouds(cfg)
-    sites = cfg["sites"]
+    all_sites = cfg["sites"]
+    sites = M.agent_sites(cfg)            # sites with a Universal Agent
+    remote = M.remote_branches(cfg)       # branches that send to a data center agent
     caps_used = [c for c in C.CAP_ORDER if any(c in s["capabilities"] for s in sites)]
     kb_used = []
 
@@ -294,7 +358,7 @@ def guide_pdf(cfg):
         ["Date", cfg["date"]], ["Kentik region", region["label"]],
         ["Scope", ", ".join(filter(None, [
             f"{sum(1 for s in sites if s['kind'] == 'dc')} data center(s)" if any(s['kind'] == 'dc' for s in sites) else "",
-            f"{sum(1 for s in sites if s['kind'] == 'branch')} branch(es)" if any(s['kind'] == 'branch' for s in sites) else "",
+            f"{sum(1 for s in all_sites if s['kind'] == 'branch')} branch(es)" + (f", {len(remote)} without an agent" if remote else "") if any(s['kind'] == 'branch' for s in all_sites) else "",
             ", ".join(C.CLOUDS[c]["name"] for c in clouds),
             "Synthetic monitoring" if cfg["synthetics"]["enabled"] else ""]))],
     ]
@@ -315,6 +379,9 @@ def guide_pdf(cfg):
     sec.append("Network and firewall requirements")
     if sites:
         sec.append("Universal Agent deployment")
+    if remote:
+        sec.append("Branches without an agent")
+    if sites:
         sec.append("Capability configuration")
     if clouds:
         sec.append("Public cloud setup")
@@ -331,8 +398,13 @@ def guide_pdf(cfg):
     story.append(P("Kentik is SaaS. The customer runs a small footprint where the network lives, and everything lands in the customer's "
                    f"Kentik account in the {esc(region['label'])} region over encrypted, outbound connections.", "lead"))
     rows = []
-    for s in sites:
-        size = M.site_sizing(s)
+    for s in all_sites:
+        if not s["agent"]:
+            rows.append([s["name"] + (f" ({s['location']})" if s["location"] else ""), "No agent",
+                         f"Devices send flow, traps and syslog across the WAN to the {s['send_to']} agent" if s["send_to"] else "Nothing collects it yet",
+                         "None"])
+            continue
+        size = M.site_sizing(s, cfg)
         rows.append([s["name"] + (f" ({s['location']})" if s["location"] else ""),
                      "Universal Agent on " + ("Docker" if s["install"] == "docker" else "Linux"),
                      ", ".join(C.CAPABILITIES[c]["name"] for c in s["capabilities"]) or "None selected",
@@ -349,9 +421,12 @@ def guide_pdf(cfg):
     story.append(P("<b>Three patterns cover this design</b>", "body"))
     pats = []
     if sites:
-        pats.append("<b>On-prem: one Universal Agent per site.</b> A single agent with capabilities switched on in the portal. "
+        pats.append("<b>On-prem: a Universal Agent per data center.</b> A single agent with only the capabilities each site needs toggled on in the portal. "
                     "Devices point at it, and it talks to Kentik over outbound HTTPS. The standalone kproxy agent is not used; "
                     "the Universal Agent Flow Proxy replaces it.")
+    if remote:
+        pats.append(f"<b>Branches without an agent ({len(remote)}).</b> Their routers, switches and Wi-Fi send flow, traps and syslog across the WAN "
+                    "to a data center agent, which also polls them. Branches that need local tests or collection get their own agent.")
     if clouds:
         pats.append("<b>Public cloud: agentless.</b> Flow logs go to storage in the customer's own account, and Kentik gets read-only "
                     "access to the logs, topology metadata and metrics.")
@@ -363,9 +438,18 @@ def guide_pdf(cfg):
 
     # ---- 2. topology (landscape)
     story += [NextPageTemplate("land"), PageBreak()]
-    sc = T.build(cfg)
-    story.append(P(f"<b>{num['Topology']}. Topology</b>", "h2"))
-    story.append(T.TopologyFlowable(sc, landscape(letter)[0] - 1.0 * inch, landscape(letter)[1] - 1.45 * inch - 0.85 * inch))
+    lw, lh = landscape(letter)[0] - 1.0 * inch, landscape(letter)[1] - 1.45 * inch - 0.85 * inch
+    if shots:
+        for k, (title, img) in enumerate(shots):
+            label = f"<b>{num['Topology']}. Topology</b>" if k == 0 else f"<b>{num['Topology']}.{k}&nbsp;&nbsp;{esc(title)}</b>"
+            story.append(P(label, "h2"))
+            story.append(ShotFlowable(img, lw, lh - 30))
+            if k < len(shots) - 1:
+                story.append(PageBreak())
+    else:
+        sc = T.build(cfg)
+        story.append(P(f"<b>{num['Topology']}. Topology</b>", "h2"))
+        story.append(T.TopologyFlowable(sc, lw, lh))
     story += [NextPageTemplate("body"), PageBreak()]
 
     # ---- 3. roles and permissions
@@ -376,7 +460,7 @@ def guide_pdf(cfg):
     if sites:
         rr.append(["Server or platform team", f"Provide {len(sites)} agent host(s) and run the install command",
                    "root or sudo on a supported Linux host" + (", or Docker" if any(s["install"] == "docker" for s in sites) else "")])
-        rr.append(["Network team", "Point flow, traps and syslog at the agents; create SNMP and SSH credentials" + ("; configure BGP peering" if any(s["bgp"] for s in sites) else ""),
+        rr.append(["Network team", "Point flow, traps and syslog at the agents" + (" (branches without an agent point at their data center agent)" if remote else "") + "; create SNMP and SSH credentials" + ("; configure BGP peering" if any(s["bgp"] or "bgp" in s["capabilities"] for s in sites) else ""),
                    "Device configuration rights; SNMP v2c/v3 read-only credentials; read-only SSH account"])
         rr.append(["Security / firewall team", "Open the rules in section " + str(num["Network and firewall requirements"]), "Firewall and proxy change rights"])
     if "dns" in caps_used:
@@ -407,10 +491,14 @@ def guide_pdf(cfg):
                        ([["Kentik flow ingest", "UDP 40010", "Optional Flow Proxy base port"]] if "flow" in caps_used else []),
                        [3.0 * inch, 1.3 * inch, 2.7 * inch]))
     story += bullets(C.EGRESS_NOTES[1:] + ["A web proxy works: set https_proxy before running the install (Linux) or pass it with --env (Docker)."])
-    for s in sites:
+    for s in all_sites:
+        rules = M.site_firewall(s, cfg)
+        if not rules:
+            continue
         story.append(CondPageBreak(1.6 * inch))
-        story.append(P(f"<b>{esc(s['name'])}</b>" + (f"  ·  {esc(s['location'])}" if s["location"] else ""), "h3"))
-        story.append(table(["From", "To", "Port", "Purpose"], M.site_firewall(s, cfg),
+        story.append(P(f"<b>{esc(s['name'])}</b>" + (f"  ·  {esc(s['location'])}" if s["location"] else "")
+                       + ("" if s["agent"] else f"  ·  no agent, across the WAN to {esc(s['send_to'])}"), "h3"))
+        story.append(table(["From", "To", "Port", "Purpose"], rules,
                            [1.5 * inch, 2.0 * inch, 1.3 * inch, 2.2 * inch]))
     if any(cfg["clouds"][c].get("test_agent") for c in clouds):
         story.append(P("<b>Cloud test agents</b>", "h3"))
@@ -438,10 +526,13 @@ def guide_pdf(cfg):
             story.append(callout("<b>Rolling out many agents?</b> " + esc(C.UA_API_NOTE.format(domain=region["domain"])), W))
         story.append(src(["universal-agents", "ua-deployment"]))
         for i, s in enumerate(sites, 1):
-            size = M.site_sizing(s)
+            size = M.site_sizing(s, cfg)
             block = [CondPageBreak(2.5 * inch),
                      P(f"{num['Universal Agent deployment']}.{i}&nbsp;&nbsp;{esc(s['name'])}" + (f"  ·  {esc(s['location'])}" if s["location"] else ""), "h2")]
             kind = "Data center" if s["kind"] == "dc" else "Branch office"
+            feeds = M.remote_branches(cfg, s)
+            if feeds:
+                kind += f" that also collects for {len(feeds)} branch(es) without an agent ({', '.join(b['name'] for b in feeds)}); their load is included in the sizing"
             block.append(P(f"{kind}. Install method: <b>{'Docker' if s['install'] == 'docker' else 'Linux package'}</b>. "
                            f"Capabilities: <b>{esc(', '.join(C.CAPABILITIES[c]['name'] for c in s['capabilities']) or 'none')}</b>.", "body"))
             if size["rows"]:
@@ -475,6 +566,30 @@ def guide_pdf(cfg):
                 story += bullets(C.BGP["steps"])
         story.append(src(["ua-deployment", "ua-portal-management", "device-settings"]))
 
+    # ---- branches with no agent
+    if remote:
+        story.append(PageBreak())
+        story += H1("Branches without an agent", num["Branches without an agent"])
+        story.append(P("These branches get no agent. Their devices are configured to use a data center Universal Agent as their collector, "
+                       "across the WAN. Nothing is installed at the branch.", "lead"))
+        story.append(table(["Branch", "Sends to", "What reaches Kentik"],
+                           [[b["name"], (b["send_to"] + " agent") if b["send_to"] else "Nothing yet: add a data center or an agent",
+                             ", ".join(C.CAPABILITIES[c]["name"] for c in next((d["capabilities"] for d in sites if d["name"] == b["send_to"]), [])
+                                       if c in ("flow", "snmp", "trap", "syslog", "ssh")) or "None"] for b in remote],
+                           [1.8 * inch, 1.8 * inch, 3.4 * inch], bold_first=True))
+        story.append(P("<b>Steps for each branch</b>", "h3"))
+        story += steps([
+            "On the branch WAN or SD-WAN router (and switches if wanted), export flow to the data center agent's IP on UDP 9995. Set the same sample rate for the device in Kentik.",
+            "Point SNMP traps at the agent on UDP 162 and syslog on UDP or TCP 514.",
+            "Allow those flows through WAN firewalls and SD-WAN policy, plus UDP 161, ICMP and TCP 22 from the agent back to the branch devices.",
+            "In Kentik, add the branch devices with the data center agent as their collection agent, and assign them to the branch Site so they still group by location.",
+            "Optional: create Server IP or agent-to-agent tests from the data center agent to the branch router to watch the WAN path.",
+        ])
+        story.append(callout("A branch gets its own agent when it needs tests from where users are, is large or far from a data center, "
+                             "or should keep its telemetry off the WAN.", W))
+        story.append(src(["universal-agents", "device-settings", "router-configuration"]))
+
+    if sites:
         # ---- 6. capability configuration
         story.append(PageBreak())
         story += H1("Capability configuration", num["Capability configuration"])
@@ -590,6 +705,9 @@ def guide_pdf(cfg):
     story.append(PageBreak())
     story += H1("Go-live validation checklist", num["Go-live validation checklist"])
     chk = []
+    for s in remote:
+        if s["send_to"]:
+            chk.append(f"{s['name']}: devices show {s['send_to']} as their collection agent; flow, traps and syslog arrive across the WAN")
     for s in sites:
         chk.append(f"{s['name']}: agent shows Up in Settings > Universal Agents, capabilities show enabled")
         if "flow" in s["capabilities"]:
@@ -602,6 +720,8 @@ def guide_pdf(cfg):
             chk.append(f"{s['name']}: first config backup fetched over SSH")
         if s.get("bgp"):
             chk.append(f"{s['name']}: BGP sessions established with Kentik; flows show AS path")
+        if "bgp" in s["capabilities"]:
+            chk.append(f"{s['name']}: routers peered with the agent (BGP Proxy); flows show AS path")
     for cid in clouds:
         chk.append(f"{C.CLOUDS[cid]['name']}: cloud export status OK; metadata visible in Kentik Map" +
                    ("; flow logs arriving" if "flow" in cfg["clouds"][cid]["features"] else ""))

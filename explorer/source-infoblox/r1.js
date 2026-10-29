@@ -2,7 +2,10 @@
 const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
-const S = {mode:'high', sel:new Set(['dc','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED, dcN:1, dcNames:[]};
+const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
+  dcN:1, dcNames:[], dcCaps:[], dcInst:[],
+  brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
+  meta:{cu:'', pb:'', rg:'US'}};
 const VB = [0, 0, 1000, 620];
 const FIT = [];       // texts that had to shrink to fit; empty means every label fits at its design size
 let OVR = {};         // overview card rectangles, used by the zoom transition
@@ -169,35 +172,72 @@ function drawHub(gN, h, dd){
   txt(g, h.x + h.w / 2, h.y + h.h - 11, 'See inside ›', 'drill', {'text-anchor':'middle'});
 }
 
+/* A branch office tile in the row along the bottom of the overview */
+function drawBranchTile(gN, r, i, dd){
+  const ua = brUA(i), t = brTarget(i), caps = ua ? capList('br', i) : [];
+  const status = ua ? (dd ? 'Own agent · TCP 443 out' : 'Own Universal Agent') : t ? (dd ? 'UDP 9995/162/514 → ' : 'Sends to ') + dcName(t) : 'Nothing collects it yet';
+  const g = el('g', {class:'card-ov' + (!ua && !t ? ' warn' : ''), role:'button', tabindex:0, 'data-go':brId(i), 'aria-label':brName(i) + '. ' + status + '. Press Enter to drill in.'}, gN);
+  el('rect', {class:'bg', x:r.x, y:r.y, width:r.w, height:r.h, rx:10}, g);
+  icon(g, ua ? 'agent' : 'store', r.x + 9, r.y + 9, 17, 'ico ' + (ua ? 'ico-ktk' : 'ico-left'));
+  fit(txt(g, r.x + 31, r.y + 22, brName(i), 't-label', {style:'font-size:12.5px'}), r.w - 40);
+  fit(txt(g, r.x + 10, r.y + 41, status, 't-sub'), r.w - 20);
+  if(r.h >= 70){
+    const dots = ua ? caps : t ? ['flow', 'snmp', 'trap', 'syslog'].filter(c => capsOf('dc', t).has(c)) : [];
+    dots.forEach((c, k) => el('circle', {class:'dot-' + c, cx:r.x + 14 + k * 11, cy:r.y + 58, r:3.6}, g));
+    const lab = ua ? (caps.length ? '' : 'No capabilities on') : t ? 'over the WAN' : 'Add a data center';
+    if(lab) fit(txt(g, r.x + 14 + dots.length * 11 + (dots.length ? 2 : -4), r.y + 62, lab, 'chiptxt'), r.w - 24 - dots.length * 11);
+  }
+  return g;
+}
+
+/* Branch row geometry: one row, or two staggered rows so lines from the back row pass between the tiles in front */
+function branchBand(rightCol){
+  const brs = brIds().map(brIndex), add = S.brN < BR_MAX;
+  const x0 = M, x1 = rightCol ? VB[2] - M - SW - 26 : VB[2] - M, rowW = x1 - x0, g = 10;
+  const per = Math.max(2, Math.floor((rowW + g) / (100 + g)));
+  let slots = brs.length + (add ? 1 : 0), rows = 1, k1 = slots;
+  if(slots > per){ rows = 2; k1 = Math.ceil((slots + 1) / 2); if(k1 > per){ k1 = per; slots = Math.min(slots, 2 * per - 1); } }
+  const tw = Math.min(rows === 1 ? 188 : 160, (rowW - (k1 - 1) * g) / k1), th = rows === 1 ? 74 : 52;
+  const top = VB[3] - M - (rows * th + (rows - 1) * 10), ox = x0 + (rowW - (k1 * tw + (k1 - 1) * g)) / 2;
+  const tiles = [];
+  for(let j = 0; j < slots; j++){
+    const row = j < k1 ? 0 : 1, col = row ? j - k1 : j;
+    tiles.push({i:j < brs.length ? brs[j] : 0, x:ox + col * (tw + g) + (row ? (tw + g) / 2 : 0), y:top + row * (th + 10), w:tw, h:th});
+  }
+  return {top, bus:top - 13, tiles};
+}
+
 function renderOverview(){
   const svg = $('#ov');
   svg.innerHTML = '';
   OVR = {};
   const dd = S.mode === 'deep';
-  const many = S.sel.has('dc') && S.dcN > 1;
-  const ids = CHIP_ORDER.filter(id => S.sel.has(id)).flatMap(id => id === 'dc' ? dcIds() : [id]);
-  const sideOf = id => isDC(id) ? 'left' : id === 'branch' && many ? 'bottom' : MOD[id].side;   // with several data centers the branch moves to the bottom
+  const ids = CHIP_ORDER.filter(id => S.sel.has(id) && id !== 'branch').flatMap(id => id === 'dc' ? dcIds() : [id]);
+  const sideOf = id => isDC(id) ? 'left' : MOD[id].side;
   const modFor = id => isDC(id) ? dcMod(id) : MOD[id];
   const side = s => ids.filter(id => sideOf(id) === s);
-  const L = side('left'), R = side('right'), T = side('top'), B = side('bottom');
+  const L = side('left'), R = side('right'), T = side('top');
   const gE = el('g', {class:'edges'}, svg), gP = el('g', {class:'pts'}, svg), gN = el('g', {class:'nodes'}, svg), gL = el('g', {class:'labels'}, svg);
 
-  const column = (list, x) => {
+  const band = brOn() ? branchBand(R.length > 0) : null;
+  const remote = band ? band.tiles.filter(t => t.i && !brUA(t.i) && brTarget(t.i)) : [];
+  const lx = remote.length ? 46 : M;
+  const column = (list, x, y0, y1) => {
     if(!list.length) return [];
-    const each = (VB[3] - 2 * M - (list.length - 1) * GAP) / list.length;
+    const H = y1 - y0, each = (H - (list.length - 1) * GAP) / list.length;
     const lays = list.map(id => {
       const m = modFor(id);
       for(const v of ['full', 'compact', 'one']){ const f = cardLayout(m, SW, v); if(f.h <= each) return f; }
       return cardLayout(m, SW, 'mini');
     });
-    let y = (VB[3] - lays.reduce((a, l) => a + l.h, 0) - (list.length - 1) * GAP) / 2;
-    return list.map((id, i) => { const r = {id, x, y, w:SW, h:lays[i].h, lay:lays[i]}; y += r.h + GAP; return r; });
+    const sum = lays.reduce((a, l) => a + l.h, 0), gp = list.length > 1 ? Math.max(4, Math.min(GAP, (H - sum) / (list.length - 1))) : 0;
+    let y = y0 + Math.max(0, (H - sum - (list.length - 1) * gp) / 2);
+    return list.map((id, i) => { const r = {id, x, y, w:SW, h:lays[i].h, lay:lays[i]}; y += r.h + gp; return r; });
   };
-  const left = column(L, M), right = column(R, VB[2] - M - SW);
-  const both = T.length && B.length;
-  const center = (id, atTop) => { const lay = cardLayout(modFor(id), CW, both ? 'compact' : 'full'); return {id, x:(VB[2] - CW) / 2, y:atTop ? M : VB[3] - M - lay.h, w:CW, h:lay.h, lay}; };
-  const top = T.length ? center(T[0], true) : null, bot = B.length ? center(B[0], false) : null;
-  const y1 = top ? top.y + top.h : 0, y2 = bot ? bot.y : VB[3];
+  const leftBottom = band ? band.bus - 12 : VB[3] - M;
+  const left = column(L, lx, M, leftBottom), right = column(R, VB[2] - M - SW, M, VB[3] - M);
+  const top = T.length ? (() => { const lay = cardLayout(modFor(T[0]), CW, band ? 'compact' : 'full'); return {id:T[0], x:(VB[2] - CW) / 2, y:M, w:CW, h:lay.h, lay}; })() : null;
+  const y1 = top ? top.y + top.h : 0, y2 = band ? band.bus - 4 : VB[3];
   const hub = {x:(VB[2] - HW) / 2, w:HW, h:HH, y:Math.round((y1 + y2) / 2 - HH / 2)};
   OVR.kentik = [hub.x, hub.y, hub.w, hub.h];
 
@@ -206,7 +246,7 @@ function renderOverview(){
   const sideEdges = (cards, fromRight) => {
     const list = [];
     cards.forEach(r => {
-      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2;   // BGP from the data center, while there is room for it
+      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2 && !capsOf('dc', dcIndex(r.id)).has('bgp');   // direct BGP from the data center, when BGP Proxy is off and there is room
       list.push({r, e:OV_EDGE[modOf(r.id)], y:two ? cy - 12 : cy});
       if(two) list.push({r, e:OV_BGP, y:cy + 12});
     });
@@ -223,23 +263,56 @@ function renderOverview(){
   sideEdges(right, true);
   const cx = VB[2] / 2;
   if(top) edges.push(Object.assign({}, OV_EDGE[top.id], {a:top.id, b:'kentik', c:'v', p:[[cx, top.y + top.h], [cx, hub.y]], lp:[cx, (top.y + top.h + hub.y) / 2]}));
-  if(bot) edges.push(Object.assign({}, OV_EDGE[bot.id], {a:bot.id, b:'kentik', c:'v', p:[[cx, bot.y], [cx, hub.y + hub.h]], lp:[cx, (bot.y + hub.y + hub.h) / 2]}));
+
+  /* Branches: their own agent goes up to Kentik; no agent goes across the WAN to a data center agent */
+  if(band){
+    const own = band.tiles.filter(t => t.i && brUA(t.i));
+    own.forEach((t, k) => {
+      const hx = own.length === 1 ? cx : hub.x + 26 + (hub.w - 52) * k / (own.length - 1), sx = t.x + t.w / 2;
+      edges.push(Object.assign({t:'https', a:brId(t.i), b:'kentik', c:'v', p:[[sx, t.y], [hx, hub.y + hub.h]]},
+        k ? {} : {lab:'HTTPS', labd:'TCP 443', lp:[(sx + hx) / 2, (t.y + hub.y + hub.h) / 2]}));
+    });
+    const dcR = Object.fromEntries(left.filter(r => isDC(r.id)).map(r => [dcIndex(r.id), r]));
+    const tgts = [...new Set(remote.map(t => brTarget(t.i)))].filter(d => dcR[d]);
+    const maxCx = Math.max(...remote.map(t => t.x + t.w / 2));
+    let labeled = false;
+    remote.forEach(t => {
+      const d = brTarget(t.i), r = dcR[d];
+      if(!r) return;
+      const caps = capsOf('dc', d), tp = ['flow', 'trap', 'syslog', 'snmp'].find(c => caps.has(c));
+      if(!tp) return;
+      const gx = lx - 10 - tgts.filter(x => x > d).length * 6, dy = r.y + r.h / 2, sx = t.x + t.w / 2;
+      const e = {t:tp, a:brId(t.i), b:dcId(d), p:[[sx, t.y], [sx, band.bus], [gx, band.bus], [gx, dy], [lx, dy]]};
+      if(!labeled){ Object.assign(e, {lab:'Branch telemetry over the WAN', labd:'UDP 9995 · 162 · 514 to the agent', lp:[(gx + maxCx) / 2, band.bus]}); labeled = true; }
+      edges.push(e);
+    });
+  }
   edges.forEach((e, i) => drawEdge(gE, gL, e, i, dd, false));
 
-  [...left, ...right, top, bot].filter(Boolean).forEach(r => { drawCard(gN, r, modFor(r.id), dd); OVR[r.id] = [r.x, r.y, r.w, r.h]; });
+  [...left, ...right, top].filter(Boolean).forEach(r => { drawCard(gN, r, modFor(r.id), dd); OVR[r.id] = [r.x, r.y, r.w, r.h]; });
+  if(band){
+    band.tiles.forEach(t => {
+      if(t.i){ drawBranchTile(gN, t, t.i, dd); OVR[brId(t.i)] = [t.x, t.y, t.w, t.h]; return; }
+      const g = el('g', {class:'addbtn', role:'button', tabindex:0, 'data-bradd':1, 'aria-label':'Add a branch office'}, gN);
+      el('rect', {x:t.x, y:t.y, width:t.w, height:t.h, rx:10}, g);
+      txt(g, t.x + t.w / 2, t.y + t.h / 2 + 4, '+ Add a branch', '', {'text-anchor':'middle'});
+    });
+    const xs = band.tiles.map(t => t.x), ys = band.tiles.map(t => t.y);
+    OVR.brs = [Math.min(...xs), Math.min(...ys), Math.max(...band.tiles.map(t => t.x + t.w)) - Math.min(...xs), Math.max(...band.tiles.map(t => t.y + t.h)) - Math.min(...ys)];
+  }
   const dcs = left.filter(r => isDC(r.id));
   if(dcs.length){
     const last = dcs[dcs.length - 1];
     OVR.dcs = [last.x, dcs[0].y, last.w, last.y + last.h - dcs[0].y];
     const ay = last.y + last.h + 8;
-    if(S.dcN < DC_MAX && !left.some(r => r.y > last.y) && ay + 26 <= VB[3] - 4){
+    if(S.dcN < DC_MAX && !left.some(r => r.y > last.y) && ay + 26 <= leftBottom + 6){
       const g = el('g', {class:'addbtn', role:'button', tabindex:0, 'data-dcadd':1, 'aria-label':'Add a data center'}, gN);
       el('rect', {x:last.x, y:ay, width:last.w, height:26, rx:9}, g);
       txt(g, last.x + last.w / 2, ay + 17, '+ Add a data center', '', {'text-anchor':'middle'});
     }
   }
   drawHub(gN, hub, dd);
-  if(!ids.length) txt(gN, cx, hub.y + hub.h + 42, 'Pick a starting point or deployments above', 'empty-t', {'text-anchor':'middle'});
+  if(!ids.length && !band) txt(gN, cx, hub.y + hub.h + 42, 'Pick a starting point or deployments above', 'empty-t', {'text-anchor':'middle'});
   svg._edges = edges;
 }
 
@@ -257,8 +330,9 @@ function buildPicker(){
   $('#presets').innerHTML = PRESETS.map(p => `<button type="button" class="pbtn" data-preset="${p.id}" aria-pressed="false">${esc(p.n)}</button>`).join('');
   $('#chips').innerHTML = CHIP_ORDER.map((id, i) => {
     const chip = `<button type="button" class="chip" data-chip="${id}" aria-pressed="false" title="Show or hide. Key ${i + 1} drills in."><span class="box" aria-hidden="true"></span><span class="lab">${esc(CHIP_NAMES[id])}</span></button>`;
-    if(id !== 'dc') return chip;
-    return `<span class="dcset">${chip}<span class="step" role="group" aria-label="Number of data centers"><button type="button" data-dcstep="-1" aria-label="Remove a data center" title="Remove a data center (key −)">−</button><span class="num" id="dcNum" aria-live="polite">1</span><button type="button" data-dcstep="1" aria-label="Add a data center" title="Add a data center (key +)">+</button></span></span>`;
+    if(id === 'dc') return `<span class="dcset">${chip}<span class="step" role="group" aria-label="Number of data centers"><button type="button" data-dcstep="-1" aria-label="Remove a data center" title="Remove a data center (key −)">−</button><span class="num" id="dcNum" aria-live="polite">1</span><button type="button" data-dcstep="1" aria-label="Add a data center" title="Add a data center (key +)">+</button></span></span>`;
+    if(id === 'branch') return `<span class="dcset">${chip}<span class="step" role="group" aria-label="Number of branch offices"><button type="button" data-brstep="-1" aria-label="Remove a branch office" title="Remove a branch office">−</button><span class="num" id="brNum" aria-live="polite">1</span><button type="button" data-brstep="1" aria-label="Add a branch office" title="Add a branch office">+</button></span></span>`;
+    return chip;
   }).join('');
 }
 function syncPicker(){
@@ -269,4 +343,9 @@ function syncPicker(){
   $('#chips [data-chip="dc"] .lab').textContent = shown > 1 ? 'Data centers' : 'Data center';
   $('#chips [data-dcstep="-1"]').disabled = shown === 0;
   $('#chips [data-dcstep="1"]').disabled = shown >= DC_MAX;
+  const bs = S.sel.has('branch') ? S.brN : 0;
+  $('#brNum').textContent = bs;
+  $('#chips [data-chip="branch"] .lab').textContent = bs > 1 ? 'Branches' : 'Branch';
+  $('#chips [data-brstep="-1"]').disabled = bs === 0;
+  $('#chips [data-brstep="1"]').disabled = bs >= BR_MAX;
 }
