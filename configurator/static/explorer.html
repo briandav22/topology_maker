@@ -90,7 +90,11 @@ a{color:var(--link)}
 .step button:hover:not(:disabled){background:var(--pill)}
 .step button:disabled{color:var(--faint);cursor:default;opacity:.55}
 .step .num{min-width:16px;text-align:center;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
-.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px}
+.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px;transition:grid-template-columns .25s ease,gap .25s ease}
+.main.nopanel{grid-template-columns:minmax(0,1fr) 0;gap:0}
+.main.nopanel .panel{visibility:hidden;padding:0;border-width:0}
+.pbtn{margin-left:auto;padding:4px 9px;font-size:12.5px}
+.back:not([hidden])+.pbtn{margin-left:8px}
 .stage{position:relative;background:var(--canvas);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
 .shead{display:flex;align-items:center;gap:8px;padding:7px 10px 0 10px;min-height:34px;flex-wrap:wrap}
 .crumbs{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
@@ -290,7 +294,8 @@ dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
 @media (max-width:1000px){
   .app{height:auto;min-height:100vh}
   .body{flex:none}
-  .main{grid-template-columns:1fr}
+  .main,.main.nopanel{grid-template-columns:1fr}
+  .main.nopanel .panel{display:none}
   .svgwrap{flex:none;aspect-ratio:1000/620;width:100%}
   .panel{overflow:visible}
 }
@@ -302,6 +307,7 @@ dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
   .panel{padding:12px}
 }
 @media (prefers-reduced-motion: reduce){
+  .main{transition:none}
   .svgwrap>svg{transition:none}
 }
 </style>
@@ -379,6 +385,7 @@ dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
           <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
           <span class="hint" id="hint"></span>
           <button type="button" class="tbtn back" id="backBtn" hidden>&#8249; All deployments</button>
+          <button type="button" class="tbtn pbtn" id="panelBtn" aria-controls="panel" aria-expanded="true"><span>Hide details</span><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M10 3v10" stroke="currentColor" stroke-width="1.4"/></svg></button>
         </div>
         <div class="svgwrap" id="svgwrap">
           <svg id="ov" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Overview of the selected deployments"></svg>
@@ -1904,10 +1911,11 @@ const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
 const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
-  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[], dcFm:[], dcSz:[], brFm:[], brSz:[], szOpen:false, awsNested:false,
+  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[], dcFm:[], dcSz:[], brFm:[], brSz:[], szOpen:false, awsNested:false, panelOpen:true,
   brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
   meta:{cu:'', pb:'', rg:'US'}};
-const VB = [0, 0, 1000, 620];
+const VB = [0, 0, 1000, 620];    // the overview canvas; its width follows the free space (see fitOverview)
+const DVB = [0, 0, 1000, 620];   // drill-in scenes always draw on 1000 x 620
 const FIT = [];       // texts that had to shrink to fit; empty means every label fits at its design size
 let OVR = {};         // overview card rectangles, used by the zoom transition
 
@@ -2496,6 +2504,7 @@ function show(svg, on){
   else { svg.style.opacity = 0; svg._hide = setTimeout(() => { svg.style.visibility = 'hidden'; }, REDUCED ? 0 : 320); }
 }
 const WIDE = [-100, -62, 1200, 744];
+const wideOf = b => [b[0] - b[2] * .1, b[1] - b[3] * .1, b[2] * 1.2, b[3] * 1.2];
 
 function refresh(){ renderChrome(); renderPanel(); renderLegend(); buildParticles(); applyHighlight(); saveHash(); }
 
@@ -2508,15 +2517,15 @@ function go(view, instant){
   if(prev === view){ if(S.focus || S.hl){ S.focus = null; S.hl = null; refresh(); } return; }
   S.view = view; S.focus = null; S.hl = null;
   if(view === 'ov'){
-    show(dt, false); animVB(dt, VB.slice(), WIDE, ms);
-    show(ov, true); animVB(ov, OVR[prev] ? aspectBox(OVR[prev]) : WIDE, VB.slice(), ms);
+    show(dt, false); animVB(dt, DVB.slice(), WIDE, ms);
+    show(ov, true); animVB(ov, OVR[prev] ? aspectBox(OVR[prev]) : wideOf(VB), VB.slice(), ms);
   } else {
     renderDetail();
     if(prev === 'ov'){
       show(ov, false); animVB(ov, VB.slice(), OVR[view] ? aspectBox(OVR[view]) : VB.slice(), ms);
-      show(dt, true); animVB(dt, WIDE, VB.slice(), ms);
+      show(dt, true); animVB(dt, WIDE, DVB.slice(), ms);
     } else {
-      setVB(dt, VB);
+      setVB(dt, DVB);
       if(!REDUCED && !instant){ dt.style.transition = 'none'; dt.style.opacity = 0; void dt.getBoundingClientRect(); dt.style.transition = ''; }
       show(dt, true);
     }
@@ -2780,6 +2789,32 @@ $('#chips').addEventListener('click', ev => {
   setSelection(s);
 });
 $('#backBtn').addEventListener('click', () => go('ov'));
+
+/* ===== Collapsible details panel: the diagram takes the space back ===== */
+function setPanel(open, save){
+  S.panelOpen = open;
+  $('.main').classList.toggle('nopanel', !open);
+  const b = $('#panelBtn');
+  b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  b.title = open ? 'Hide the details panel (\\)' : 'Show the details panel (\\)';
+  b.querySelector('span').textContent = open ? 'Hide details' : 'Details';
+  if(save) try { localStorage.setItem('ibk-panel', open ? '1' : '0'); } catch(e){}
+}
+/* The overview canvas widens to fill a wide stage (up to 1.5x), so cards spread out instead of floating in white space */
+function fitOverview(){
+  const r = $('#svgwrap').getBoundingClientRect();
+  if(!r.width || !r.height) return;
+  const w = Math.round(Math.min(1500, Math.max(1000, VB[3] * r.width / r.height)) / 10) * 10;
+  if(w === VB[2]) return;
+  VB[2] = w;
+  renderOverview();
+  setVB($('#ov'), S.view === 'ov' || !OVR[S.view] ? VB : aspectBox(OVR[S.view]));
+  if(S.view === 'ov'){ buildParticles(); applyHighlight(); }
+}
+$('#panelBtn').addEventListener('click', () => setPanel(!S.panelOpen, true));
+let fitT = 0;
+if(window.ResizeObserver) new ResizeObserver(() => { clearTimeout(fitT); fitT = setTimeout(fitOverview, 60); }).observe($('#svgwrap'));
+(() => { let open = true; try { open = localStorage.getItem('ibk-panel') !== '0'; } catch(e){} setPanel(open, false); })();
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 $('#motionBtn').addEventListener('click', toggleMotion);
 $('#themeBtn').addEventListener('click', () => {
@@ -2797,6 +2832,7 @@ document.addEventListener('keydown', ev => {
     ev.preventDefault(); tg.dispatchEvent(new MouseEvent('click', {bubbles:true})); return;
   }
   if(k === 'Escape'){ if(S.focus || S.hl) setFocus(null); else if(S.view !== 'ov') go('ov'); return; }
+  if(k === '\\'){ setPanel(!S.panelOpen, true); return; }
   if(/^[1-7]$/.test(k)){ go(CHIP_ORDER[+k - 1]); return; }
   if(k === '+' || k === '='){ stepDC(1); return; }
   if(k === '-' || k === '_'){ stepDC(-1); return; }
@@ -2931,7 +2967,8 @@ function exportViews(){
   return v;
 }
 async function viewImages(onStep){
-  const dd = S.mode === 'deep', out = [];
+  const dd = S.mode === 'deep', out = [], liveW = VB[2];
+  VB[2] = 1000;   // exports use the standard canvas, whatever the screen width
   const host = document.createElement('div');
   host.style.cssText = 'position:absolute;left:-20000px;top:0;width:1000px;height:620px;visibility:hidden';
   const svg = el('svg', {viewBox:VB.join(' '), width:1000, height:620}, host);
@@ -2952,6 +2989,7 @@ async function viewImages(onStep){
   } finally {
     if(theme) document.documentElement.setAttribute('data-theme', theme); else document.documentElement.removeAttribute('data-theme');
     host.remove();
+    VB[2] = liveW;
     renderOverview(); if(S.view !== 'ov') renderDetail(); refresh();
   }
   return out;

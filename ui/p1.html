@@ -83,7 +83,11 @@ a{color:var(--link)}
 .step button:hover:not(:disabled){background:var(--pill)}
 .step button:disabled{color:var(--faint);cursor:default;opacity:.55}
 .step .num{min-width:16px;text-align:center;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
-.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px}
+.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px;transition:grid-template-columns .25s ease,gap .25s ease}
+.main.nopanel{grid-template-columns:minmax(0,1fr) 0;gap:0}
+.main.nopanel .panel{visibility:hidden;padding:0;border-width:0}
+.pbtn{margin-left:auto;padding:4px 9px;font-size:12.5px}
+.back:not([hidden])+.pbtn{margin-left:8px}
 .stage{position:relative;background:var(--canvas);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
 .shead{display:flex;align-items:center;gap:8px;padding:7px 10px 0 10px;min-height:34px;flex-wrap:wrap}
 .crumbs{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
@@ -283,7 +287,8 @@ dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
 @media (max-width:1000px){
   .app{height:auto;min-height:100vh}
   .body{flex:none}
-  .main{grid-template-columns:1fr}
+  .main,.main.nopanel{grid-template-columns:1fr}
+  .main.nopanel .panel{display:none}
   .svgwrap{flex:none;aspect-ratio:1000/620;width:100%}
   .panel{overflow:visible}
 }
@@ -295,6 +300,7 @@ dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
   .panel{padding:12px}
 }
 @media (prefers-reduced-motion: reduce){
+  .main{transition:none}
   .svgwrap>svg{transition:none}
 }
 </style>

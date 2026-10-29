@@ -253,6 +253,7 @@ function show(svg, on){
   else { svg.style.opacity = 0; svg._hide = setTimeout(() => { svg.style.visibility = 'hidden'; }, REDUCED ? 0 : 320); }
 }
 const WIDE = [-100, -62, 1200, 744];
+const wideOf = b => [b[0] - b[2] * .1, b[1] - b[3] * .1, b[2] * 1.2, b[3] * 1.2];
 
 function refresh(){ renderChrome(); renderPanel(); renderLegend(); buildParticles(); applyHighlight(); saveHash(); }
 
@@ -265,15 +266,15 @@ function go(view, instant){
   if(prev === view){ if(S.focus || S.hl){ S.focus = null; S.hl = null; refresh(); } return; }
   S.view = view; S.focus = null; S.hl = null;
   if(view === 'ov'){
-    show(dt, false); animVB(dt, VB.slice(), WIDE, ms);
-    show(ov, true); animVB(ov, OVR[prev] ? aspectBox(OVR[prev]) : WIDE, VB.slice(), ms);
+    show(dt, false); animVB(dt, DVB.slice(), WIDE, ms);
+    show(ov, true); animVB(ov, OVR[prev] ? aspectBox(OVR[prev]) : wideOf(VB), VB.slice(), ms);
   } else {
     renderDetail();
     if(prev === 'ov'){
       show(ov, false); animVB(ov, VB.slice(), OVR[view] ? aspectBox(OVR[view]) : VB.slice(), ms);
-      show(dt, true); animVB(dt, WIDE, VB.slice(), ms);
+      show(dt, true); animVB(dt, WIDE, DVB.slice(), ms);
     } else {
-      setVB(dt, VB);
+      setVB(dt, DVB);
       if(!REDUCED && !instant){ dt.style.transition = 'none'; dt.style.opacity = 0; void dt.getBoundingClientRect(); dt.style.transition = ''; }
       show(dt, true);
     }
@@ -537,6 +538,32 @@ $('#chips').addEventListener('click', ev => {
   setSelection(s);
 });
 $('#backBtn').addEventListener('click', () => go('ov'));
+
+/* ===== Collapsible details panel: the diagram takes the space back ===== */
+function setPanel(open, save){
+  S.panelOpen = open;
+  $('.main').classList.toggle('nopanel', !open);
+  const b = $('#panelBtn');
+  b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  b.title = open ? 'Hide the details panel (\\)' : 'Show the details panel (\\)';
+  b.querySelector('span').textContent = open ? 'Hide details' : 'Details';
+  if(save) try { localStorage.setItem('ibk-panel', open ? '1' : '0'); } catch(e){}
+}
+/* The overview canvas widens to fill a wide stage (up to 1.5x), so cards spread out instead of floating in white space */
+function fitOverview(){
+  const r = $('#svgwrap').getBoundingClientRect();
+  if(!r.width || !r.height) return;
+  const w = Math.round(Math.min(1500, Math.max(1000, VB[3] * r.width / r.height)) / 10) * 10;
+  if(w === VB[2]) return;
+  VB[2] = w;
+  renderOverview();
+  setVB($('#ov'), S.view === 'ov' || !OVR[S.view] ? VB : aspectBox(OVR[S.view]));
+  if(S.view === 'ov'){ buildParticles(); applyHighlight(); }
+}
+$('#panelBtn').addEventListener('click', () => setPanel(!S.panelOpen, true));
+let fitT = 0;
+if(window.ResizeObserver) new ResizeObserver(() => { clearTimeout(fitT); fitT = setTimeout(fitOverview, 60); }).observe($('#svgwrap'));
+(() => { let open = true; try { open = localStorage.getItem('ibk-panel') !== '0'; } catch(e){} setPanel(open, false); })();
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 $('#motionBtn').addEventListener('click', toggleMotion);
 $('#themeBtn').addEventListener('click', () => {
@@ -554,6 +581,7 @@ document.addEventListener('keydown', ev => {
     ev.preventDefault(); tg.dispatchEvent(new MouseEvent('click', {bubbles:true})); return;
   }
   if(k === 'Escape'){ if(S.focus || S.hl) setFocus(null); else if(S.view !== 'ov') go('ov'); return; }
+  if(k === '\\'){ setPanel(!S.panelOpen, true); return; }
   if(/^[1-7]$/.test(k)){ go(CHIP_ORDER[+k - 1]); return; }
   if(k === '+' || k === '='){ stepDC(1); return; }
   if(k === '-' || k === '_'){ stepDC(-1); return; }
