@@ -1,0 +1,12 @@
+{
+  "customer": "Northwind Health",
+  "prepared_by": "Infoblox Solutions Engineering",
+  "project": "Data center and AWS visibility",
+  "region": "US",
+  "detail": "high",
+  "sites": [
+    {"name": "Main Data Center", "kind": "dc", "location": "Denver, CO", "install": "docker", "capabilities": ["flow","snmp","trap","syslog","synth"], "flow_mode": "edge", "fps": 10000, "devices": 120, "syslog_eps": 1000, "bgp": false}
+  ],
+  "clouds": {"aws": {"enabled": true, "features": ["metadata","flow"], "accounts": 1, "regions": "us-east-1"}},
+  "synthetics": {"enabled": true, "site_mesh": false, "global_agents": 2, "saas_targets": ["Epic Hosting","Microsoft 365"], "http_interval_min": 5, "http_timeout_s": 5, "bgp_monitor": false}
+}

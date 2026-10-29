@@ -1,0 +1,22 @@
+{
+  "customer": "Fabrikam Logistics",
+  "prepared_by": "Infoblox Solutions Engineering",
+  "project": "Global multi-cloud network observability",
+  "region": "EU",
+  "detail": "deep",
+  "sites": [
+    {"name": "Frankfurt DC", "kind": "dc", "location": "Frankfurt, DE", "install": "linux", "capabilities": ["flow","snmp","trap","syslog","dns","synth","ssh"], "flow_mode": "edge", "fps": 30000, "devices": 400, "syslog_eps": 4000, "dns_lps": 80000, "bgp": true},
+    {"name": "Amsterdam DC", "kind": "dc", "location": "Amsterdam, NL", "install": "linux", "capabilities": ["flow","snmp","trap","syslog","synth","ssh"], "flow_mode": "edge", "fps": 20000, "devices": 250, "syslog_eps": 2000, "bgp": true},
+    {"name": "London DC", "kind": "dc", "location": "London, UK", "install": "linux", "capabilities": ["flow","snmp","syslog","synth"], "flow_mode": "edge", "fps": 12000, "devices": 150, "syslog_eps": 1500, "bgp": true, "proxy": true},
+    {"name": "Singapore DC", "kind": "dc", "location": "Singapore", "install": "docker", "capabilities": ["flow","snmp","trap","syslog","synth"], "flow_mode": "forward", "fps": 8000, "devices": 90, "syslog_eps": 800, "bgp": false},
+    {"name": "Madrid Branch", "kind": "branch", "location": "Madrid, ES", "install": "docker", "capabilities": ["flow","snmp","synth"], "flow_mode": "forward", "fps": 1500, "devices": 15},
+    {"name": "Milan Branch", "kind": "branch", "location": "Milan, IT", "install": "docker", "capabilities": ["flow","snmp","synth"], "flow_mode": "forward", "fps": 1500, "devices": 15}
+  ],
+  "clouds": {
+    "aws": {"enabled": true, "features": ["metadata","flow","firewall","metrics"], "accounts": 12, "regions": "eu-central-1, eu-west-1", "multi_account": true, "test_agent": true},
+    "azure": {"enabled": true, "features": ["metadata","flow","firewall","metrics"], "accounts": 3, "auth": "custom", "test_agent": true},
+    "gcp": {"enabled": true, "features": ["metadata","flow"], "accounts": 2, "regions": "europe-west3"},
+    "oci": {"enabled": true, "features": ["metadata","flow"], "accounts": 1, "access": "cross_tenancy"}
+  },
+  "synthetics": {"enabled": true, "site_mesh": true, "mesh_interval_min": 5, "global_agents": 4, "saas_targets": ["SAP S/4HANA Cloud","Microsoft 365","Salesforce","Workday"], "http_interval_min": 5, "http_timeout_s": 5, "bgp_monitor": true, "bgp_prefixes": 2}
+}

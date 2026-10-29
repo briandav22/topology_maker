@@ -1,0 +1,2202 @@
+<title>Infoblox Kentik Deployment Explorer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --ib-green:#00bd4d;
+  --bg:#f4f5f4; --surface:#ffffff; --surface-2:#f1f2f1; --border:#dcdfdc; --text:#0d0f0e; --muted:#525a55; --faint:#868e89;
+  --canvas:#fbfbfb; --frame:#f2f3f2; --frame-stroke:#d2d6d3; --sub-frame:#ffffff;
+  --accent:#00a443; --accent-soft:#e6f7ec; --accent-text:#00803a; --on-accent:#ffffff; --link:#00803a;
+  --net:#0e7490; --net-fill:#e3f2f7; --srv:#1d4ed8; --srv-fill:#e8effd; --ext:#6b7280; --ext-fill:#f1f2f4;
+  --ktk:#00a443; --ktk-fill:#e8f8ee; --iam:#a16207; --iam-fill:#fdf5d3; --store:#0369a1; --store-fill:#e3f2fb;
+  --l-https:#2563eb; --l-pull:#0284c7; --l-flow:#7c3aed; --l-snmp:#16a34a; --l-trap:#dc2626; --l-syslog:#db2777;
+  --l-dns:#0d9488; --l-synth:#ea580c; --l-ssh:#64748b; --l-bgp:#334155; --l-perm:#b45309; --l-int:#9aa3af;
+  --shadow:0 1px 2px rgba(16,24,20,.06),0 1px 3px rgba(16,24,20,.08);
+  --pill:#eef0ee;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0b0a; --surface:#131514; --surface-2:#1a1d1b; --border:#2a2e2b; --text:#eceeed; --muted:#a4aba6; --faint:#737a75;
+    --canvas:#0e100f; --frame:#141715; --frame-stroke:#2c312d; --sub-frame:#101211;
+    --accent:#00bd4d; --accent-soft:#0c2617; --accent-text:#3ed47f; --on-accent:#000000; --link:#3ed47f;
+    --net:#22d3ee; --net-fill:#08242b; --srv:#7ea8ff; --srv-fill:#0f1c34; --ext:#a3aab5; --ext-fill:#1a1d21;
+    --ktk:#00bd4d; --ktk-fill:#0b2215; --iam:#facc15; --iam-fill:#272006; --store:#38bdf8; --store-fill:#08202f;
+    --l-https:#60a5fa; --l-pull:#38bdf8; --l-flow:#a78bfa; --l-snmp:#4ade80; --l-trap:#f87171; --l-syslog:#f472b6;
+    --l-dns:#2dd4bf; --l-synth:#fb923c; --l-ssh:#94a3b8; --l-bgp:#cbd5e1; --l-perm:#fbbf24; --l-int:#5b6676;
+    --shadow:none; --pill:#1d201e;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0b0a; --surface:#131514; --surface-2:#1a1d1b; --border:#2a2e2b; --text:#eceeed; --muted:#a4aba6; --faint:#737a75;
+  --canvas:#0e100f; --frame:#141715; --frame-stroke:#2c312d; --sub-frame:#101211;
+  --accent:#00bd4d; --accent-soft:#0c2617; --accent-text:#3ed47f; --on-accent:#000000; --link:#3ed47f;
+  --net:#22d3ee; --net-fill:#08242b; --srv:#7ea8ff; --srv-fill:#0f1c34; --ext:#a3aab5; --ext-fill:#1a1d21;
+  --ktk:#00bd4d; --ktk-fill:#0b2215; --iam:#facc15; --iam-fill:#272006; --store:#38bdf8; --store-fill:#08202f;
+  --l-https:#60a5fa; --l-pull:#38bdf8; --l-flow:#a78bfa; --l-snmp:#4ade80; --l-trap:#f87171; --l-syslog:#f472b6;
+  --l-dns:#2dd4bf; --l-synth:#fb923c; --l-ssh:#94a3b8; --l-bgp:#cbd5e1; --l-perm:#fbbf24; --l-int:#5b6676;
+  --shadow:none; --pill:#1d201e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(0,189,77,.24)}
+button{font:inherit;color:inherit}
+a{color:var(--link)}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+/* Infoblox brand bar: always black, whatever the theme */
+.top{--surface:#151515; --surface-2:#1d1d1d; --border:#363636; --text:#f4f4f4; --muted:#b4b4b4; --faint:#7d7d7d;
+  --accent:#00bd4d; --accent-soft:rgba(0,189,77,.16); --accent-text:#5ae293; --shadow:none; --pill:#232323;
+  background:#000;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:8px 14px;flex-wrap:wrap;
+  padding:8px max(16px,env(safe-area-inset-right)) 8px max(16px,env(safe-area-inset-left));border-bottom:2px solid var(--ib-green)}
+.presets-nav{flex:1 1 auto;justify-content:center}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.lockup{display:inline-flex;align-items:center;gap:8px;flex:none}
+.ibmark{width:24px;height:24px;color:var(--ib-green);display:block;flex:none}
+.wordmark{font-size:21px;font-weight:700;letter-spacing:-.025em;color:#fff;line-height:1}
+.bdiv{width:1px;height:22px;background:#3c3c3c;flex:none}
+.brand h1{font-size:16px;font-weight:600;margin:0;line-height:1.2;color:#fff}
+.body{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:8px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left))}
+.controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:2px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:7px;cursor:pointer;font-weight:500;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ib-green);color:#000;font-weight:600}
+.tbtn{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.tbtn svg{width:15px;height:15px}
+.tbtn.icon-only{padding:5px 8px}
+.tbtn[aria-pressed="false"]{color:var(--muted)}
+.picker{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap}
+.picker .lbl{font-size:12px;color:var(--muted);font-weight:500}
+.picker .grp{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.pbtn,.chip{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.pbtn:hover,.chip:hover{border-color:var(--faint)}
+.pbtn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-text);font-weight:500}
+.chip{display:inline-flex;align-items:center;gap:6px}
+.chip .box{width:13px;height:13px;border-radius:4px;border:1.5px solid var(--faint);display:grid;place-items:center}
+.chip[aria-pressed="true"]{border-color:var(--accent)}
+.chip[aria-pressed="true"] .box{background:var(--accent);border-color:var(--accent)}
+.chip[aria-pressed="true"] .box::after{content:"";width:6px;height:3px;border:1.6px solid var(--on-accent);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+/* Data center chip with its own stepper */
+.dcset{display:inline-flex;align-items:stretch}
+.dcset .chip{border-radius:999px 0 0 999px;padding-right:9px}
+.step{display:inline-flex;align-items:center;gap:1px;border:1px solid var(--border);border-left:0;border-radius:0 999px 999px 0;background:var(--surface);padding:0 4px 0 2px}
+.dcset .chip[aria-pressed="true"] + .step{border-color:var(--accent)}
+.step button{border:0;background:transparent;width:22px;height:22px;border-radius:999px;cursor:pointer;font-size:15px;line-height:1;display:grid;place-items:center;padding:0;font-weight:600}
+.step button:hover:not(:disabled){background:var(--pill)}
+.step button:disabled{color:var(--faint);cursor:default;opacity:.55}
+.step .num{min-width:16px;text-align:center;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px}
+.stage{position:relative;background:var(--canvas);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+.shead{display:flex;align-items:center;gap:8px;padding:7px 10px 0 10px;min-height:34px;flex-wrap:wrap}
+.crumbs{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
+.crumbs button{border:0;background:none;padding:2px 4px;border-radius:6px;cursor:pointer;color:var(--link);font-weight:500}
+.crumbs .sep{color:var(--faint)}
+.crumbs .cur{font-weight:600}
+.back{margin-left:auto}
+.hint{font-size:12px;color:var(--muted)}
+.svgwrap{position:relative;flex:1;min-height:0}
+.svgwrap>svg{position:absolute;inset:0;width:100%;height:100%;display:block;transition:opacity .28s ease}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;padding:4px 12px 8px;font-size:12px;color:var(--muted);align-items:center}
+.legend button{border:0;background:none;padding:2px 4px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--muted);font-size:12px}
+.legend button[aria-pressed="true"]{background:var(--pill);color:var(--text)}
+.legend svg{width:24px;height:8px;flex:none}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:auto;min-height:0;padding:14px 16px 18px}
+.panel .kick{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-text);font-weight:600;margin:0 0 4px}
+.panel h2{font-size:18px;margin:0 0 6px;line-height:1.25;font-weight:600}
+.panel h3{font-size:13px;margin:14px 0 6px;font-weight:600;color:var(--text)}
+.panel p{margin:0 0 8px;color:var(--text)}
+.panel .lead{color:var(--muted);font-size:13.5px}
+.panel ul{margin:0 0 6px;padding-left:18px}
+.panel li{margin:2px 0}
+.panel .muted{color:var(--muted)}
+.panel code,.panel .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;background:var(--pill);padding:1px 4px;border-radius:4px;overflow-wrap:anywhere}
+.panel pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;line-height:1.45;background:var(--pill);padding:8px 10px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 8px}
+.panel table{border-collapse:collapse;width:100%;font-size:12.5px;margin:0 0 8px;table-layout:fixed}
+.panel th,.panel td{text-align:left;vertical-align:top;padding:4px 6px;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+.panel th{font-weight:600;color:var(--muted);font-size:11.5px}
+.panel .card{border:1px solid var(--border);border-radius:10px;padding:9px 10px;margin:0 0 8px;background:var(--surface)}
+.panel .card h4{margin:0 0 2px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:6px}
+.panel .card p{margin:0 0 6px;font-size:13px;color:var(--muted)}
+.panel .card button{border:1px solid var(--border);background:var(--surface-2);border-radius:7px;padding:3px 9px;font-size:12px;cursor:pointer}
+.panel .card button:disabled{opacity:.5;cursor:default}
+.panel .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--pill);color:var(--muted);font-weight:500}
+.panel .note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:7px 10px;border-radius:0 8px 8px 0;font-size:12.5px;margin:8px 0}
+.panel .src{font-size:12px}
+.panel .src li{margin:1px 0}
+.panel .linkbtn{border:0;background:none;color:var(--link);cursor:pointer;padding:0;font-size:12.5px}
+.panel .tabs{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0 2px}
+.panel .tabs button{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted)}
+.panel .tabs button[aria-pressed="true"]{background:var(--text);color:var(--surface);border-color:var(--text)}
+.panel .site{border-color:var(--accent);background:var(--accent-soft)}
+.panel .site p{color:var(--text)}
+.panel .fld{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);margin:6px 0 8px}
+.panel .fld input{font:inherit;font-size:13.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 9px;width:100%}
+.panel .fld input:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.panel .btns{display:flex;flex-wrap:wrap;gap:6px}
+.panel .card .btns button{background:var(--surface)}
+/* SVG */
+svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:var(--text)}
+.ico{color:var(--muted)}
+.t-label{font-size:13.5px;font-weight:600}
+.t-sub{font-size:11.5px;fill:var(--muted)}
+.t-frame{font-size:14px;font-weight:600;fill:var(--muted)}
+.t-sframe{font-size:12px;font-weight:600;fill:var(--faint)}
+.t-edge{font-size:11px;font-weight:500}
+.t-note{font-size:11.5px;fill:var(--muted)}
+.t-tag{font-size:10.5px;font-weight:600}
+.frame{fill:var(--frame);stroke:var(--frame-stroke);stroke-width:1}
+.sframe{fill:var(--sub-frame);stroke:var(--frame-stroke);stroke-width:1}
+.node rect.bg{stroke-width:1.2}
+.k-net rect.bg{fill:var(--net-fill);stroke:var(--net)} .k-net .ico{color:var(--net)}
+.k-srv rect.bg{fill:var(--srv-fill);stroke:var(--srv)} .k-srv .ico{color:var(--srv)}
+.k-ext rect.bg{fill:var(--ext-fill);stroke:var(--ext)} .k-ext .ico{color:var(--ext)}
+.k-ktk rect.bg{fill:var(--ktk-fill);stroke:var(--ktk)} .k-ktk .ico{color:var(--ktk)}
+.k-iam rect.bg{fill:var(--iam-fill);stroke:var(--iam)} .k-iam .ico{color:var(--iam)}
+.k-store rect.bg{fill:var(--store-fill);stroke:var(--store)} .k-store .ico{color:var(--store)}
+.k-ua rect.bg{fill:var(--surface);stroke:var(--ktk);stroke-width:1.6}
+.k-ua .ico{color:var(--ktk)}
+.k-uas rect.bg{fill:var(--ktk-fill);stroke:var(--ktk);stroke-width:1.6}
+.k-uas .ico{color:var(--ktk)}
+.k-chip rect.bg{fill:var(--surface);stroke:var(--border)}
+.k-chip .ico{color:var(--ktk)}
+.k-opt rect.bg{fill:var(--surface);stroke:var(--faint);stroke-dasharray:4 3}
+.k-opt .ico{color:var(--faint)}
+.k-opt .t-label{fill:var(--muted)}
+.uahead{fill:var(--ktk-fill)}
+.node{cursor:pointer}
+.node:focus{outline:none}
+.node:focus-visible rect.bg,.node:hover rect.bg{stroke-width:2.2}
+.node.sel rect.bg{stroke-width:2.6}
+.card-ov{cursor:pointer}
+.card-ov rect.bg{fill:var(--surface);stroke:var(--frame-stroke);stroke-width:1.2}
+.card-ov:hover rect.bg,.card-ov:focus-visible rect.bg{stroke:var(--text);stroke-width:1.8}
+.card-ov:focus{outline:none}
+.hub rect.bg{fill:var(--ktk-fill);stroke:var(--ktk);stroke-width:1.6}
+.hub:hover rect.bg,.hub:focus-visible rect.bg{stroke:var(--ktk);stroke-width:2.4}
+.tagpill{fill:var(--pill)}
+.drill{font-size:11px;font-weight:600;fill:var(--link)}
+.edge path.ln{fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.edge path.hit{fill:none;stroke:transparent;stroke-width:14;cursor:pointer}
+.e-https path.ln{stroke:var(--l-https);stroke-dasharray:6 4}
+.e-pull path.ln{stroke:var(--l-pull);stroke-dasharray:2 4;stroke-width:2.1}
+.e-flow path.ln{stroke:var(--l-flow);stroke-dasharray:6 4}
+.e-snmp path.ln{stroke:var(--l-snmp);stroke-dasharray:6 4}
+.e-trap path.ln{stroke:var(--l-trap);stroke-dasharray:6 4}
+.e-syslog path.ln{stroke:var(--l-syslog);stroke-dasharray:6 4}
+.e-dns path.ln{stroke:var(--l-dns);stroke-dasharray:6 4}
+.e-synth path.ln{stroke:var(--l-synth);stroke-dasharray:7 4;stroke-width:2}
+.e-ssh path.ln{stroke:var(--l-ssh);stroke-dasharray:6 4}
+.e-bgp path.ln{stroke:var(--l-bgp);stroke-dasharray:10 3 2 3}
+.e-perm path.ln{stroke:var(--l-perm);stroke-dasharray:1.5 3.5;stroke-width:1.8}
+.e-int path.ln{stroke:var(--l-int);stroke-width:1.6}
+.ah-https{fill:var(--l-https)} .ah-pull{fill:var(--l-pull)} .ah-flow{fill:var(--l-flow)} .ah-snmp{fill:var(--l-snmp)}
+.ah-trap{fill:var(--l-trap)} .ah-syslog{fill:var(--l-syslog)} .ah-dns{fill:var(--l-dns)} .ah-synth{fill:var(--l-synth)}
+.ah-ssh{fill:var(--l-ssh)} .ah-bgp{fill:var(--l-bgp)} .ah-perm{fill:var(--l-perm)} .ah-int{fill:var(--l-int)}
+.elab rect{fill:var(--canvas);opacity:.92}
+.elab text{font-size:11px;font-weight:500}
+.e-https .elab text{fill:var(--l-https)} .e-pull .elab text{fill:var(--l-pull)} .e-flow .elab text{fill:var(--l-flow)}
+.e-snmp .elab text{fill:var(--l-snmp)} .e-trap .elab text{fill:var(--l-trap)} .e-syslog .elab text{fill:var(--l-syslog)}
+.e-dns .elab text{fill:var(--l-dns)} .e-synth .elab text{fill:var(--l-synth)} .e-ssh .elab text{fill:var(--l-ssh)}
+.e-bgp .elab text{fill:var(--l-bgp)} .e-perm .elab text{fill:var(--l-perm)} .e-int .elab text{fill:var(--muted)}
+.dimmed{opacity:.16;transition:opacity .2s}
+.lit{opacity:1;transition:opacity .2s}
+.pt-https{fill:var(--l-https)} .pt-pull{fill:var(--l-pull)} .pt-flow{fill:var(--l-flow)} .pt-snmp{fill:none;stroke:var(--l-snmp);stroke-width:1.6}
+.pt-trap{fill:var(--l-trap)} .pt-syslog{fill:var(--l-syslog)} .pt-dns{fill:var(--l-dns)} .pt-synth{fill:none;stroke:var(--l-synth);stroke-width:1.8}
+.pt-ssh{fill:var(--l-ssh)} .pt-bgp{fill:var(--l-bgp)} .pt-int{fill:var(--l-int)}
+.dot-flow{fill:var(--l-flow)} .dot-snmp{fill:var(--l-snmp)} .dot-trap{fill:var(--l-trap)} .dot-syslog{fill:var(--l-syslog)}
+.dot-dns{fill:var(--l-dns)} .dot-synth{fill:var(--l-synth)} .dot-ssh{fill:var(--l-ssh)} .dot-bgp{fill:var(--l-bgp)}
+.dot-https{fill:var(--l-https)} .dot-pull{fill:var(--l-pull)} .dot-perm{fill:var(--l-perm)} .dot-more{fill:var(--faint)}
+.chiptxt{font-size:11px;fill:var(--muted)}
+.focus-ring{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:5 4}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ico-left,.ico-net{color:var(--net)} .ico-right,.ico-bottom,.ico-srv{color:var(--srv)} .ico-top{color:var(--ext)}
+.ico-ktk,.hub .ico{color:var(--ktk)} .ico-iam{color:var(--iam)} .ico-store{color:var(--store)}
+.hubdot{fill:var(--ktk)}
+.pipe-c{fill:var(--surface-2);stroke:var(--border);stroke-width:1}
+.pipe-a{fill:none;stroke:var(--faint);stroke-width:1.3}
+.pipe-t{font-size:10.5px;fill:var(--muted)}
+.ovchip{fill:var(--pill)}
+.sepl{stroke:var(--border);stroke-width:1}
+.t-line{font-size:11.5px;fill:var(--text)}
+.bul{fill:var(--faint)} .k-ktk .bul{fill:var(--ktk)} .k-store .bul{fill:var(--store)}
+.frame.ghost,.sframe.ghost{fill:none;stroke-dasharray:4 4}
+.fnode{cursor:pointer}
+.fnode:focus{outline:none}
+.fnode:hover>rect,.fnode:focus-visible>rect{stroke:var(--faint);stroke-width:1.6}
+.fnode.sel>rect{stroke:var(--accent);stroke-width:2}
+.edge-l{pointer-events:none}
+.empty-t{font-size:14px;fill:var(--muted)}
+.addbtn{cursor:pointer}
+.addbtn rect{fill:transparent;stroke:var(--faint);stroke-dasharray:4 4;stroke-width:1.2}
+.addbtn text{font-size:12px;font-weight:600;fill:var(--link)}
+.addbtn:hover rect,.addbtn:focus-visible rect{stroke:var(--accent);stroke-width:1.6}
+.addbtn:focus{outline:none}
+.panel hr{border:0;border-top:1px solid var(--border);margin:14px 0 10px}
+.panel .card h4 svg{width:16px;height:16px;flex:none}
+.panel .card .tag{margin-left:auto}
+.panel ol li{margin:2px 0}
+.panel .gobtn{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent-text);border-radius:8px;padding:4px 10px;font-size:12.5px;cursor:pointer;font-weight:500;margin:2px 6px 6px 0}
+.panel .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--surface-2)}
+@media (max-width:1000px){
+  .app{height:auto;min-height:100vh}
+  .body{flex:none}
+  .main{grid-template-columns:1fr}
+  .svgwrap{flex:none;aspect-ratio:1000/620;width:100%}
+  .panel{overflow:visible}
+}
+@media (max-width:640px){
+  .bdiv{display:none}
+  .brand{flex-wrap:wrap;gap:4px 10px}
+  .brand h1{font-size:15px}
+  .shead .hint{display:none}
+  .panel{padding:12px}
+}
+@media (prefers-reduced-motion: reduce){
+  .svgwrap>svg{transition:none}
+}
+</style>
+<svg id="sprite" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<defs>
+<symbol id="i-router" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M7.5 10h8M13.5 8l2 2-2 2M16.5 14h-8M10.5 12l-2 2 2 2"/></symbol>
+<symbol id="i-switch" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10.3h9.5M14.5 8.3l2 2-2 2M17 13.8H7.5M9.5 11.8l-2 2 2 2"/></symbol>
+<symbol id="i-firewall" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 5v4.7M6 9.7v4.6M12 9.7v4.6M18 9.7v4.6M9 14.3V19M15 14.3V19"/></symbol>
+<symbol id="i-server" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/><path d="M7.5 7.5h.01M7.5 16.5h.01M12 7.5h4.5M12 16.5h4.5"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+<symbol id="i-dns" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.3 15.3L20.5 20.5M4 10.5h13M10.5 4a10 10 0 0 1 0 13M10.5 4a10 10 0 0 0 0 13"/></symbol>
+<symbol id="i-agent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8l8 4.6v9.2l-8 4.6-8-4.6V7.4z"/><path d="M12.6 8.6L9.3 12l3.3 3.4M16 8.6L12.7 12l3.3 3.4"/></symbol>
+<symbol id="i-ib" viewBox="0 0 15.924 15.924"><path fill="currentColor" d="M7.962 0L11.348 3.386L7.962 6.773L4.576 3.386ZM3.387 4.576L6.773 7.962L3.387 11.349L0 7.962ZM12.538 4.576L15.924 7.962L12.538 11.349L9.152 7.962ZM7.962 9.152L11.348 12.538L7.962 15.924L4.576 12.538Z"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18.5h10.2a4.3 4.3 0 0 0 .6-8.55A6 6 0 0 0 6.3 9.3 4.6 4.6 0 0 0 7 18.5z"/></symbol>
+<symbol id="i-bucket" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="2.6"/><path d="M4 6l1.8 12.2c.2 1.3 2.9 2.3 6.2 2.3s6-1 6.2-2.3L20 6"/></symbol>
+<symbol id="i-storage" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9.5h18M3 14.5h18M6.5 7h.01M6.5 12h.01M6.5 17h.01M10 7h3M10 12h3M10 17h3"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.9 12.1L19 4M15.5 7.5l2.5 2.5M13.4 9.6l2 2"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v5.5c0 4.8-3.4 8.4-8 9.5-4.6-1.1-8-4.7-8-9.5V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol id="i-api" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></symbol>
+<symbol id="i-log" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 12.5h6M10 16.5h6"/></symbol>
+<symbol id="i-queue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 7h11M3.5 12h15M3.5 17h11"/><path d="M17 4.8l2.6 2.2-2.6 2.2M17 14.8l2.6 2.2-2.6 2.2"/></symbol>
+<symbol id="i-connector" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="19" cy="18" r="2.2"/><path d="M7.2 12H12M12 12l4.9-4.9M12 12l4.9 4.9"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M7 16v-4M11 16V8M15 16v-6M19 16V5"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0 1 11 0M16 5.2a3.2 3.2 0 0 1 0 6M17.5 14.2a5.5 5.5 0 0 1 3 5.3"/></symbol>
+<symbol id="i-app" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M3 9h18M6 6.8h.01M8.5 6.8h.01M7 13h7M7 16h4"/></symbol>
+<symbol id="i-db" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.7"/><path d="M4.5 5.5v13c0 1.5 3.4 2.7 7.5 2.7s7.5-1.2 7.5-2.7v-13M4.5 12c0 1.5 3.4 2.7 7.5 2.7s7.5-1.2 7.5-2.7"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 3l1.8 5.2L18 10l-5.2 1.8L11 17l-1.8-5.2L4 10l5.2-1.8z"/><path d="M18.5 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
+<symbol id="i-probe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.8"/><path d="M7.8 16.2a6 6 0 0 1 0-8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 19a10 10 0 0 1 0-14M19 5a10 10 0 0 1 0 14"/></symbol>
+<symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.3a9.5 9.5 0 0 1 13 0M8.6 15.6a5 5 0 0 1 6.8 0"/><circle cx="12" cy="18.8" r="1"/></symbol>
+<symbol id="i-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3.5" width="16" height="17" rx="1.5"/><path d="M8 7.5h2M14 7.5h2M8 11.5h2M14 11.5h2M8 15.5h2M14 15.5h2M10.5 20.5v-3h3v3"/></symbol>
+<symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5L5.5 4h13L20 9.5M4 9.5h16M5 9.5v10.5h14V9.5M9.5 20v-5h5v5"/></symbol>
+<symbol id="i-network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2.5h12V16"/></symbol>
+<symbol id="i-org" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.6"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M6.5 6.5l3.6 3.6M17.5 6.5l-3.6 3.6M6.5 17.5l3.6-3.6M17.5 17.5l-3.6-3.6"/></symbol>
+<symbol id="i-terminal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2"/><path d="M7 10l3 2.5L7 15M12.5 15H17"/></symbol>
+<symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 6H20M8.5 12H20M8.5 18H20M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+<symbol id="i-flow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7c3 0 3-2.5 6-2.5S12 7 15 7s3-2.5 6-2.5M3 13c3 0 3-2.5 6-2.5S12 13 15 13s3-2.5 6-2.5M3 19c3 0 3-2.5 6-2.5S12 19 15 19s3-2.5 6-2.5"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 17.5a8.5 8.5 0 1 1 15 0"/><path d="M12 13.5l4-4.2"/><circle cx="12" cy="13.5" r="1.4"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="6" r="2.2"/><path d="M8.2 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.8"/></symbol>
+<symbol id="i-egress" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.5V3M7.5 7.5L12 3l4.5 4.5"/><path d="M5 11.5v8h14v-8"/></symbol>
+<symbol id="i-fire" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a6 6 0 0 0 6-6c0-3.5-2.5-5.5-3.5-8.5-1.5 2-2 3.5-2 5-1-1-1.5-2.5-1.5-4C8 9.5 6 12 6 15a6 6 0 0 0 6 6z"/></symbol>
+<symbol id="i-portal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4M7 13l3-3 2.5 2 4.5-4.5"/></symbol>
+</defs>
+</svg>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="lockup" role="img" aria-label="Infoblox"><svg class="ibmark" viewBox="0 0 15.924 15.924" aria-hidden="true"><use href="#i-ib"/></svg><span class="wordmark" aria-hidden="true">infoblox</span></span>
+      <span class="bdiv" aria-hidden="true"></span>
+      <h1>Kentik deployment explorer</h1>
+    </div>
+    <nav class="picker presets-nav" aria-label="Starting points"><span class="lbl">Start with</span><div class="grp" id="presets"></div></nav>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Detail level">
+        <button type="button" data-mode="high" aria-pressed="true" title="General concepts (key H)">High level</button>
+        <button type="button" data-mode="deep" aria-pressed="false" title="Permissions, ports and setup details (key D)">Deep dive</button>
+      </div>
+      <button type="button" class="tbtn" id="motionBtn" aria-pressed="true" title="Animate data moving along the lines (key M)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>Motion</button>
+      <button type="button" class="tbtn icon-only" id="themeBtn" title="Switch between light and dark" aria-label="Switch between light and dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg></button>
+    </div>
+  </header>
+  <div class="body">
+    <nav class="picker" aria-label="Deployments to show">
+      <span class="lbl">Show</span>
+      <div class="grp" id="chips"></div>
+    </nav>
+    <div class="main">
+      <section class="stage" aria-label="Deployment diagram">
+        <div class="shead">
+          <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+          <span class="hint" id="hint"></span>
+          <button type="button" class="tbtn back" id="backBtn" hidden>&#8249; All deployments</button>
+        </div>
+        <div class="svgwrap" id="svgwrap">
+          <svg id="ov" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Overview of the selected deployments"></svg>
+          <svg id="dt" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" role="group" aria-label="Detail view" style="opacity:0;pointer-events:none"></svg>
+        </div>
+        <div class="legend" id="legend" aria-label="Line types, click one to highlight it"></div>
+      </section>
+      <aside class="panel" id="panel" aria-live="polite"></aside>
+    </div>
+  </div>
+</div>
+<script>
+/* ---------- Shared data: line types, deployments, presets ---------- */
+const TYPES = {
+  https:  {n:'To Kentik (HTTPS)', d:'Telemetry sent to Kentik SaaS over outbound HTTPS or gRPC with TLS 1.2+', pt:'sq'},
+  pull:   {n:'Kentik reads', d:'Kentik reads from your cloud account using read-only access you grant', pt:'sq'},
+  flow:   {n:'Flow and flow logs', d:'NetFlow, sFlow or IPFIX sent to the Universal Agent, or cloud flow logs written to storage', pt:'sq'},
+  snmp:   {n:'SNMP and telemetry', d:'The Universal Agent polls SNMP or dials in with gNMI streaming telemetry', pt:'ring'},
+  trap:   {n:'SNMP traps', d:'Devices push SNMP traps to the Universal Agent', pt:'dot'},
+  syslog: {n:'Syslog', d:'Devices and servers push syslog to the Universal Agent', pt:'sq'},
+  dns:    {n:'DNS', d:'A DNSTAP stream (for example from Infoblox) or mirrored DNS traffic', pt:'dot'},
+  synth:  {n:'Synthetic tests', d:'Ping, traceroute, DNS and HTTP tests between agents and targets', pt:'ring'},
+  ssh:    {n:'SSH', d:'Read-only SSH for config backups and show commands', pt:'sq'},
+  bgp:    {n:'BGP', d:'BGP peering so Kentik can add routing context to flow', pt:'dot'},
+  perm:   {n:'Grants read access', d:'A read-only permission you grant to Kentik', pt:null},
+  int:    {n:'Inside Kentik', d:'Processing inside the Kentik platform', pt:'dot'}
+};
+
+const MODS = [
+  {id:'dc', side:'left', name:'Data center', icon:'building', tag:'Universal Agent',
+   sub:'One agent per site, capabilities on', subd:'In: UDP 9995, 162, 514 · Out: TCP 443',
+   flowline:'Devices → Universal Agent → Kentik',
+   pipe:[['router','Routers, switches','and firewalls'],['agent','Universal','Agent'],['egress','Outbound','HTTPS only']],
+   chips:[['flow','Flow'],['snmp','SNMP/ST'],['trap','Traps'],['syslog','Syslog'],['dns','DNS'],['synth','Tests'],['ssh','Config'],['bgp','BGP']],
+   one:'A Universal Agent in the data center collects flow, metrics, traps, syslog, DNS, tests and configs.',
+   oned:'UA on a Linux host or in Docker. Devices send to UDP 9995/162/514; the agent polls UDP 161 and SSH 22; everything leaves on TCP 443.'},
+  {id:'branch', side:'left', name:'Branch office', icon:'store', tag:'Universal Agent',
+   sub:'Same agent, fewer capabilities', subd:'Agent tests: TCP 8877 · UDP 9977',
+   flowline:'Branch devices → Universal Agent → Kentik',
+   pipe:[['router','Branch router,','switches, Wi-Fi'],['agent','Universal','Agent'],['probe','Tests to apps','and other sites']],
+   chips:[['flow','Flow'],['snmp','SNMP/ST'],['trap','Traps'],['syslog','Syslog'],['synth','Tests']],
+   one:'A small Universal Agent per branch adds local flow and device health, and tests the paths users depend on.',
+   oned:'Same UA build. Turn on Flow Proxy, SNMP/ST, Trap Receiver, Syslog and Synthetics as needed. Open TCP 8877 and UDP 9977 for agent-to-agent tests.'},
+  {id:'aws', side:'right', name:'AWS', icon:'cloud', tag:'Agentless',
+   sub:'Flow logs to S3, read-only IAM role', subd:'Role trusts account 834693425129',
+   flowline:'VPC, TGW and firewall logs → S3 → IAM role',
+   pipe:[['network','VPC, TGW and','firewall logs'],['bucket','S3 bucket','per region'],['key','IAM role','for Kentik']],
+   chips:[['flow','Flow logs'],['flow','Firewall logs'],['pull','Metadata'],['snmp','CloudWatch']],
+   one:'No agent. You write flow logs to S3 and give Kentik a read-only IAM role.',
+   oned:'IAM role trusts arn:aws:iam::834693425129:root with sts:ExternalId = your Company ID. Policy: ec2/directconnect/elb/network-firewall Describe, CloudWatch read, s3:Get*/List* on the bucket.'},
+  {id:'azure', side:'right', name:'Azure', icon:'cloud', tag:'Agentless',
+   sub:'VNet flow logs to a storage account', subd:'Reader + Storage Blob Data Reader',
+   flowline:'VNet and firewall logs → storage account → Kentik app',
+   pipe:[['network','VNet flow and','firewall logs'],['storage','Storage','account'],['key','Kentik app','read-only roles']],
+   chips:[['flow','Flow logs'],['flow','Firewall logs'],['pull','Metadata'],['snmp','Metrics']],
+   one:'No agent. Network Watcher writes VNet flow logs to a storage account that the Kentik app can read.',
+   oned:'Kentik enterprise app or your own app registration. Reader on the subscription or resource group, Storage Blob Data Reader on the storage account.'},
+  {id:'gcp', side:'right', name:'Google Cloud', icon:'cloud', tag:'Agentless',
+   sub:'Flow logs to Pub/Sub, Kentik pulls', subd:'Subscriber + Viewer, Compute Viewer',
+   flowline:'Subnet flow logs → Pub/Sub → Kentik pulls',
+   pipe:[['network','Subnet','flow logs'],['queue','Pub/Sub topic','+ pull sub'],['key','IAM roles','for Kentik']],
+   chips:[['flow','Flow logs'],['pull','Metadata'],['flow','Cloud Run logs'],['snmp','Metrics']],
+   one:'No agent. A log sink sends VPC flow logs to Pub/Sub, and Kentik pulls them with its own service account.',
+   oned:'Grant kentik-vpc-flow@kentik-vpc-flow.iam.gserviceaccount.com Pub/Sub Subscriber + Viewer on the subscription and Compute Viewer on the project or top folder.'},
+  {id:'oci', side:'right', name:'Oracle Cloud', icon:'cloud', tag:'Agentless',
+   sub:'Flow logs to Object Storage', subd:'Cross-tenancy policy or API key user',
+   flowline:'VCN flow logs → Connector Hub → bucket',
+   pipe:[['network','VCN','flow logs'],['connector','Connector Hub','to a bucket'],['key','Policy','for Kentik']],
+   chips:[['flow','Flow logs'],['pull','Metadata']],
+   one:'No agent. Connector Hub moves VCN flow logs into an Object Storage bucket that Kentik reads.',
+   oned:'Cross-tenancy policy generated in the Kentik portal (recommended), or a user and group holding Kentik’s API key. READ on the bucket and network resources.'},
+  {id:'saas', side:'top', name:'Internet & SaaS apps', icon:'globe', tag:'Synthetics',
+   sub:'Global agents and your agents test apps', subd:'Global 5 credits per subtest · private 2.5',
+   flowline:'Global agents + your agents → SaaS apps, sites, DNS',
+   pipe:[['probe','Kentik global','agents'],['app','SaaS apps','and websites'],['agent','Your Universal','Agents']],
+   chips:[['synth','HTTP, DNS, ping, trace'],['synth','Page load'],['bgp','BGP Monitor']],
+   one:'Kentik’s global agent network plus your own agents test SaaS apps, websites, DNS and Internet paths.',
+   oned:'Network tests (agent-to-agent, mesh, IP, hostname, grid, autonomous), DNS, HTTP(S)/API, page load and transaction tests, plus BGP Monitor.'}
+];
+const MOD = Object.fromEntries(MODS.map(m => [m.id, m]));
+
+const HUB = {name:'Kentik SaaS', rows:['Ingest and enrichment','Kentik Data Engine','Portal, AI Advisor, APIs'],
+  subd:'US (Ashburn) or EU (Frankfurt)'};
+
+const PRESETS = [
+  {id:'start', n:'Site + AWS', s:['dc','aws']},
+  {id:'all', n:'Everything', s:['dc','branch','aws','azure','gcp','oci','saas']},
+  {id:'onprem', n:'On-prem', s:['dc','branch']},
+  {id:'multi', n:'Multi-cloud', s:['aws','azure','gcp','oci']},
+  {id:'hybrid', n:'Hybrid', s:['dc','branch','aws','azure','saas']}
+];
+const CHIP_ORDER = ['dc','branch','aws','azure','gcp','oci','saas'];
+const CHIP_NAMES = {dc:'Data center', branch:'Branch', aws:'AWS', azure:'Azure', gcp:'GCP', oci:'OCI', saas:'SaaS & Internet'};
+const DC_MAX = 6;
+
+/* Overview panel content */
+const OV_HL = `
+<p class="kick">Infoblox + Kentik · Overview</p>
+<h2>How Kentik is deployed</h2>
+<p class="lead">Kentik, now part of Infoblox, is SaaS. You run a small footprint where your network lives, and everything lands in your Kentik account over encrypted, outbound connections.</p>
+<h3>Three patterns cover almost everything</h3>
+<div class="card"><h4>On-prem: one Universal Agent per site</h4><p>A single agent on a Linux host or in Docker, with capabilities switched on: Flow Proxy, SNMP/ST, Trap Receiver, Syslog Server, DNS OTT Tap, Synthetics and SSH config access. Devices point at it, and it talks to Kentik over HTTPS. Each new data center or branch gets its own agent.</p></div>
+<div class="card"><h4>Public cloud: agentless</h4><p>You turn on flow logs, send them to storage in your own account, and grant Kentik read-only access. Kentik also reads topology metadata and metrics.</p></div>
+<div class="card"><h4>Internet and SaaS: synthetic tests</h4><p>Kentik’s global agents and your own agents test SaaS apps, websites, DNS and paths between your sites and clouds.</p></div>
+<h3 id="ov-sel-h">What you are looking at</h3>
+<div id="ov-sel"></div>
+<p class="muted" style="font-size:12.5px">Tip: click a box or press 1 to 7 to drill in. The + and − buttons next to Data center (or the + and − keys) add and remove data centers. Esc goes back. D and H switch modes.</p>`;
+
+const OV_DD = `
+<p class="kick">Infoblox + Kentik · Deep dive</p>
+<h2>Deployment details at a glance</h2>
+<p class="lead">Ports, permissions and licensing across every deployment type. Drill into a box for the full detail.</p>
+<h3>Firewall rules</h3>
+<table><thead><tr><th style="width:34%">From → to</th><th style="width:30%">Port</th><th>Why</th></tr></thead><tbody>
+<tr><td>Universal Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>flow, grpc.api, api, portal .kentik.com and storage.googleapis.com (EU: .kentik.eu)</td></tr>
+<tr><td>Devices → Universal Agent</td><td>UDP 9995 · UDP 162 · UDP/TCP 514</td><td>Flow, SNMP traps, syslog</td></tr>
+<tr><td>Universal Agent → devices</td><td>UDP 161 · gNMI · ICMP · TCP 22</td><td>SNMP, streaming telemetry, reachability, SSH config</td></tr>
+<tr><td>Agent ↔ agent</td><td>TCP 8877 · UDP 9977</td><td>Agent-to-agent and mesh tests</td></tr>
+<tr><td>Edge router ↔ Kentik</td><td>TCP 179</td><td>BGP peering with the Kentik ingest peering IPs shown in device settings</td></tr>
+<tr><td>Kentik → Azure storage</td><td>From 20.69.189.228 and 20.69.185.115</td><td>Only if the storage account firewall is restricted</td></tr>
+</tbody></table>
+<h3>Cloud access you grant</h3>
+<table><thead><tr><th style="width:18%">Cloud</th><th style="width:38%">You create</th><th>Kentik gets</th></tr></thead><tbody>
+<tr><td>AWS</td><td>IAM role trusting <code>arn:aws:iam::834693425129:root</code>, ExternalId = Company ID</td><td>Describe APIs, CloudWatch read, <code>s3:Get*</code> and <code>s3:List*</code> on the log bucket</td></tr>
+<tr><td>Azure</td><td>Kentik enterprise app or your own app registration</td><td>Reader on the subscription or resource group, Storage Blob Data Reader on the storage account</td></tr>
+<tr><td>GCP</td><td>Pub/Sub topic and pull subscription</td><td>Kentik’s service account gets Pub/Sub Subscriber + Viewer and Compute Viewer</td></tr>
+<tr><td>OCI</td><td>Log group, Connector Hub, bucket</td><td>Cross-tenancy policy or API key user with READ on the bucket and network resources</td></tr>
+</tbody></table>
+<h3>Licensing</h3>
+<ul>
+<li><b>FlowPak</b>: flow from routers, switches, firewalls and hosts, including SNMP flow enrichment.</li>
+<li><b>NMS / DevicePak</b>: full device monitoring, plus syslog, SNMP traps and SSH config and commands.</li>
+<li><b>CloudPak</b>: public cloud flow logs, sized in flows per second.</li>
+<li><b>Synthetics</b>: monthly test credits. Global agent subtest 5 credits, private agent 2.5, BGP Monitor 0.53 per minute.</li>
+</ul>
+<p class="note">Plans and editions vary by contract. Confirm entitlements with your Infoblox account team.</p>
+<h3 id="ov-sel-h">Selected deployments</h3>
+<div id="ov-sel"></div>`;
+/* ---------- Scene data: on-prem (data center, branch) and Internet & SaaS ---------- */
+const SC = {}, INFO = {};
+
+const I_KENTIK = {h:'Your Kentik account receives the data, enriches it and stores it in the Kentik Data Engine. You use it through the portal, alerts and APIs.',
+  d:['Hosted in Ashburn, VA (US) or Frankfurt (EU). TLS 1.2+ in transit and AES-256 at rest. SOC 2 Type II.',
+     'Default retention: 45 days of full-resolution flow, 120 days of summarized data, and 3 or 13 months for NMS, depending on plan. Contracts can change this.',
+     'Open the Kentik SaaS view to see inside the platform.']};
+const I_EGRESS = {h:'Every Universal Agent connection starts from inside your network. Nothing has to reach in from the Internet.',
+  d:['Allow TCP 443 to flow.kentik.com, grpc.api.kentik.com, api.kentik.com, portal.kentik.com and storage.googleapis.com. whoami.kentiklabs.com is optional. EU accounts use the same names on kentik.eu.',
+     'SSL-inspecting firewalls and proxies must allow gRPC over port 443.',
+     'A web proxy works: set https_proxy before running the install command, or pass it to Docker with --env.']};
+function KEN(o){ o = o || {}; return Object.assign({id:'kentik', x:780, y:130, w:204, h:330, k:'ktk', icon:'ib', t:'Kentik SaaS', s:'Your Kentik account', sd:'US or EU region',
+  lines:['Ingest and enrichment','Kentik Data Engine (KDE)','Data Explorer, Kentik Map','NMS, Synthetics, alerts','AI Advisor and APIs'],
+  linesd:['flow.kentik.com','grpc.api.kentik.com','api.kentik.com','portal.kentik.com','storage.googleapis.com','EU: *.kentik.eu'], i:I_KENTIK, go:'kentik'}, o); }
+function EGRESS(x, y){ return {id:'egress', x:x-18, y:y-18, w:36, h:36, k:'net', icon:'lock', t:'', i:I_EGRESS, tip:'Outbound only'}; }
+
+/* Capability descriptions shared by every site */
+const CAP = {
+  flow:{h:'Flow Proxy receives NetFlow, sFlow and IPFIX from your devices, enriches it and forwards it to Kentik over TLS.',
+    d:['Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.',
+       'Flow Proxy (Edge Processing) decodes, enriches with SNMP and rDNS, and samples locally: 8 cores / 32 GB RAM for 25,000+ flows per second.',
+       'Flow Proxy (Forwarding, beta) ships raw flow with about 10x less compute: 1 core / 2 GB for 20,000+ flows per second.',
+       'Sends to flow.kentik.com on TCP 443, with an optional UDP 40010 base port.',
+       'Replaces the standalone kproxy agent, which reaches end of life on May 1, 2027.']},
+  snmp:{h:'SNMP/ST discovers devices and collects health, interface and hardware metrics by SNMP polling or gNMI streaming telemetry. The same capability enriches flow with interface names and speeds.',
+    d:['Per device, pick “Flow Enrichment via Universal Agent” or “Full Monitoring via Universal Agent” on the SNMP tab.',
+       'NMS Setup Wizard: deploy or pick an agent, enter IP ranges and SNMP v1, v2c or v3 credentials, discover, then add devices.',
+       'Needs UDP 161 and ICMP to devices. Default polling: 1 minute for status, CPU, memory and interfaces, 5 minutes for everything else.',
+       'Streaming telemetry: gNMI dial-in over gRPC (JSON or Protobuf), 30 second default, CPU every 2 seconds. Enable “Dial-In from Universal Agent” on the device.',
+       'Sizing: 2 cores / 8 GB RAM for up to 500 devices.']},
+  trap:{h:'The Trap Receiver captures SNMP traps the moment a device sends them, for example an interface or BGP session going down.',
+    d:['Listens on UDP 162. Filter and alert by trap name and OID. Event alerts need manual clearing.',
+       'Query in Data Explorer with the metric “SNMP Traps: Events”.',
+       'Traps must come from a device licensed for NMS.']},
+  syslog:{h:'The Syslog Server collects log messages from devices and servers, so you can search them, alert on them and line them up with traffic.',
+    d:['Listens on UDP and TCP 514. Filter by severity, message content and device.',
+       'Query in Data Explorer with the metric “Syslog: Events”.',
+       'Sizing: 1 core / 1 GB RAM for about 8,000 events per second.',
+       'If a syslog forwarder sits in between, it must keep the original device IP.']},
+  dns:{h:'DNS OTT Tap turns DNS lookups into records Kentik can join with traffic, for OTT service tracking and DNS troubleshooting.',
+    d:['Modes: DNSTAP receiver (preferred, for appliances such as Infoblox), promiscuous capture of a SPAN or mirror port, or directly on a BIND9 or Linux resolver.',
+       'Sizing: 1 core / 1 GB RAM per 400,000 DNS lookups per second.',
+       'Replaces the old standalone kprobe DNS tap.']},
+  synth:{h:'Synthetics makes this agent a private test point. It measures latency, loss and jitter to other sites, clouds, SaaS apps and DNS servers, and gives AI Advisor on-demand ping and traceroute.',
+    d:['Agent-to-agent and mesh tests use TCP 8877 and UDP 9977 between agents.',
+       'Private agent subtests cost 2.5 credits per run; global agent subtests cost 5.',
+       'Sizing: 2 cores / 2 GB RAM.',
+       'The KB names this capability Connectivity Test (Synthetics). Confirm which continuous test types run on the Universal Agent today with your Infoblox team.']},
+  ssh:{h:'SSH config access lets Kentik back up configs, show what changed, and run read-only show commands during an AI Advisor investigation.',
+    d:['Needs TCP 22 from the agent to each device’s management IP, a read-only SSH account and an NMS device license.',
+       'Supported platforms: Juniper Junos, Cisco NX-OS, Arista EOS and Cisco IOS-XE.',
+       'Read-only by design: a command block-list, never configure or commit. Commands come from your agent, so they land in your TACACS+ or RADIUS logs.',
+       'Config sync and backup: a 5 minute fetch interval is recommended for high-visibility environments.']},
+  bgp:{h:'BGP Proxy will let routers in private networks peer with Kentik through the agent. Kentik lists it as coming soon.',
+    d:['Planned sizing: 2 cores / 2 GB RAM, with BGP on TCP 179 into the agent.',
+       'Until then, routers peer with Kentik directly, as shown from the edge routers.']}
+};
+
+function chips(x, y0, w, list, step){
+  return list.map((c, i) => ({id:'c-'+c[0], x, y:y0+i*step, w, h:46, k:c[0]==='bgp'?'opt':'chip', icon:c[1], t:c[2], s:c[3], sd:c[4], i:CAP[c[0]], cap:c[0]}));
+}
+
+/* ===== Data center ===== */
+SC.dc = {
+  frames:[
+    {x:16, y:16, w:744, h:588, label:'Data center (on-prem)'},
+    {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network devices', cls:'sframe',
+     i:{h:'Routers, switches and firewalls export flow to the agent, send it traps and syslog, and answer its SNMP or streaming telemetry requests.',
+        d:['Flow: sample ingress on every interface, never ingress and egress on the same interface. The device sample rate must match the rate set for the device in Kentik.',
+           'Recommended standard rates: data center and core 1:400–800 at 1 Gbps up to 1:25k–50k at 1 Tbps; Internet edge 1:3k–7k at 10 Gbps up to 1:11k–15k at 1 Tbps.',
+           'SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.',
+           'Vendor config snippets for flow, SNMP and BGP live in github.com/kentik/config-snippets.']}}
+  ],
+  nodes:[
+    {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge', sd:'Flow · SNMP · traps · BGP',
+     i:{h:'Edge routers carry Internet and WAN traffic. Besides flow and device telemetry, they peer BGP with Kentik so every flow gets AS path, community and next-hop context.',
+        d:['Device settings › BGP › “Peer with device”. Kentik shows its ingest peering IPv4 and IPv6 addresses next to the fields.',
+           'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
+           'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
+           'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.',
+           'The Universal Agent BGP Proxy capability is listed as coming soon, so today routers peer with Kentik directly.']}},
+    {id:'core', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Core and leaf switches', s:'Data center fabric', sd:'sFlow/IPFIX · SNMP or gNMI',
+     i:{h:'Data center switches export sFlow or IPFIX and are polled for interface counters, so Kentik sees east-west traffic and link health together.',
+        d:['sFlow is the only common flow protocol that carries a packet sample. IPFIX and NetFlow v9 add MAC and VLAN through option templates.',
+           'Sanity check: flow volume should land within about 20% of SNMP interface traffic.']}},
+    {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls', s:'Perimeter and internal', sd:'Flow · syslog · traps',
+     i:{h:'Firewalls export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
+        d:['Syslog to the agent on UDP or TCP 514; traps to UDP 162.','Trap and syslog ingestion require the device to be licensed for NMS.']}},
+    {id:'srv', x:32, y:298, w:240, h:52, k:'srv', icon:'server', t:'Servers and hypervisors', s:'Linux, Windows, VMware', sd:'Syslog to UDP/TCP 514',
+     i:{h:'Servers and hypervisors can send syslog to the same agent, so server events line up with network events.', d:['Changing the syslog port currently needs Kentik support.']}},
+    {id:'dnsn', x:32, y:364, w:240, h:52, k:'srv', icon:'dns', t:'DNS servers', s:'Infoblox, BIND resolvers', sd:'DNSTAP stream to the agent',
+     i:{h:'DNS servers stream queries and answers to the agent, which turns DNS into records Kentik can join with traffic.', d:CAP.dns.d}},
+    {id:'ua', x:316, y:58, w:236, h:500, k:'ua', icon:'agent', t:'Universal Agent', s:'On a Linux host or in Docker', sd:'Debian, Ubuntu, Oracle Linux',
+     foot:'Capabilities switch on in the portal', footd:'Updates itself · status Up or Down',
+     i:{h:'The Universal Agent is one software package that runs capabilities. Install it once per site, then switch capabilities on in the portal. It updates itself and reports its own health.',
+        d:['Install on a Linux host (VM or bare metal) or in Docker: Settings › Universal Agents › Deploy Agent generates the Linux or Docker command carrying K_COMPANY_ID and K_REGISTER_PROVISIONING_TOKEN. Portal tokens last one hour.',
+           'Authorize the agent in the portal, or use an API token created with requiresApproval false. Status: Up, Down (not seen for 30 minutes) or Not Authorized.',
+           'Supported OS: Debian 11–13, Ubuntu 20.04–24.04, Oracle Linux 9, CentOS Stream 8. CentOS 7 and other EL7 builds are not supported.',
+           'Every capability you add needs more CPU and memory on the host; size for the sum.']}},
+    ...chips(328, 118, 212, [
+      ['flow','flow','Flow Proxy','NetFlow, sFlow, IPFIX','Listens on UDP 9995'],
+      ['snmp','gauge','SNMP / ST','Health and interfaces','UDP 161 · gNMI · ICMP'],
+      ['trap','bolt','SNMP Trap Receiver','Real-time device events','Listens on UDP 162'],
+      ['syslog','list','Syslog Server','Device and server logs','Listens on UDP/TCP 514'],
+      ['dns','dns','DNS OTT Tap','DNS queries as flow','DNSTAP, SPAN or on-server'],
+      ['synth','probe','Synthetics','Tests to sites and apps','TCP 8877 · UDP 9977'],
+      ['ssh','terminal','SSH config access','Config backups, show cmds','TCP 22 to management IPs'],
+      ['bgp','route','BGP Proxy','Coming soon','Coming soon · TCP 179']
+    ], 52),
+    EGRESS(760, 318),
+    KEN(),
+    {id:'remote', x:780, y:492, w:204, h:64, k:'ext', icon:'globe', t:'Other sites, SaaS', s:'Synthetic test targets', sd:'Agents, IPs, hosts, URLs', go:'saas',
+     i:{h:'Synthetic test targets: other sites’ agents, Kentik’s global and public cloud agents, SaaS apps, websites and DNS servers.', d:['Drill into Internet & SaaS apps for test types and credits.']}}
+  ],
+  edges:[
+    {t:'flow', a:'netgrp', b:'c-flow', p:[[272,104],[328,141]]},
+    {t:'snmp', a:'c-snmp', b:'netgrp', p:[[328,193],[272,148]], bi:true},
+    {t:'trap', a:'netgrp', b:'c-trap', p:[[272,192],[328,245]]},
+    {t:'syslog', a:'netgrp', b:'c-syslog', p:[[272,236],[328,290]]},
+    {t:'syslog', a:'srv', b:'c-syslog', p:[[272,324],[328,304]]},
+    {t:'dns', a:'dnsn', b:'c-dns', p:[[272,390],[328,349]]},
+    {t:'ssh', a:'c-ssh', b:'netgrp', p:[[328,453],[298,453],[298,268],[272,268]]},
+    {t:'synth', a:'c-synth', b:'remote', p:[[540,401],[574,401],[574,524],[780,524]], lab:'Tests to other sites and apps', labd:'Ping, traceroute, DNS, HTTP', lp:[676,512]},
+    {t:'https', a:'ua', b:'kentik', p:[[552,318],[780,318]], lab:'HTTPS, TLS 1.2+', labd:'TCP 443, outbound only', lp:[652,306]},
+    {t:'bgp', a:'edge', b:'kentik', p:[[236,90],[236,40],[882,40],[882,130]], lab:'BGP routes: edge routers peer with Kentik', labd:'iBGP on TCP 179, Kentik is a route-reflector client', lp:[566,40]}
+  ],
+  notes:[
+    {x:32, y:446, t:'Point devices at the agent.', td:'All agent connections are outbound.'},
+    {x:32, y:463, t:'It forwards everything to Kentik.', td:'A web proxy works (https_proxy).'}
+  ]
+};
+
+INFO.dc = {kick:'Drill-in · On-prem', title:'Data center with a Universal Agent',
+hl:`<p class="lead">One Universal Agent per data center collects everything. Devices send to it, it polls them, and it forwards it all to Kentik over outbound HTTPS.</p>
+<h3>What you deploy</h3><ul>
+<li>The Universal Agent on a Linux host (VM or bare metal) or in Docker</li>
+<li>Capabilities switched on in the portal: Flow Proxy, SNMP/ST, SNMP Trap Receiver, Syslog Server, DNS OTT Tap, Synthetics and SSH config access</li>
+<li>Devices pointed at the agent for flow, traps and syslog</li>
+<li>Optional BGP peering from edge routers to Kentik</li></ul>
+<h3>What Kentik collects</h3><ul>
+<li>Flow, enriched with interface names, BGP, GeoIP and your custom dimensions</li>
+<li>Device health and interface metrics</li><li>Traps and syslog events</li><li>DNS lookups</li><li>Synthetic test results</li><li>Config backups and changes</li></ul>
+<h3>Where you see it</h3><p>Data Explorer, Kentik Map, NMS dashboards, Synthetics, AI Advisor and alerts.</p>`,
+dd:`<p class="lead">Universal Agent on a Linux host or in Docker, managed from Settings › Universal Agents.</p>
+<h3>Ports</h3>
+<table><thead><tr><th style="width:34%">Direction</th><th style="width:32%">Port</th><th>Used by</th></tr></thead><tbody>
+<tr><td>Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>Everything: control, data, updates</td></tr>
+<tr><td>Agent → Kentik</td><td>UDP 40010 (optional)</td><td>Flow Proxy base port</td></tr>
+<tr><td>Devices → agent</td><td>UDP 9995</td><td>Flow Proxy</td></tr>
+<tr><td>Devices → agent</td><td>UDP 162</td><td>SNMP Trap Receiver</td></tr>
+<tr><td>Devices → agent</td><td>UDP and TCP 514</td><td>Syslog Server</td></tr>
+<tr><td>Agent → devices</td><td>UDP 161, ICMP</td><td>SNMP/ST polling</td></tr>
+<tr><td>Agent → devices</td><td>Device gNMI port</td><td>Streaming telemetry dial-in</td></tr>
+<tr><td>Agent → devices</td><td>TCP 22</td><td>SSH config and commands</td></tr>
+<tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Synthetics</td></tr>
+<tr><td>DNS → agent</td><td>DNSTAP port you set</td><td>DNS OTT Tap</td></tr>
+<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP peering (direct today)</td></tr>
+</tbody></table>
+<h3>Outbound allowlist</h3>
+<p><code>flow.kentik.com</code> <code>grpc.api.kentik.com</code> <code>api.kentik.com</code> <code>portal.kentik.com</code> <code>storage.googleapis.com</code>, optional <code>whoami.kentiklabs.com</code>. EU accounts use <code>*.kentik.eu</code>. SSL inspection must allow gRPC.</p>
+<h3>Install and register</h3>
+<pre>export K_COMPANY_ID=&lt;company-id&gt;
+export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
+# run the Linux or Docker command from
+# Settings › Universal Agents › Deploy Agent
+# behind a proxy: export https_proxy=http://proxy:port</pre>
+<ul><li>Portal tokens last 1 hour. API tokens (<code>grpc.api.kentik.com/kagent/v202401/provisioning-tokens</code>) take maxUsageCount, expiresAt and requiresApproval.</li>
+<li>Linux: Debian 11–13, Ubuntu 20.04–24.04, Oracle Linux 9 or CentOS Stream 8 (not CentOS 7 or other EL7). Docker: pass a proxy with <code>--env</code> if you need one.</li>
+<li>Agents update themselves and their capabilities.</li></ul>
+<h3>Sizing per capability</h3>
+<table><thead><tr><th style="width:50%">Capability</th><th>CPU / RAM</th></tr></thead><tbody>
+<tr><td>Flow Proxy (Edge Processing)</td><td>8 cores / 32 GB, 25k+ FPS</td></tr>
+<tr><td>Flow Proxy (Forwarding, beta)</td><td>1 core / 2 GB, 20k+ FPS</td></tr>
+<tr><td>SNMP/ST</td><td>2 cores / 8 GB, up to 500 devices</td></tr>
+<tr><td>Syslog Server</td><td>1 core / 1 GB per 8k events/s</td></tr>
+<tr><td>Synthetics</td><td>2 cores / 2 GB</td></tr>
+<tr><td>DNS OTT Tap</td><td>1 core / 1 GB per 400k lookups/s</td></tr>
+<tr><td>BGP Proxy (coming soon)</td><td>2 cores / 2 GB</td></tr>
+</tbody></table>
+<p class="muted" style="font-size:12.5px">Add 20–30% headroom for bursty flow, syslog and traps.</p>
+<h3>Device settings in Kentik</h3><ul>
+<li><b>SNMP</b>: Flow Enrichment via Universal Agent, or Full Monitoring via Universal Agent. Pick a credential and a collection agent.</li>
+<li><b>Streaming Telemetry</b>: Dial-In from Universal Agent (gNMI, optional SSL).</li>
+<li><b>BGP</b>: Peer with device, with the router’s peering address, ASN and optional MD5 password.</li>
+<li><b>SSH</b>: credential, collection agent, platform autodetect, config sync and fetch interval.</li></ul>
+<h3>Licensing</h3><ul>
+<li>FlowPak covers flow and SNMP flow enrichment.</li>
+<li>An NMS device license (DevicePak) adds full monitoring, syslog, traps and SSH.</li>
+<li>Synthetics runs on test credits.</li></ul>`,
+src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['UA Deployment','https://kb.kentik.com/docs/ua-deployment'],['UA Portal Management','https://kb.kentik.com/docs/ua-portal-management'],['Device Settings','https://kb.kentik.com/docs/device-settings'],['Router Configuration','https://kb.kentik.com/docs/router-configuration'],['Flow Overview','https://kb.kentik.com/docs/flow-overview'],['NMS Setup','https://kb.kentik.com/docs/nms-setup'],['SNMP Traps & Syslog','https://kb.kentik.com/docs/snmp-traps-syslogs'],['SSH Command Access for Kentik NMS','https://kb.kentik.com/docs/ssh-command-access-for-kentik-nms'],['Migration Scenarios (kproxy to UA)','https://kb.kentik.com/docs/kproxy-migration-scenarios']]};
+
+/* ===== Branch & campus ===== */
+SC.branch = {
+  frames:[
+    {x:16, y:16, w:552, h:588, label:'Branch office or campus'},
+    {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network devices', cls:'sframe',
+     i:{h:'Branch devices send flow, traps and syslog to the local agent and answer its SNMP polls.',
+        d:['Use the same device settings as the data center: SNMP tab “Flow Enrichment via Universal Agent” or “Full Monitoring via Universal Agent”.',
+           'At a small site, flow from the WAN router alone often answers most questions.']}},
+    {x:584, y:58, w:184, h:296, label:'Test targets', cls:'sframe', ghost:true}
+  ],
+  nodes:[
+    {id:'wan', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Branch / SD-WAN router', s:'WAN edge', sd:'Flow, SNMP, syslog, traps',
+     i:{h:'The WAN or SD-WAN edge sees everything entering and leaving the site, so its flow is the most valuable single source at a branch.', d:['Export flow to the branch agent on UDP 9995 and set the same sample rate in Kentik.']}},
+    {id:'sw', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Access switches', s:'Wired users and devices', sd:'sFlow · SNMP',
+     i:{h:'Access switches add interface health and, with sFlow, local traffic.', d:[]}},
+    {id:'wifi', x:44, y:214, w:216, h:52, k:'net', icon:'wifi', t:'Wi-Fi controller, APs', s:'Wireless users', sd:'Syslog · traps · SNMP',
+     i:{h:'Wireless controllers mostly contribute events and health: syslog, traps and SNMP.', d:[]}},
+    {id:'users', x:32, y:300, w:240, h:52, k:'ext', icon:'users', t:'Users at the site', s:'Experience you test for', sd:'Tests run from here',
+     i:{h:'People at the branch. Tests from the branch agent measure the paths and apps they rely on, before anyone opens a ticket.', d:[]}},
+    {id:'ua', x:304, y:58, w:244, h:362, k:'ua', icon:'agent', t:'Universal Agent', s:'Small Linux host or Docker', sd:'Same build as the data center',
+     foot:'Only what this site needs', footd:'Add capabilities without reinstalling',
+     i:{h:'The same Universal Agent as the data center, sized for a small site. Install it once, then switch on only what the site needs.',
+        d:['Footprint: Synthetics 2 cores / 2 GB, Syslog 1 core / 1 GB, SNMP/ST 2 cores / 8 GB for up to 500 devices.',
+           'Linux or Docker install command from Settings › Universal Agents › Deploy Agent.',
+           'Assign the agent to a Site so devices and tests group by location.']}},
+    ...chips(316, 118, 220, [
+      ['flow','flow','Flow Proxy','Branch traffic','UDP 9995'],
+      ['snmp','gauge','SNMP / ST','Device health','UDP 161 · ICMP'],
+      ['trap','bolt','SNMP Trap Receiver','Device events','UDP 162'],
+      ['syslog','list','Syslog Server','Logs','UDP/TCP 514'],
+      ['synth','probe','Synthetics','What users experience','TCP 8877 · UDP 9977']
+    ], 52),
+    EGRESS(568, 372),
+    {id:'t-dc', x:592, y:88, w:172, h:52, k:'ext', icon:'agent', t:'Data center agent', s:'Agent-to-agent', sd:'TCP 8877 · UDP 9977', go:'dc',
+     i:{h:'Agent-to-agent and Network Mesh tests between the branch and data center agents measure latency, loss and jitter in both directions.', d:['Each direction is a subtest. A 4-agent private mesh every minute is 12 subtests, 30 credits per run.']}},
+    {id:'t-saas', x:592, y:152, w:172, h:52, k:'ext', icon:'app', t:'SaaS apps', s:'Microsoft 365, Zoom', sd:'HTTP(S), DNS, ping', go:'saas',
+     i:{h:'HTTP(S) and API tests check status code, time to last byte and response size from the branch.', d:['Page load and transaction tests run on Kentik app agents with headless Chromium.']}},
+    {id:'t-cloud', x:592, y:216, w:172, h:52, k:'ext', icon:'cloud', t:'Cloud regions', s:'Public cloud agents', sd:'Network mesh tests',
+     i:{h:'Kentik’s public cloud agents sit in AWS, Azure, GCP and OCI regions, so you can test from the branch to the regions you use.', d:['Global agent subtests cost 5 credits per run.']}},
+    {id:'t-dns', x:592, y:280, w:172, h:52, k:'ext', icon:'dns', t:'DNS servers', s:'Lookup time', sd:'DNS Server Monitor',
+     i:{h:'DNS Server Monitor tests a hostname against your resolvers and reports resolution time and the answer.', d:['DNS Server Grid runs the same lookup against many resolvers at once to find slow ones.']}},
+    KEN({y:150, h:300})
+  ],
+  edges:[
+    {t:'flow', a:'netgrp', b:'c-flow', p:[[272,104],[316,141]]},
+    {t:'snmp', a:'c-snmp', b:'netgrp', p:[[316,193],[272,150]], bi:true},
+    {t:'trap', a:'netgrp', b:'c-trap', p:[[272,196],[316,245]]},
+    {t:'syslog', a:'netgrp', b:'c-syslog', p:[[272,240],[316,297]]},
+    {t:'synth', a:'c-synth', b:'t-dc', p:[[536,349],[592,114]], bi:true},
+    {t:'synth', a:'c-synth', b:'t-saas', p:[[536,349],[592,178]]},
+    {t:'synth', a:'c-synth', b:'t-cloud', p:[[536,349],[592,242]], bi:true},
+    {t:'synth', a:'c-synth', b:'t-dns', p:[[536,349],[592,306]]},
+    {t:'https', a:'ua', b:'kentik', p:[[548,372],[780,372]], lab:'Results and telemetry over HTTPS', labd:'TCP 443, outbound only', lp:[681,390]}
+  ],
+  notes:[
+    {x:32, y:384, t:'Small sites still get flow, health,', td:'Agent-to-agent tests need TCP 8877'},
+    {x:32, y:401, t:'events and user-experience tests.', td:'and UDP 9977 open between agents.'}
+  ]
+};
+
+INFO.branch = {kick:'Drill-in · On-prem', title:'Branch or campus with a Universal Agent',
+hl:`<p class="lead">The same Universal Agent, sized for a small site. It adds local flow and device health, and it tests the paths your users depend on.</p>
+<h3>What you deploy</h3><ul>
+<li>The Universal Agent on a small Linux host (a VM or a small PC) or in Docker</li>
+<li>Capabilities for this site, for example Flow Proxy, SNMP/ST, Trap Receiver, Syslog Server and Synthetics</li>
+<li>Tests from the branch to the data center, cloud regions, SaaS apps and DNS</li></ul>
+<h3>Why it matters</h3><ul>
+<li>Site-to-site tests show latency, loss and jitter between locations</li>
+<li>Site-to-app tests show what users at this site actually experience</li>
+<li>Flow and health from the branch router explain why a test went red</li></ul>`,
+dd:`<p class="lead">Same install and ports as the data center. The differences are the capabilities you enable and the tests you schedule.</p>
+<h3>Ports</h3>
+<table><thead><tr><th style="width:36%">Direction</th><th style="width:32%">Port</th><th>Used by</th></tr></thead><tbody>
+<tr><td>Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>Everything</td></tr>
+<tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Agent-to-agent, mesh</td></tr>
+<tr><td>Agent → targets</td><td>ICMP, TCP or UDP</td><td>Ping and traceroute (TCP lets you pick the port)</td></tr>
+<tr><td>Agent → targets</td><td>TCP 80 / 443</td><td>HTTP(S) and API tests</td></tr>
+<tr><td>Devices → agent</td><td>UDP 9995 · 162 · 514</td><td>Flow, traps, syslog</td></tr>
+</tbody></table>
+<h3>Test types you can run from here</h3><ul>
+<li><b>Network</b>: Agent-to-Agent, Network Mesh, Server IP, Server Hostname, Network Grid</li>
+<li><b>Autonomous</b>: ASN, CDN, country, region and city targets picked from your flow</li>
+<li><b>DNS</b>: DNS Server Monitor, DNS Server Grid</li>
+<li><b>HTTP</b>: HTTP(S) or API (GET, POST, PUT, PATCH)</li></ul>
+<p class="note">Page load and transaction tests use Kentik app agents with headless Chromium. Confirm which continuous test types the Universal Agent runs today with your Infoblox team.</p>
+<h3>Test credits</h3>
+<table><thead><tr><th style="width:56%">Test</th><th>Credits</th></tr></thead><tbody>
+<tr><td>Network subtest, private agent</td><td>2.5 per run</td></tr>
+<tr><td>Network subtest, global agent</td><td>5 per run</td></tr>
+<tr><td>HTTP or page load subtest</td><td>timeout (s) × 0.5 private, × 1 global</td></tr>
+<tr><td>4-agent private mesh, every minute</td><td>30 per run, about 1.3M per month</td></tr>
+</tbody></table>
+<p class="muted" style="font-size:12.5px">Test status is Healthy, Warning, Critical or Pending, based on latency, loss and jitter thresholds.</p>`,
+src:[['Synthetics Overview','https://kb.kentik.com/docs/synthetics-overview'],['Test Types Reference','https://kb.kentik.com/docs/test-types'],['Test Credits','https://kb.kentik.com/docs/test-credits'],['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['Agents Page','https://kb.kentik.com/docs/agents-page']]};
+
+/* ===== Internet & SaaS apps ===== */
+SC.saas = {
+  frames:[
+    {x:16, y:16, w:744, h:588, label:'Internet and SaaS apps'},
+    {id:'global', x:32, y:58, w:250, h:296, label:'Kentik global agent network', cls:'sframe',
+     i:{h:'Kentik runs agents at Internet hubs, in public cloud regions and on broadband connections. Every customer with synthetics can use them.',
+        d:['Hosted agents in data centers at key Internet hubs; public cloud agents in AWS, GCP, Azure and OCI regions; app agents with headless Chromium; broadband agents in real end-user homes.',
+           'Global agent subtests cost 5 credits per run.']}},
+    {id:'private', x:32, y:374, w:250, h:178, label:'Your Universal Agents', cls:'sframe',
+     i:{h:'Your agents at sites and in cloud VPCs are private test points that only your account uses.',
+        d:['No extra license for private agents. Their subtests cost 2.5 credits per run.','Agent-to-agent tests need TCP 8877 and UDP 9977 open between agents.']}}
+  ],
+  nodes:[
+    {id:'g-hub', x:44, y:88, w:226, h:52, k:'ktk', icon:'probe', t:'Hosted agents', s:'Internet hubs worldwide', sd:'5 credits per subtest',
+     i:{h:'Kentik-installed agents in data centers at key Internet hubs: the Internet’s point of view.', d:[]}},
+    {id:'g-cloud', x:44, y:154, w:226, h:52, k:'ktk', icon:'cloud', t:'Public cloud agents', s:'AWS, Azure, GCP, OCI', sd:'Cloud region vantage points',
+     i:{h:'A subset of global agents running inside public cloud regions, so you can test to and from the regions your workloads use.', d:[]}},
+    {id:'g-app', x:44, y:220, w:226, h:52, k:'ktk', icon:'app', t:'App agents', s:'Headless Chromium', sd:'Page load + transaction',
+     i:{h:'Global agents that run a real browser engine for page load and scripted transaction tests.', d:[]}},
+    {id:'g-bb', x:44, y:286, w:226, h:52, k:'ktk', icon:'wifi', t:'Broadband agents', s:'End-user view from homes', sd:'Run in real homes',
+     i:{h:'Agents on consumer broadband connections give an end-user view. Many run in real homes, so they can be less stable than data center agents.', d:[]}},
+    {id:'p-dc', x:44, y:404, w:226, h:52, k:'chip', icon:'agent', t:'Data center agent', s:'Private test point', sd:'2.5 credits per subtest', go:'dc',
+     i:{h:'The data center Universal Agent with Synthetics switched on.', d:CAP.synth.d}},
+    {id:'p-br', x:44, y:468, w:226, h:52, k:'chip', icon:'agent', t:'Branch agent', s:'Private test point', sd:'TCP 8877 · UDP 9977', go:'branch',
+     i:{h:'The branch Universal Agent with Synthetics switched on.', d:CAP.synth.d}},
+    {id:'t-saas', x:340, y:88, w:220, h:56, k:'ext', icon:'app', t:'SaaS apps', s:'Microsoft 365, Salesforce', sd:'HTTP(S)/API, page load',
+     i:{h:'Test the SaaS apps your users rely on, from where your users are.',
+        d:['HTTP(S) or API test: status code, average time to last byte and response size, with optional ping to the resolved IP.','Page load test: a full browser load with navigation, DNS, connect and response timings, on app agents.']}},
+    {id:'t-web', x:340, y:164, w:220, h:56, k:'ext', icon:'portal', t:'Your websites and APIs', s:'Public front doors', sd:'Transaction scripts',
+     i:{h:'Watch your own public sites and APIs the way customers reach them.', d:['Transaction test: a custom Puppeteer script in headless Chromium, with total time per agent and screenshots of each step.']}},
+    {id:'t-dns', x:340, y:240, w:220, h:56, k:'ext', icon:'dns', t:'DNS servers', s:'Answer and lookup time', sd:'DNS Server Monitor, Grid',
+     i:{h:'Check resolution time and answers for the names that matter.', d:['DNS Server Monitor: one or more resolvers for a hostname. DNS Server Grid: the same lookup across many resolvers at once.']}},
+    {id:'t-net', x:340, y:316, w:220, h:56, k:'ext', icon:'globe', t:'Internet paths', s:'ASN, CDN, country, city', sd:'Autonomous tests from flow',
+     i:{h:'Test the networks your traffic actually uses.',
+        d:['Autonomous tests pick targets from your flow, SNMP, BGP and GeoIP data: the IPs your traffic uses most in an ASN, CDN, country, region or city.','Network Grid: ping and traceroute to a pasted or uploaded list of IPs.']}},
+    {id:'bgpv', x:340, y:430, w:220, h:56, k:'ext', icon:'route', t:'BGP vantage points', s:'Route Views + Kentik peers', sd:'0.53 credits per minute',
+     i:{h:'BGP Monitor watches your prefixes for hijacks and route leaks from thousands of vantage points. It needs no agents.',
+        d:['Data comes from the public Route Views project plus Kentik’s own peering sessions with customer routers.','Origins outside your allowed ASN list show as critical Invalid Origin events; upstream leaks can be flagged too.','BGP Route Viewer shows announcements and withdrawals for your prefixes over the last 12 hours, with RPKI status.']}},
+    KEN({lines:['Test results and status','Meshes and incident log','Kentik Map, AI Advisor','Alerts to your channels'],
+         linesd:['Results via api.kentik.com','Healthy · Warning · Critical','Credits per subtest and run','State of the Internet (free)']})
+  ],
+  edges:[
+    {t:'synth', a:'global', b:'t-saas', p:[[282,116],[340,116]]},
+    {t:'synth', a:'global', b:'t-web', p:[[282,180],[340,192]]},
+    {t:'synth', a:'global', b:'t-dns', p:[[282,246],[340,268]]},
+    {t:'synth', a:'global', b:'t-net', p:[[282,312],[340,344]]},
+    {t:'synth', a:'private', b:'t-saas', p:[[282,430],[312,430],[312,130],[340,130]]},
+    {t:'synth', a:'private', b:'t-dns', p:[[282,494],[324,494],[324,282],[340,282]]},
+    {t:'https', a:'global', b:'kentik', p:[[262,58],[262,36],[882,36],[882,130]], lab:'Test results over HTTPS', labd:'Results and status to Kentik on TCP 443', lp:[620,36]},
+    {t:'https', a:'private', b:'kentik', p:[[157,552],[157,584],[882,584],[882,460]], lab:'Results over HTTPS', labd:'TCP 443 from your agents', lp:[560,584]},
+    {t:'bgp', a:'bgpv', b:'kentik', p:[[560,458],[780,420]], lab:'Route updates', lp:[668,428]}
+  ],
+  notes:[
+    {x:340, y:512, t:'', td:'State of the Internet shows public app,'},
+    {x:340, y:529, t:'', td:'cloud and network health with no credits.'}
+  ]
+};
+
+INFO.saas = {kick:'Drill-in · Synthetics', title:'Internet and SaaS app testing',
+hl:`<p class="lead">Kentik’s global agents and your own agents run continuous tests, so you see problems in apps, DNS and Internet paths before users report them.</p>
+<h3>Where tests come from</h3><ul>
+<li><b>Kentik global agents</b>: Internet hubs, public cloud regions, app agents with a real browser, and broadband agents in homes</li>
+<li><b>Your Universal Agents</b>: data centers, branches and cloud VPCs</li></ul>
+<h3>What gets tested</h3><ul>
+<li>SaaS apps and your own websites and APIs</li><li>DNS servers</li><li>Paths between your sites and clouds</li><li>The Internet networks your traffic uses</li><li>Your BGP prefixes, watched for hijacks and leaks</li></ul>
+<h3>Where you see it</h3><p>The Synthetics dashboard (test status, incident log, meshes, credit use), Kentik Map and AI Advisor, next to real traffic and SNMP data.</p>`,
+dd:`<p class="lead">Tests are made of subtests: one agent to one target in one direction, run on an interval.</p>
+<h3>Test types</h3>
+<table><thead><tr><th style="width:30%">Category</th><th>Tests</th></tr></thead><tbody>
+<tr><td>Routing</td><td>BGP Monitor (hijacks, leaks, RPKI)</td></tr>
+<tr><td>Agent-to-agent</td><td>Agent-to-Agent, Network Mesh</td></tr>
+<tr><td>Agent-to-server</td><td>Server IP, Server Hostname, Network Grid</td></tr>
+<tr><td>Autonomous</td><td>ASN, CDN, Country, Region, City</td></tr>
+<tr><td>DNS</td><td>DNS Server Monitor, DNS Server Grid</td></tr>
+<tr><td>HTTP</td><td>HTTP(S) or API, Page Load, Transaction</td></tr>
+</tbody></table>
+<h3>Protocols</h3><ul>
+<li>Ping: ICMP, TCP (pick a port) or UDP-ICMP. Traceroute: ICMP, UDP or TCP. IPv4 and IPv6.</li>
+<li>HTTP(S): GET, POST, PUT, PATCH to TCP 80 or 443.</li>
+<li>Agents report to Kentik over TCP 443.</li></ul>
+<h3>Credits</h3>
+<table><thead><tr><th style="width:58%">Item</th><th>Credits</th></tr></thead><tbody>
+<tr><td>Network subtest from a global agent</td><td>5 per run</td></tr>
+<tr><td>Network subtest from a private agent</td><td>2.5 per run</td></tr>
+<tr><td>HTTP or page load subtest</td><td>timeout (s) × 1 global, × 0.5 private</td></tr>
+<tr><td>BGP Monitor</td><td>0.53 per minute</td></tr>
+<tr><td>Test Preview</td><td>Free until saved</td></tr>
+</tbody></table>
+<p class="muted" style="font-size:12.5px">A test every minute runs 43,200 times in a 30-day month. Example from the KB: a 5-agent mesh (2 private, 3 global) every minute is 80 credits per run.</p>
+<h3>Status</h3><p>Healthy, Warning, Critical or Pending, from latency, packet loss and jitter. Agents: Active, Pending, Warning (offline 5–60 minutes) or Critical (offline 60+ minutes).</p>`,
+src:[['Synthetics Overview','https://kb.kentik.com/docs/synthetics-overview'],['Test Types Reference','https://kb.kentik.com/docs/test-types'],['Test Credits','https://kb.kentik.com/docs/test-credits'],['Agents Page','https://kb.kentik.com/docs/agents-page'],['Synthetics Agent (agent types)','https://kb.kentik.com/docs/synthetics-agent'],['BGP Route Viewer','https://kb.kentik.com/docs/bgp-route-viewer']]};
+/* ---------- Scene data: AWS and Azure ---------- */
+function COLLECTOR(o){ return Object.assign({id:'collector', x:780, y:96, w:204, h:88, k:'ktk', icon:'ib', t:'Kentik collector'}, o); }
+const CLOUD_LINES = ['Logs normalized','Enriched with metadata','Stored in KDE','Kentik Map, Pathfinder'];
+
+/* ===== AWS ===== */
+SC.aws = {
+  frames:[{x:16, y:16, w:744, h:588, label:'Your AWS account', labeld:'Your AWS account (Standard), or hub and spoke accounts (Nested)'}],
+  nodes:[
+    {id:'vpc', x:40, y:70, w:220, h:56, k:'srv', icon:'network', t:'VPCs, subnets, ENIs', s:'East-west and egress', sd:'Custom format, v2–v5',
+     i:{h:'VPC flow logs record traffic for whole VPCs, subnets or single ENIs, including east-west traffic and the effect of security groups.',
+        d:['Create flow log: Filter All, destination S3 bucket ARN, Custom format with all v2–v5 fields. Default logs miss TCP flags, drop reasons, region and zone, and packet size.',
+           'Files land under AWSLogs/<account-id>/vpcflowlogs/ as .log.gz, usually 5–10 minutes after traffic.',
+           'Write interval: every minute (recommended for security and troubleshooting) or every 10 minutes (AWS default, lower cost).']}},
+    {id:'tgw', x:40, y:140, w:220, h:56, k:'net', icon:'switch', t:'Transit Gateway', s:'Inter-VPC and hybrid', sd:'TGW flow logs',
+     i:{h:'Transit Gateway flow logs show inter-VPC, VPN and Direct Connect traffic in one place.', d:['They do not replace VPC flow logs; Kentik recommends turning on both.']}},
+    {id:'nfw', x:40, y:210, w:220, h:56, k:'net', icon:'firewall', t:'Network Firewall', s:'Allowed and dropped', sd:'Flow + alert logs',
+     i:{h:'Network Firewall logs show allowed and dropped traffic and rule hits, so Kentik Map, Cloud Pathfinder and Data Explorer can point to the blocking rule.',
+        d:['Firewall › Logging details › Edit: Flow logs and Alert logs to an S3 bucket, with an optional prefix such as firewall-logs/.','They can share the VPC flow log bucket.']}},
+    {id:'apis', x:40, y:312, w:220, h:56, k:'srv', icon:'api', t:'AWS APIs', s:'Topology metadata', sd:'EC2, DX, ELB, NFW, WAN',
+     i:{h:'Kentik reads your topology with describe calls: VPCs, subnets, route tables, security groups, NACLs, gateways, Transit Gateways and more.',
+        d:['Feeds the Kentik Map, flow enrichment and Cloud Pathfinder connectivity checks.',
+           'Services: EC2 (including Transit Gateway), Direct Connect, ELB, IAM ListAccountAliases, Network Manager (Cloud WAN) and Network Firewall. Optional: Organizations ListAccounts, CloudWatch, STS AssumeRole.']}},
+    {id:'cw', x:40, y:382, w:220, h:56, k:'srv', icon:'chart', t:'CloudWatch', s:'Performance metrics', sd:'ELB, VPN, DX, TGW, NAT',
+     i:{h:'Optional CloudWatch metrics add history and alerting for gateways, load balancers, VPN, Direct Connect and more.',
+        d:['Namespaces: AWS/ELB, ApplicationELB, NetworkELB, GatewayELB, VPN, DX, TransitGateway, PrivateLinkEndpoints, PrivateLinkServices, EC2, S3, NATGateway, Route53, ApiGateway, NetworkFirewall and NetworkManager.']}},
+    {id:'ua', x:40, y:486, w:220, h:56, k:'opt', icon:'agent', t:'Universal Agent', s:'Optional, on EC2', sd:'Private synthetic agent', go:'dc',
+     i:{h:'Optional: a Universal Agent on an EC2 instance becomes a private test point inside the VPC, for tests between the cloud and your sites.',
+        d:['Cloud Performance Monitor maps Direct Connect and VPN interconnects and shows path health once agents sit in your VPCs.','Same install as on-prem, outbound TCP 443 only.']}},
+    {id:'s3', x:330, y:140, w:214, h:56, k:'store', icon:'bucket', t:'S3 bucket', s:'One per region', sd:'SSE-S3, or SSE-KMS + key',
+     i:{h:'A bucket you own holds the logs. Kentik only reads from it.',
+        d:['One bucket per region: no cross-region transfer fees, data stays in region, and no S3 throttling. Kentik treats each bucket as one device for rate purposes.',
+           'SSE-S3 is recommended. With SSE-KMS add kms:Decrypt and kms:DescribeKey on the key. SSE-C is not supported.',
+           'Optional: let Kentik delete old logs (Delete After Read) by widening the S3 action to s3:*.']}},
+    {id:'role', x:330, y:316, w:214, h:72, k:'iam', icon:'key', t:'IAM role for Kentik', s:'Read-only access', s2:'Trusts Kentik’s account', sd:'Trusts 834693425129', sd2:'ExternalId = Company ID',
+     i:{h:'An IAM role in your account that Kentik’s collector assumes. It is read-only: describe calls, CloudWatch reads and reads of the log bucket.',
+        d:['Trust: Principal arn:aws:iam::834693425129:root, Action sts:AssumeRole, StringEquals sts:ExternalId = your Company ID (Account # on the Licenses page), ArnEquals aws:PrincipalArn = arn:aws:iam::834693425129:role/eks-ingest-node.',
+           'Policy: ec2:Describe*, ec2:Search*, ec2:GetManagedPrefixListEntries, directconnect:Describe*/List*, elasticloadbalancing:Describe*, iam:ListAccountAliases, network-firewall:Describe*/List*, networkmanager core network reads, cloudwatch reads, and s3:Get* and s3:List* on the bucket.',
+           'Kentik support can issue a random 16-digit ExternalId instead of the Company ID.']}},
+    {id:'nested', x:330, y:470, w:220, h:72, k:'iam', icon:'org', t:'Nested option', s:'Many accounts: a hub role', s2:'assumes a role in each', sd:'Hub assumes spoke roles', sd2:'organizations:ListAccounts',
+     i:{h:'For many accounts, Kentik trusts one hub (primary) role. The hub role assumes a spoke (secondary) role in each member account.',
+        d:['Hub policy: sts:AssumeRole on the spoke roles plus organizations:ListAccounts.','Spoke trust: the hub account root, no ExternalId needed. Spoke policy: the same read-only permissions as Standard.','In the export: tick “This is an AWS organization role”, then enter the spoke account IDs, their regions and the spoke role name (role suffix).','Fits large organizations, Control Tower and MSPs, or a central log-archive account with metadata from member accounts.']}},
+    COLLECTOR({s:'In Kentik’s AWS account', s2:'Uses your role, read-only', sd:'Account 834693425129', sd2:'Role eks-ingest-node',
+     i:{h:'Kentik’s cloud collector runs in Kentik’s own AWS account. It assumes your role, reads new log files and calls the describe APIs.',
+        d:['Kentik account 834693425129, calling role eks-ingest-node.','Each VPC, Transit Gateway, subnet or interface writing logs becomes a cloud device in Kentik.']}}),
+    KEN({y:250, h:250, lines:CLOUD_LINES, linesd:['Cloud export per bucket','Device per VPC or ENI','Sampling: 2–2000 or none','CloudPak flows per second']})
+  ],
+  edges:[
+    {t:'flow', a:'vpc', b:'s3', p:[[260,98],[330,158]], lab:'Flow logs', labd:'1 or 10 min', lp:[296,108]},
+    {t:'flow', a:'tgw', b:'s3', p:[[260,168],[330,168]]},
+    {t:'flow', a:'nfw', b:'s3', p:[[260,238],[330,178]]},
+    {t:'perm', a:'role', b:'s3', p:[[437,316],[437,196]], lab:'Read logs', labd:'s3:Get*, s3:List*', lp:[445,262], anchor:'start'},
+    {t:'perm', a:'role', b:'apis', p:[[330,340],[260,340]]},
+    {t:'perm', a:'role', b:'cw', p:[[330,364],[260,410]]},
+    {t:'pull', a:'role', b:'collector', p:[[544,352],[780,140]], lab:'Kentik assumes your role', labd:'sts:AssumeRole with ExternalId', lp:[662,268]},
+    {t:'int', a:'collector', b:'kentik', p:[[882,184],[882,250]]},
+    {t:'https', a:'ua', b:'kentik', p:[[260,514],[300,514],[300,584],[882,584],[882,500]], lab:'Test results over HTTPS', labd:'TCP 443 outbound', lp:[600,584]}
+  ],
+  notes:[
+    {x:572, y:74, t:'Start with a metadata-only export', td:'One cloud export per S3 bucket.'},
+    {x:572, y:91, t:'to prove access, then add logs.', td:'Each VPC, subnet or ENI that'},
+    {x:572, y:108, t:'', td:'sends logs becomes a device.'}
+  ]
+};
+
+INFO.aws = {kick:'Drill-in · Public cloud', title:'AWS: flow logs to S3, read-only role',
+hl:`<p class="lead">No agent in AWS. You turn on flow logs, send them to an S3 bucket you own, and create a read-only IAM role that Kentik’s collector assumes.</p>
+<h3>What you set up</h3><ul>
+<li>Flow logs on VPCs, Transit Gateways and Network Firewalls, written to S3 (one bucket per region)</li>
+<li>An IAM role that trusts Kentik’s AWS account, protected by an ExternalId</li>
+<li>A cloud export in Kentik (Settings › Public Clouds) with the role ARN and bucket</li>
+<li>Many accounts? A hub role that assumes a role in each account</li></ul>
+<h3>What Kentik collects</h3><ul>
+<li>Flow and firewall logs</li><li>Topology metadata: VPCs, subnets, routes, security groups, gateways</li><li>CloudWatch metrics (optional)</li></ul>
+<h3>Where you see it</h3><p>Kentik Map, Data Explorer, Cloud Pathfinder, Cloud Performance Monitor and alerts, next to your on-prem data.</p>
+<p class="note">Kentik recommends a metadata-only export first, to prove access before turning on high-volume logs.</p>`,
+dd:`<h3>Role trust policy</h3>
+<pre>{
+ "Effect": "Allow",
+ "Principal": {
+  "AWS": "arn:aws:iam::834693425129:root"
+ },
+ "Action": "sts:AssumeRole",
+ "Condition": {
+  "StringEquals": {
+   "sts:ExternalId": "&lt;your Company ID&gt;"
+  },
+  "ArnEquals": {
+   "aws:PrincipalArn":
+    "arn:aws:iam::834693425129:role/eks-ingest-node"
+  }
+ }
+}</pre>
+<h3>Permissions policy</h3>
+<table><thead><tr><th style="width:27%">Service</th><th>Actions</th></tr></thead><tbody>
+<tr><td>EC2</td><td><code>ec2:Describe*</code> <code>ec2:Search*</code> <code>ec2:GetManagedPrefixListEntries</code></td></tr>
+<tr><td>Direct Connect</td><td><code>directconnect:List*</code> <code>directconnect:Describe*</code></td></tr>
+<tr><td>ELB</td><td><code>elasticloadbalancing:Describe*</code></td></tr>
+<tr><td>IAM</td><td><code>iam:ListAccountAliases</code></td></tr>
+<tr><td>Network Firewall</td><td><code>network-firewall:Describe*</code> <code>network-firewall:List*</code></td></tr>
+<tr><td>Cloud WAN</td><td><code>networkmanager:ListCoreNetworks</code> <code>GetCoreNetwork</code> <code>GetCoreNetworkPolicy</code> <code>ListAttachments</code> <code>GetNetworkRoutes</code></td></tr>
+<tr><td>CloudWatch</td><td><code>cloudwatch:ListMetrics</code> <code>GetMetricStatistics</code> <code>GetMetricData</code> <code>Describe*</code></td></tr>
+<tr><td>Organizations</td><td><code>organizations:ListAccounts</code></td></tr>
+<tr><td>S3 (log bucket)</td><td><code>s3:Get*</code> <code>s3:List*</code> on <code>arn:aws:s3:::&lt;bucket&gt;</code> and <code>/*</code></td></tr>
+<tr><td>KMS (SSE-KMS only)</td><td><code>kms:Decrypt</code> <code>kms:DescribeKey</code> on the key</td></tr>
+</tbody></table>
+<h3>Flow log settings</h3><ul>
+<li>Filter All, destination S3, Custom format with every v2–v5 field.</li>
+<li>Regional buckets. Kentik treats each bucket as one device, so hundreds of VPCs into one global bucket risks S3 throttling.</li>
+<li>SSE-S3 recommended, SSE-KMS needs the KMS statement, SSE-C is not supported.</li></ul>
+<h3>Cloud export in Kentik</h3><ol style="padding-left:18px;margin:0 0 8px">
+<li>Settings › Public Clouds › Create Cloud Export › AWS Cloud.</li>
+<li>Features: Metadata (required), Flow logs, Firewall logs, Cloud metrics history.</li>
+<li>Role ARN › Verify Role. Region › Verify Region.</li>
+<li>Bucket name and prefix › Verify S3 Bucket. Nested: spoke account IDs, regions, role suffix.</li>
+<li>Sampling, name, billing plan, Save.</li></ol>
+<p>Or tick “Help me configure my provider via Terraform” to get a <code>main.tf</code> that can create the role, bucket and flow logs.</p>
+<h3>Status and sampling</h3><ul>
+<li>Export status: Start, Pending, Error, OK, Disabled or Halt.</li>
+<li>Sampling: Legacy (up to 10k flows per file), a rate from 2 to 2000, or Unsampled.</li>
+<li>Licensing: CloudPak, measured in flows per second.</li></ul>`,
+src:[['Kentik for AWS','https://kb.kentik.com/docs/kentik-for-aws'],['Metadata Configuration (AWS)','https://kb.kentik.com/docs/metadata-configuration-aws'],['Flow/Firewall Log Collection Configuration','https://kb.kentik.com/docs/flow-firewall-log-collection-configuration'],['Kentik Export Configuration for AWS','https://kb.kentik.com/docs/kentik-export-configuration-aws'],['AWS Endpoints List','https://kb.kentik.com/docs/aws-endpoints-list'],['Public Clouds','https://kb.kentik.com/docs/public-clouds'],['Cloud Performance Monitor','https://kb.kentik.com/docs/cloud-performance-monitor']]};
+
+/* ===== Azure ===== */
+SC.azure = {
+  frames:[
+    {x:16, y:16, w:744, h:588, label:'Your Azure tenant'},
+    {x:30, y:56, w:526, h:324, label:'Subscription / resource group', cls:'sframe'},
+    {x:300, y:410, w:256, h:150, label:'Microsoft Entra ID', cls:'sframe'}
+  ],
+  nodes:[
+    {id:'vnet', x:44, y:84, w:220, h:50, k:'srv', icon:'network', t:'VNets and NSGs', s:'Workloads and subnets', sd:'Same location and RG',
+     i:{h:'Your virtual networks and NSGs. VNet flow logs cover all traffic entering and leaving a VNet, which is simpler than one NSG flow log per NSG.',
+        d:['Kentik processes VNet and NSG flow logs. Turn on only one type to avoid duplicates and extra cost; Kentik follows Microsoft in recommending VNet flow logs.','A storage account collects logs from the VNets in one location and resource group.']}},
+    {id:'nw', x:44, y:162, w:220, h:52, k:'srv', icon:'log', t:'Network Watcher', s:'VNet flow logs', sd:'Version 2, JSON records',
+     i:{h:'Network Watcher creates the flow logs and writes them as JSON into your storage account.',
+        d:['Enable Network Watcher in the region, then Flow logs › + Create › target VNet or NSG › choose the storage account.','Version 2 recommended. Retention 1–365 days (the PowerShell script defaults to 2).']}},
+    {id:'afw', x:44, y:234, w:220, h:52, k:'net', icon:'firewall', t:'Azure Firewall', s:'Diagnostic settings', sd:'Network + app rule logs',
+     i:{h:'Azure Firewall diagnostic logs add application and network rule decisions.',
+        d:['Monitoring › Diagnostic settings › + Add: azfwapplicationrule and azfwnetworkrule (or legacy AzureFirewallApplicationRule and AzureFirewallNetworkRule), Archive to a storage account.','Must use the same storage account as the VNet flow logs.']}},
+    {id:'apis', x:44, y:306, w:220, h:52, k:'srv', icon:'api', t:'Azure APIs', s:'Metadata and metrics', sd:'Reader covers both',
+     i:{h:'Kentik reads topology and metrics through Azure Resource Manager and Azure Monitor with the Reader role.',
+        d:['Entities include VNets, subnets, NSGs, route tables, NAT gateways, load balancers, application gateways, VPN and ExpressRoute gateways and circuits, Virtual WAN hubs, private endpoints, public IPs, firewalls, VMs and scale sets.','Cloud metrics history appears in Metrics Explorer under /cloud/Azure/.']}},
+    {id:'sa', x:320, y:150, w:216, h:56, k:'store', icon:'storage', t:'Storage account', s:'Dedicated to logs', sd:'Allow Kentik IPs if locked',
+     i:{h:'A storage account you own receives the logs. Kentik’s app only reads it.',
+        d:['Use a dedicated storage account. Kentik creates one cloud export per storage account.','If the storage firewall is restricted, allow 20.69.189.228 and 20.69.185.115. WestUS2 storage accounts use 51.8.214.254 and 172.171.46.16; contact your account team.']}},
+    {id:'sp', x:316, y:442, w:224, h:72, k:'iam', icon:'key', t:'Kentik app', s:'Enterprise app or your', s2:'own app registration', sd:'Reader on sub or RG', sd2:'Storage Blob Data Reader',
+     i:{h:'Kentik reads Azure through a service principal: the Kentik enterprise app, or an app registration you own.',
+        d:['Enterprise app: Entra ID › Enterprise applications › Kentik NSG Flow Exporter. Assign roles, then Validate Service Principal in the Kentik wizard. An Application Administrator starts this.',
+           'Custom app registration: single tenant, you own the secret or certificate. Enter Application (client) ID, Directory (tenant) ID and a Kentik credential.',
+           'Roles: Reader on the subscription or resource group with the logs, Reader on extra subscriptions in the enrichment scope, Storage Blob Data Reader (or Reader and Data Access) on the storage account. An optional read-only custom Kentik role at tenant level gives full path views.',
+           'The PowerShell script grants the VNet Flow Exporter Reader on the resource group and Contributor on the storage account.']}},
+    COLLECTOR({s:'Reads with the Kentik app', s2:'Read-only', sd:'From 20.69.189.228', sd2:'and 20.69.185.115',
+     i:{h:'Kentik’s collector reads new log blobs and calls Azure APIs with the service principal.',
+        d:['Source IPs 20.69.189.228 and 20.69.185.115 (WestUS2: 51.8.214.254 and 172.171.46.16).','Each VNet or NSG sending flow logs appears as a cloud device.']}}),
+    KEN({y:250, h:250, lines:CLOUD_LINES, linesd:['Export per storage account','Device per VNet or NSG','Sampling: 2–2000 or none','CloudPak flows per second']})
+  ],
+  edges:[
+    {t:'flow', a:'vnet', b:'nw', p:[[154,134],[154,162]], c:'v'},
+    {t:'flow', a:'nw', b:'sa', p:[[264,188],[320,174]], lab:'Flow logs', lp:[290,146]},
+    {t:'flow', a:'afw', b:'sa', p:[[264,260],[320,192]]},
+    {t:'perm', a:'sp', b:'sa', p:[[506,442],[506,206]], lab:'Read logs', labd:'Storage Blob Data Reader', lp:[498,300], anchor:'end'},
+    {t:'perm', a:'sp', b:'apis', p:[[316,478],[264,332]], lab:'Read metadata', labd:'Reader', lp:[296,430], anchor:'end'},
+    {t:'pull', a:'sp', b:'collector', p:[[540,478],[780,140]], lab:'Kentik reads with the app', labd:'Service principal, read-only', lp:[662,300]},
+    {t:'int', a:'collector', b:'kentik', p:[[882,184],[882,250]]}
+  ],
+  notes:[
+    {x:320, y:234, t:'Use VNet flow logs', td:'Retention: 1–365 days'},
+    {x:320, y:251, t:'(Microsoft’s recommendation)', td:'Script default: 2 days'}
+  ]
+};
+
+INFO.azure = {kick:'Drill-in · Public cloud', title:'Azure: flow logs to a storage account',
+hl:`<p class="lead">No agent in Azure. Network Watcher writes VNet flow logs to a storage account you own, and Kentik reads it through an app you approve in Entra ID.</p>
+<h3>What you set up</h3><ul>
+<li>VNet flow logs from Network Watcher to a dedicated storage account</li>
+<li>Azure Firewall diagnostic logs to the same storage account</li>
+<li>The Kentik enterprise app, or your own app registration, with read-only roles</li>
+<li>A cloud export in Kentik. A generated PowerShell script can do most of the Azure side (VNet flow logs only)</li></ul>
+<h3>What Kentik collects</h3><ul><li>Flow logs and firewall logs</li><li>Topology metadata</li><li>Azure metrics (optional)</li></ul>
+<h3>Where you see it</h3><p>Kentik Map, Data Explorer, Cloud Pathfinder, the Cloud dashboards and alerts.</p>`,
+dd:`<h3>Roles for the Kentik service principal</h3>
+<table><thead><tr><th style="width:38%">Role</th><th style="width:30%">Scope</th><th>Why</th></tr></thead><tbody>
+<tr><td>Reader</td><td>Subscription or RG with the logs</td><td>Read resources</td></tr>
+<tr><td>Reader</td><td>Extra subscriptions or RGs</td><td>Enrichment scope</td></tr>
+<tr><td>Storage Blob Data Reader (or Reader and Data Access)</td><td>Log storage account</td><td>Read exported logs</td></tr>
+<tr><td>Custom read-only Kentik role (optional)</td><td>Tenant</td><td>Full traffic path views</td></tr>
+</tbody></table>
+<h3>Two ways to authenticate</h3><ul>
+<li><b>Kentik enterprise app</b> (Kentik NSG Flow Exporter): an Application Administrator assigns it; then Validate Service Principal in the wizard.</li>
+<li><b>Custom app registration</b>: single tenant, your secret or certificate, entered as a Kentik credential with the client and tenant IDs.</li></ul>
+<h3>Network</h3><p>If the storage account firewall is restricted, allow <code>20.69.189.228</code> and <code>20.69.185.115</code>. WestUS2 uses <code>51.8.214.254</code> and <code>172.171.46.16</code>.</p>
+<h3>Cloud export in Kentik</h3><ol style="padding-left:18px;margin:0 0 8px">
+<li>Settings › Public Clouds › Create Cloud Export › Azure Cloud.</li>
+<li>Features: Metadata (required), Flow logs, Firewall collection, Cloud metrics history, optional PowerShell help.</li>
+<li>API access: enterprise app or custom app registration.</li>
+<li>Location, Subscription ID, Validate Service Principal, resource group › Verify Access.</li>
+<li>Storage account name, sampling (2–2000 or Unsampled), optional enrichment scope, billing plan, Save.</li></ol>
+<h3>Checklist from the KB</h3><ul>
+<li>Dedicated storage account for logs</li><li>Storage firewall allows Kentik IPs (if restricted)</li><li>VNet flow logs (version 2) to that account</li><li>Firewall diagnostic setting to the same account with azfwapplicationrule and azfwnetworkrule</li><li>Service principal with Reader and Storage Blob Data Reader</li></ul>`,
+src:[['Kentik for Azure','https://kb.kentik.com/docs/kentik-for-azure'],['Azure Prerequisites & Roles','https://kb.kentik.com/docs/azure-prerequisites-roles'],['Flow/Firewall Log Collection (Azure)','https://kb.kentik.com/docs/flow-firewall-log-collection'],['Kentik Export Configuration for Azure','https://kb.kentik.com/docs/kentik-export-configuration-azure'],['Automated Configuration (PowerShell)','https://kb.kentik.com/docs/automated-configuration-powershell'],['Azure Endpoints List','https://kb.kentik.com/docs/azure-endpoints-list']]};
+/* ---------- Scene data: GCP, OCI and the Kentik platform ---------- */
+const CLOUD_LINES2 = ['Logs normalized','Enriched with metadata','Stored in KDE','Kentik Map, Data Explorer'];
+const I_CLOUD_UA = {h:'Optional: a Universal Agent on a VM in this network becomes a private test point, for tests between the cloud and your sites.',
+  d:['Same install as on-prem, outbound TCP 443 only.','Agent-to-agent tests need TCP 8877 and UDP 9977 open between agents.']};
+
+/* ===== Google Cloud ===== */
+SC.gcp = {
+  frames:[{x:16, y:16, w:744, h:588, label:'Your Google Cloud project', labeld:'Your GCP project: topic and subscription live here'}],
+  nodes:[
+    {id:'vpc', x:40, y:70, w:220, h:56, k:'srv', icon:'network', t:'VPC subnets', s:'Flow logs with metadata', sd:'Sample rate: default 50%',
+     i:{h:'Turn on VPC flow logs per subnet and include metadata, which Kentik needs.',
+        d:['VPC Network › subnet › Edit › Flow logs On › Configure Logs › Include metadata › Save.',
+           'Any aggregation interval works. Sample rate 0–100%, default 50%. Check the estimated logs per day to gauge cost.',
+           'Each subnet publishing to the topic appears in Kentik as a cloud device named after the subnet.']}},
+    {id:'logging', x:40, y:150, w:220, h:56, k:'srv', icon:'log', t:'Cloud Logging', s:'Log Router sink', sd:'Filter: vpc_flows log ID',
+     i:{h:'A Log Router sink sends only the VPC flow logs to a Pub/Sub topic.',
+        d:['Logging › Logs Router › Create Sink, destination Cloud Pub/Sub topic. Create the topic from the same dialog.',
+           'Inclusion filter: resource.type="gce_subnetwork" AND log_id("compute.googleapis.com/vpc_flows").',
+           'To cut cost, narrow the filter, for example by port, protocol or subnet.']}},
+    {id:'run', x:40, y:230, w:220, h:56, k:'opt', icon:'app', t:'Cloud Run', s:'Optional log collection', sd:'Creates a second export',
+     i:{h:'Optional: Kentik can also collect Cloud Run logs.',
+        d:['Tick GCP Cloud Run Log Collection in the export wizard. Kentik creates a second cloud export just for Cloud Run logs.','The KB gives no further setup detail for this option; follow the wizard.']}},
+    {id:'apis', x:40, y:330, w:220, h:56, k:'srv', icon:'api', t:'Compute Engine API', s:'Topology metadata', sd:'Networks, routes, firewalls',
+     i:{h:'Kentik reads your topology through the Compute Engine API to build the Kentik Map and enrich flow.',
+        d:['Clients include networks, subnetworks, routers, routes, firewalls and firewall policies, forwarding rules, backend services, health checks, instances and instance groups, VPN gateways and tunnels, Interconnects and attachments, URL maps, target proxies, regions and zones.']}},
+    {id:'ua', x:40, y:486, w:220, h:56, k:'opt', icon:'agent', t:'Universal Agent', s:'Optional, on a VM', sd:'Private synthetic agent', go:'dc', i:I_CLOUD_UA},
+    {id:'topic', x:350, y:150, w:200, h:56, k:'store', icon:'queue', t:'Pub/Sub topic', s:'Sink destination', sd:'Same project as the sink',
+     i:{h:'The topic receives the flow log entries from the sink.', d:['One Kentik cloud export per subscription on this topic.']}},
+    {id:'sub', x:350, y:236, w:200, h:56, k:'store', icon:'queue', t:'Pull subscription', s:'Kentik pulls from it', sd:'Delivery type: Pull',
+     i:{h:'A pull subscription on the topic. Kentik requests log entries from it.',
+        d:['Pub/Sub › Topics › Create Subscription, delivery type Pull. Other properties as needed.','Create it in the same project as the topic and give its name to Kentik.']}},
+    {id:'iam', x:350, y:352, w:200, h:72, k:'iam', icon:'key', t:'IAM grants', s:'Roles for Kentik’s', s2:'service account', sd:'Subscriber + Viewer', sd2:'Compute Viewer',
+     i:{h:'You grant roles in your project to Kentik’s own service account. Everything it gets is read-only.',
+        d:['Service account: kentik-vpc-flow@kentik-vpc-flow.iam.gserviceaccount.com.',
+           'Pub/Sub Subscriber and Pub/Sub Viewer: Pub/Sub › Subscriptions › select it › Add Member.',
+           'Compute Viewer (not Compute Network Viewer): IAM & Admin › IAM › Grant Access. In a folder hierarchy, grant it on the top-level folder so nested projects inherit it.',
+           'Whoever grants Compute Viewer needs compute.networks.list and resourcemanager.projects.setIamPolicy.']}},
+    COLLECTOR({s:'Pulls as Kentik’s', s2:'service account', sd:'Service account in', sd2:'project kentik-vpc-flow',
+     i:{h:'Kentik’s collector pulls flow log messages from your subscription and calls the Compute Engine API as Kentik’s own service account.',
+        d:['kentik-vpc-flow@kentik-vpc-flow.iam.gserviceaccount.com, with only the roles you grant it.','Status shows under Cloud Config Status › View Details.']}}),
+    KEN({y:250, h:250, lines:CLOUD_LINES2, linesd:['Cloud export per subscription','Device per subnet','Cloud Run: its own export','CloudPak flows per second']})
+  ],
+  edges:[
+    {t:'flow', a:'vpc', b:'logging', p:[[150,126],[150,150]], c:'v'},
+    {t:'flow', a:'run', b:'logging', p:[[150,230],[150,206]], c:'v'},
+    {t:'flow', a:'logging', b:'topic', p:[[260,178],[350,178]], lab:'Log sink', labd:'vpc_flows filter', lp:[305,165]},
+    {t:'flow', a:'topic', b:'sub', p:[[450,206],[450,236]], c:'v'},
+    {t:'perm', a:'iam', b:'sub', p:[[450,352],[450,292]], lab:'Read messages', labd:'Subscriber + Viewer', lp:[458,322], anchor:'start'},
+    {t:'perm', a:'iam', b:'apis', p:[[350,388],[260,358]], lab:'Read metadata', labd:'Compute Viewer', lp:[298,408]},
+    {t:'pull', a:'sub', b:'collector', p:[[550,264],[780,140]], lab:'Kentik pulls the subscription', labd:'Pub/Sub pull, read-only', lp:[665,226]},
+    {t:'int', a:'collector', b:'kentik', p:[[882,184],[882,250]]},
+    {t:'https', a:'ua', b:'kentik', p:[[260,514],[300,514],[300,584],[882,584],[882,500]], lab:'Test results over HTTPS', labd:'TCP 443 outbound', lp:[600,584]}
+  ],
+  notes:[
+    {x:572, y:74, t:'A metadata-only export always', td:'Grant Compute Viewer, not'},
+    {x:572, y:91, t:'shows a red flow status.', td:'Compute Network Viewer.'},
+    {x:572, y:108, t:'', td:'Top folder for nested projects.'}
+  ]
+};
+
+INFO.gcp = {kick:'Drill-in · Public cloud', title:'Google Cloud: flow logs through Pub/Sub',
+hl:`<p class="lead">No agent in Google Cloud. A Log Router sink sends VPC flow logs to a Pub/Sub topic, and Kentik pulls them from a subscription using its own service account.</p>
+<h3>What you set up</h3><ul>
+<li>VPC flow logs on the subnets you care about, with metadata included</li>
+<li>A Log Router sink that sends those logs to a Pub/Sub topic</li>
+<li>A pull subscription on that topic</li>
+<li>Read-only roles for Kentik’s service account</li>
+<li>A cloud export in Kentik (Settings › Public Clouds)</li></ul>
+<h3>What Kentik collects</h3><ul>
+<li>Flow logs</li><li>Topology metadata: networks, subnets, routes, firewalls, VPN and Interconnect</li><li>Cloud Run logs and cloud metrics (both optional)</li></ul>
+<h3>Where you see it</h3><p>Kentik Map, Data Explorer, the cloud dashboards and alerts. Each subnet appears as a cloud device named after the subnet.</p>`,
+dd:`<h3>Sink filter</h3>
+<pre>resource.type="gce_subnetwork" AND
+log_id("compute.googleapis.com/vpc_flows")</pre>
+<h3>Roles for Kentik’s service account</h3>
+<p><code>kentik-vpc-flow@kentik-vpc-flow.iam.gserviceaccount.com</code></p>
+<table><thead><tr><th style="width:36%">Role</th><th style="width:30%">Where</th><th>Why</th></tr></thead><tbody>
+<tr><td>Pub/Sub Subscriber</td><td>The subscription</td><td>Pull flow log messages</td></tr>
+<tr><td>Pub/Sub Viewer</td><td>The subscription</td><td>See the subscription</td></tr>
+<tr><td>Compute Viewer (not Compute Network Viewer)</td><td>Project, or the top-level folder</td><td>Read topology metadata</td></tr>
+</tbody></table>
+<p>Whoever grants Compute Viewer needs <code>compute.networks.list</code> and <code>resourcemanager.projects.setIamPolicy</code>.</p>
+<h3>Flow log settings</h3><ul>
+<li>Include metadata. Kentik needs it.</li>
+<li>Any aggregation interval works.</li>
+<li>Sample rate 0–100%, default 50%. Check the estimated logs per day for cost.</li>
+<li>To cut cost, narrow the sink filter by port, protocol or subnet.</li></ul>
+<h3>Steps in the Google Cloud console</h3><ol style="padding-left:18px;margin:0 0 8px">
+<li>VPC Network › subnet › Edit › Flow logs On › Configure Logs › Include metadata.</li>
+<li>Logging › Logs Router › Create Sink › Cloud Pub/Sub topic › create the topic › add the filter.</li>
+<li>Pub/Sub › Topics › Create Subscription › delivery type Pull.</li>
+<li>Pub/Sub › Subscriptions › select it › Add Member › Kentik’s service account › Pub/Sub Subscriber and Pub/Sub Viewer.</li>
+<li>IAM &amp; Admin › IAM › Grant Access › Kentik’s service account › Compute Viewer.</li></ol>
+<h3>Cloud export in Kentik</h3><ol style="padding-left:18px;margin:0 0 8px">
+<li>Settings › Public Clouds › Create Cloud Export › GCP Cloud.</li>
+<li>Features: Metadata (required), Flow logs, Cloud Run log collection (a second export), Cloud metrics history.</li>
+<li>Project ID, Pub/Sub topic and subscription name, then name, billing plan, Save.</li></ol>
+<p class="note">A metadata-only export always shows a red flow status, because it has no flow data. That is expected.</p>`,
+src:[['Kentik for GCP','https://kb.kentik.com/docs/kentik-for-gcp'],['Cloud Overview','https://kb.kentik.com/docs/cloud-overview'],['Public Clouds','https://kb.kentik.com/docs/public-clouds']]};
+
+/* ===== Oracle Cloud ===== */
+SC.oci = {
+  frames:[{x:16, y:16, w:744, h:588, label:'Your OCI tenancy', labeld:'Your OCI tenancy: log group and capture filter in the root compartment'}],
+  nodes:[
+    {id:'vcn', x:40, y:70, w:220, h:56, k:'srv', icon:'network', t:'VCNs and subnets', s:'Flow logs turned on', sd:'Capture filter: sampling',
+     i:{h:'VCN flow logs record traffic for a whole VCN, or for chosen subnets, VNICs or resources.',
+        d:['Enable flow logs: pick the log group, the capture filter and one or more VCN enablement points.',
+           'The capture filter lives in the root compartment and sets the sampling rate, the share of flows that generate logs. Other criteria are optional.',
+           'Prerequisites: an active tenancy, at least one VCN, and admin rights to create policies, connectors, log groups and buckets.']}},
+    {id:'logs', x:40, y:150, w:220, h:56, k:'srv', icon:'log', t:'OCI Logging', s:'Log group, JSON records', sd:'Root compartment',
+     i:{h:'OCI Logging collects the VCN flow logs, as JSON, into a log group.', d:['Create the log group in the root compartment.']}},
+    {id:'conn', x:40, y:230, w:220, h:56, k:'srv', icon:'connector', t:'Connector Hub', s:'Logging to the bucket', sd:'Batches: 100 MB or 7 s',
+     i:{h:'A Connector Hub connector moves the flow logs from Logging into your bucket.',
+        d:['Source: Logging, with the log group and flow log. Target: Object Storage, with the bucket and an optional object name prefix.',
+           'Defaults: 100 MB batch size and 7 second batch time, under Show additional options.',
+           'The connector can create its own policy. Its Enable logs switch is for connector logging and can stay off.']}},
+    {id:'apis', x:40, y:330, w:220, h:56, k:'srv', icon:'api', t:'OCI APIs', s:'Topology metadata', sd:'Virtual Network, Compute',
+     i:{h:'Kentik reads your topology through OCI APIs: VCNs, subnets, route tables, security lists, NSGs, gateways and DRGs.',
+        d:['Virtual Network: listVcns, listSubnets, listRouteTables, listSecurityLists, listNetworkSecurityGroups, listDrgs, listDrgAttachments, listNatGateways, listInternetGateways, listLocalPeeringGateways, listIPSecConnections, listVirtualCircuits, listCrossConnects, listCpes.',
+           'Compute: listInstances, listVnicAttachments. Identity: listRegionSubscriptions. Object Storage: listBuckets, listObjects, getObject.']}},
+    {id:'ua', x:40, y:486, w:220, h:56, k:'opt', icon:'agent', t:'Universal Agent', s:'Optional, on a VM', sd:'Private synthetic agent', go:'dc', i:I_CLOUD_UA},
+    {id:'bucket', x:350, y:230, w:200, h:56, k:'store', icon:'bucket', t:'Object Storage', s:'Bucket for flow logs', sd:'Name + namespace',
+     i:{h:'A bucket you own receives the logs from Connector Hub. Kentik only reads it.',
+        d:['No extra bucket settings are needed.',
+           'Bucket policy: READ buckets and READ objects in tenancy, where target.bucket.name is your bucket.',
+           'Kentik needs the bucket name and the bucket namespace, which OCI assigned when the tenancy was created.']}},
+    {id:'policy', x:350, y:352, w:200, h:72, k:'iam', icon:'key', t:'Access for Kentik', s:'Cross-tenancy policy', s2:'(recommended)', sd:'Or a user and group', sd2:'with Kentik’s API key',
+     i:{h:'Kentik reads OCI through a cross-tenancy policy, or through a user that holds Kentik’s public API key.',
+        d:['Cross-tenancy policy (recommended): the Kentik portal generates it; paste it into the OCI manual policy editor.',
+           'Custom user: create a user and group, add Kentik’s public key as an API key (fingerprint d0:b4:75:ac:39:8a:90:b0:cf:ee:3e:ee:b9:0c:07:ff), and allow the group to READ all-resources in tenancy.',
+           'Least privilege: INSPECT tenancies and metrics plus READ on the network resource types Kentik maps, instead of all-resources.',
+           'Troubleshooting: the user must belong to a group, and no placeholders may be left in the policy.']}},
+    COLLECTOR({s:'Reads through OCI APIs', s2:'With access you grant', sd:'Validate Permissions', sd2:'in the export wizard',
+     i:{h:'Kentik’s collector reads new objects from the bucket and calls the OCI APIs for metadata, then sends the logs to the Kentik Data Engine.',
+        d:['Logs are normalized, enriched with OCI metadata and stored.','They appear as a cloud export with its cloud devices on the Public Clouds page. High volumes can spread across several devices.']}}),
+    KEN({y:250, h:250, lines:CLOUD_LINES2, linesd:['Cloud export per bucket','Metadata only, or + flow','Optional compartment IDs','CloudPak flows per second']})
+  ],
+  edges:[
+    {t:'flow', a:'vcn', b:'logs', p:[[150,126],[150,150]], c:'v'},
+    {t:'flow', a:'logs', b:'conn', p:[[150,206],[150,230]], c:'v'},
+    {t:'flow', a:'conn', b:'bucket', p:[[260,258],[350,258]], lab:'Flow logs', labd:'100 MB or 7 s', lp:[305,245]},
+    {t:'perm', a:'policy', b:'bucket', p:[[450,352],[450,286]], lab:'Read logs', labd:'READ buckets, objects', lp:[458,320], anchor:'start'},
+    {t:'perm', a:'policy', b:'apis', p:[[350,388],[260,358]], lab:'Read metadata', labd:'READ, INSPECT', lp:[302,408]},
+    {t:'pull', a:'bucket', b:'collector', p:[[550,258],[780,140]], lab:'Kentik reads the bucket', labd:'OCI APIs, read-only', lp:[665,222]},
+    {t:'int', a:'collector', b:'kentik', p:[[882,184],[882,250]]},
+    {t:'https', a:'ua', b:'kentik', p:[[260,514],[300,514],[300,584],[882,584],[882,500]], lab:'Test results over HTTPS', labd:'TCP 443 outbound', lp:[600,584]}
+  ],
+  notes:[
+    {x:572, y:74, t:'Kentik recommends the', td:'Have ready: tenancy OCID,'},
+    {x:572, y:91, t:'cross-tenancy policy.', td:'home region, bucket name,'},
+    {x:572, y:108, t:'', td:'namespace, connector OCID.'}
+  ]
+};
+
+INFO.oci = {kick:'Drill-in · Public cloud', title:'Oracle Cloud: flow logs to Object Storage',
+hl:`<p class="lead">No agent in OCI. OCI Logging captures VCN flow logs, Connector Hub moves them into an Object Storage bucket, and Kentik reads the bucket through OCI APIs.</p>
+<h3>What you set up</h3><ul>
+<li>An Object Storage bucket for the logs</li>
+<li>A log group and a capture filter in the root compartment</li>
+<li>VCN flow logs on the VCNs, subnets or VNICs you choose</li>
+<li>A Connector Hub connector from Logging to the bucket</li>
+<li>Access for Kentik: a cross-tenancy policy (recommended) or a user holding Kentik’s API key</li>
+<li>A cloud export in Kentik (Settings › Public Clouds)</li></ul>
+<h3>What Kentik collects</h3><ul><li>Flow logs</li><li>Topology metadata: VCNs, subnets, route tables, security lists, NSGs, gateways and DRGs</li></ul>
+<h3>Where you see it</h3><p>Kentik Map and Data Explorer. The Traffic Trends and Overviews dashboards are not available for OCI.</p>`,
+dd:`<h3>Two ways to give Kentik access</h3><ul>
+<li><b>Cross-tenancy policy</b> (recommended): the Kentik portal generates it; paste it into the OCI manual policy editor.</li>
+<li><b>Custom user</b>: a user and group with Kentik’s public key as an API key, fingerprint <code>d0:b4:75:ac:39:8a:90:b0:cf:ee:3e:ee:b9:0c:07:ff</code>, and <code>Allow group groupRef to READ all-resources in tenancy</code>.</li></ul>
+<h3>Bucket policy</h3>
+<pre>Allow group groupRef to READ buckets in tenancy
+  WHERE target.bucket.name=&lt;bucketName&gt;
+Allow group groupRef to READ objects in tenancy
+  WHERE target.bucket.name=&lt;bucketName&gt;</pre>
+<h3>Least-privilege option</h3><p>Instead of READ all-resources: INSPECT tenancies and metrics, plus READ on vcns, subnets, route-tables, security-lists, network-security-groups, internet-gateways, nat-gateways, drg-object, drg-attachments, drg-route-tables, drg-route-distributions, local-peering-gateways, ipsec-connections, cpes, cross-connects, virtual-circuits, capture-filters and metrics.</p>
+<h3>Connector Hub</h3><ul>
+<li>Source: Logging (log group and flow log). Target: Object Storage (bucket, optional object name prefix).</li>
+<li>Defaults: 100 MB batch size, 7 second batch time. The connector can create its own policy.</li></ul>
+<h3>Values to collect</h3>
+<table><thead><tr><th style="width:44%">Value</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Tenancy OCID</td><td>Tenancy details</td></tr>
+<tr><td>User OCID</td><td>Custom user only</td></tr>
+<tr><td>Home region</td><td>The city name in parentheses</td></tr>
+<tr><td>Bucket name and namespace</td><td>Bucket details</td></tr>
+<tr><td>Service connector OCID</td><td>Connector details</td></tr>
+<tr><td>Object name prefix</td><td>Only if you set one</td></tr>
+<tr><td>Compartment ID</td><td>Defaults to the tenancy OCID</td></tr>
+</tbody></table>
+<h3>Cloud export in Kentik</h3><ol style="padding-left:18px;margin:0 0 8px">
+<li>Settings › Public Clouds › Create Cloud Export › OCI Cloud.</li>
+<li>Metadata only, or Flow logs and metadata.</li>
+<li>Tenancy ID, default region, and user ID for a custom user. Validate Permissions.</li>
+<li>Optional compartment IDs. For flow: bucket name, namespace, connector OCID, prefix.</li>
+<li>Copy the autogenerated policy, pick a billing plan, Save.</li></ol>
+<p class="note">Troubleshooting: make sure the custom user is in a group, and that no policy placeholders were left in.</p>`,
+src:[['Kentik for OCI','https://kb.kentik.com/docs/kentik-for-oci'],['Cloud Overview','https://kb.kentik.com/docs/cloud-overview'],['Public Clouds','https://kb.kentik.com/docs/public-clouds']]};
+
+/* ===== Inside Kentik SaaS ===== */
+SC.kentik = {
+  frames:[
+    {x:16, y:16, w:968, h:588, label:'Inside your Kentik account', labeld:'Kentik SaaS: US (Ashburn, VA) or EU (Frankfurt)'},
+    {id:'srcgrp', x:32, y:58, w:206, h:336, label:'Arriving data', cls:'sframe',
+     i:{h:'Everything reaches Kentik over encrypted connections that start on your side, or through read-only access you grant in your clouds.',
+        d:['Universal Agents: outbound TCP 443 to flow, grpc.api, api and portal .kentik.com.','Clouds: Kentik’s collectors read your buckets, storage accounts or subscriptions with read-only access.','BGP: your edge routers peer with Kentik on TCP 179.']}}
+  ],
+  nodes:[
+    {id:'s-ua', x:44, y:90, w:182, h:52, k:'chip', icon:'agent', t:'Universal Agents', s:'Sites and cloud VMs', sd:'TCP 443, TLS 1.2+', go:'dc',
+     i:{h:'Your Universal Agents send flow, metrics, events, test results and configs over outbound HTTPS.', d:['Drill into the data center for ports, capabilities and sizing.']}},
+    {id:'s-cloud', x:44, y:166, w:182, h:52, k:'ktk', icon:'cloud', t:'Cloud collectors', s:'AWS, Azure, GCP, OCI', sd:'Read-only access', go:'aws',
+     i:{h:'Kentik-run collectors read flow logs and metadata from your cloud accounts with the read-only access you grant.', d:['One cloud export per S3 bucket, storage account, Pub/Sub subscription or OCI bucket.']}},
+    {id:'s-synth', x:44, y:242, w:182, h:52, k:'ktk', icon:'probe', t:'Global agents', s:'Synthetic test results', sd:'5 credits per subtest', go:'saas',
+     i:{h:'Kentik’s global agents, and your private agents, report synthetic test results.', d:['Drill into Internet & SaaS apps for test types and credits.']}},
+    {id:'s-bgp', x:44, y:318, w:182, h:52, k:'net', icon:'route', t:'BGP sessions', s:'Your edge routers', sd:'iBGP on TCP 179', go:'dc',
+     i:{h:'Edge routers peer with Kentik so every flow gets AS path, community and next-hop context.', d:['Kentik peers as an iBGP route-reflector client with your ASN. Peering also enables RTBH and Flowspec mitigation.']}},
+    {id:'ingest', x:282, y:96, w:196, h:72, k:'ktk', icon:'flow', t:'Ingest', s:'Receive and normalize', s2:'every data type', sd:'flow.kentik.com', sd2:'grpc.api.kentik.com',
+     i:{h:'Ingest receives flow, cloud logs, metrics, events and test results, and normalizes them.', d:['Universal Agents send to flow.kentik.com and grpc.api.kentik.com on TCP 443.']}},
+    {id:'enrich', x:282, y:214, w:196, h:180, k:'ktk', icon:'spark', t:'Enrichment', s:'Added as data arrives',
+     lines:['GeoIP','BGP routes and AS paths','SNMP interface names','Threat feeds','Custom dimensions'],
+     linesd:['GeoIP and BGP at ingest','Flow Tags and populators','Interface names via SNMP','Threat and Internet context','Cloud metadata for logs'],
+     i:{h:'Kentik adds context to every record as it arrives, so you can filter and group by it later.',
+        d:['Flow is correlated with GeoIP and BGP at ingest. Flow Tags and Custom Dimensions are populated at ingest too.','SNMP adds interface names and speeds. Cloud metadata adds VPC, subnet and other names to cloud logs.']}},
+    {id:'kde', x:512, y:96, w:200, h:298, k:'store', icon:'db', t:'Kentik Data Engine', s:'Columnar, distributed',
+     lines:['A database per customer','Full: every record','Fast: 24h+ queries','Two copies of each slice','Feeds portal and APIs'],
+     linesd:['Full and Fast dataseries','Masters split queries','Workers hold the shards','45 days full-resolution flow','120 days summarized','NMS: 3 or 13 months'],
+     i:{h:'The Kentik Data Engine (KDE) is Kentik’s columnar datastore, with a separate database for each customer.',
+        d:['Each device has a Full dataseries (every record) and a Fast dataseries (a subset for queries of 24 hours or more).',
+           'Masters split a query into subqueries for the workers that hold each slice. Every slice is stored as at least two shards on different machines.',
+           'Default retention: 45 days of full-resolution flow, 120 days of summarized data, 3 or 13 months for NMS by plan. Contracts can change this.']}},
+    {id:'portal', x:748, y:70, w:220, h:72, k:'ktk', icon:'portal', t:'Portal', s:'Data Explorer, Kentik Map', s2:'NMS, Synthetics, Cloud', sd:'portal.kentik.com', sd2:'SAML SSO, MFA, roles',
+     i:{h:'The Kentik portal: Data Explorer, Kentik Map, NMS, Synthetics, the Cloud section and dashboards.', d:['SAML 2.0 SSO or local accounts, MFA you can require, and user, admin and super admin roles.']}},
+    {id:'ai', x:748, y:158, w:220, h:52, k:'ktk', icon:'spark', t:'AI Advisor', s:'Investigations in context', sd:'Read-only show commands',
+     i:{h:'AI Advisor answers questions and runs investigations across your Kentik data.', d:['With SSH config access on a Universal Agent, it can run read-only show commands on supported devices.']}},
+    {id:'alerts', x:748, y:226, w:220, h:52, k:'ktk', icon:'bell', t:'Alerts and mitigation', s:'Notify your tools', sd:'RTBH and Flowspec via BGP',
+     i:{h:'Alert policies watch traffic, metrics, events and tests, and notify your channels.', d:['BGP peering also enables RTBH and Flowspec mitigation.']}},
+    {id:'api', x:748, y:294, w:220, h:52, k:'ktk', icon:'api', t:'APIs', s:'Query, config, automation', sd:'api.kentik.com, user tokens',
+     i:{h:'APIs for queries, configuration and automation.', d:['API tokens are per user and can be reset at any time.']}},
+    {id:'firehose', x:748, y:362, w:220, h:52, k:'ktk', icon:'egress', t:'Firehose', s:'Enriched flow to your tools', sd:'Through ktranslate',
+     i:{h:'Firehose sends copies of enriched flow records to ktranslate, which you run in your cloud or data center, and on to your own tools.',
+        d:['Sinks include Kafka, Splunk, New Relic, HTTP, Prometheus and files. Formats include JSON, NetFlow (IPFIX), Avro and InfluxDB line protocol.','About one ktranslate instance per 100k flows per second. Set its address as the device’s Firehose Endpoint.','The portal does not support Firehose for cloud flow logs; contact Kentik for that.']}},
+    {id:'host', x:32, y:452, w:222, h:56, k:'ext', icon:'building', t:'Hosting', s:'US or EU region', sd:'Ashburn, VA or Frankfurt',
+     i:{h:'Kentik runs on its own equipment in Ashburn, VA (Equinix and Deft), or in Frankfurt for EU accounts.', d:['EU hosting is chosen when you sign.','Default uptime SLA 99.99%. Status: status.kentik.com and status.kentik.eu.']}},
+    {id:'crypto', x:270, y:452, w:222, h:56, k:'ext', icon:'lock', t:'Encryption', s:'In transit and at rest', sd:'TLS 1.2+ · AES-256',
+     i:{h:'TLS 1.2 or higher in transit, AES-256 at rest (consistent with FIPS 140-2).', d:[]}},
+    {id:'audit', x:508, y:452, w:222, h:56, k:'ext', icon:'shield', t:'Compliance', s:'SOC 2 Type II', sd:'Yearly third-party pen test',
+     i:{h:'SOC 2 Type II every year, with reports under NDA. Annual independent penetration tests and frequent vulnerability scans.', d:[]}},
+    {id:'retain', x:746, y:452, w:222, h:56, k:'ext', icon:'list', t:'Retention', s:'45 days full flow', sd:'120 days summarized',
+     i:{h:'Default retention: 45 days of full-resolution flow and 120 days of summarized data. NMS keeps 3 or 13 months, depending on plan.', d:['Device configs are kept until you delete them. Contracts can change retention.']}}
+  ],
+  edges:[
+    {t:'https', a:'s-ua', b:'ingest', p:[[226,116],[282,116]]},
+    {t:'int', a:'s-cloud', b:'ingest', p:[[226,192],[282,132]]},
+    {t:'https', a:'s-synth', b:'ingest', p:[[226,268],[282,148]]},
+    {t:'bgp', a:'s-bgp', b:'enrich', p:[[226,344],[282,330]]},
+    {t:'int', a:'ingest', b:'enrich', p:[[380,168],[380,214]], c:'v'},
+    {t:'int', a:'enrich', b:'kde', p:[[478,300],[512,300]]},
+    {t:'int', a:'kde', b:'portal', p:[[712,140],[748,106]]},
+    {t:'int', a:'kde', b:'ai', p:[[712,184],[748,184]]},
+    {t:'int', a:'kde', b:'alerts', p:[[712,240],[748,252]]},
+    {t:'int', a:'kde', b:'api', p:[[712,300],[748,320]]},
+    {t:'int', a:'kde', b:'firehose', p:[[712,350],[748,388]]}
+  ],
+  notes:[
+    {x:32, y:544, t:'Metadata only: Kentik does not collect packet payloads.', td:'IP addresses can be partly redacted before ingest.'},
+    {x:32, y:561, t:'Each customer gets a separate database.', td:'99.99% uptime SLA by default, RTO under 2 hours.'}
+  ]
+};
+
+INFO.kentik = {kick:'Drill-in · Kentik platform', title:'Inside Kentik SaaS',
+hl:`<p class="lead">Everything lands in your own Kentik account. Kentik enriches it as it arrives, stores it in the Kentik Data Engine, and serves it to the portal, AI Advisor, alerts and APIs.</p>
+<h3>What happens to your data</h3><ul>
+<li><b>Ingest</b>: agents and collectors deliver flow, cloud logs, metrics, events and test results</li>
+<li><b>Enrichment</b>: GeoIP, BGP routes, SNMP interface names, threat feeds and your custom dimensions are added on arrival</li>
+<li><b>Storage</b>: the Kentik Data Engine keeps a separate database for each customer</li>
+<li><b>Use</b>: Data Explorer, Kentik Map, NMS, Synthetics, Cloud, AI Advisor, alerts and APIs</li></ul>
+<h3>Security in one line</h3><p>Hosted in the US or EU, encrypted in transit and at rest, SOC 2 Type II, and metadata only, never packet payloads.</p>`,
+dd:`<h3>Hosting and availability</h3><ul>
+<li>US: Ashburn, VA, at Equinix and Deft. EU: Frankfurt, chosen when you sign.</li>
+<li>99.99% default uptime SLA. Status at status.kentik.com and status.kentik.eu.</li>
+<li>RTO under 2 hours; RPO 24 hours for platform configuration.</li></ul>
+<h3>Security</h3>
+<table><thead><tr><th style="width:28%">Area</th><th>Detail</th></tr></thead><tbody>
+<tr><td>In transit</td><td>TLS 1.2+ to and from kentik.com</td></tr>
+<tr><td>At rest</td><td>AES-256, consistent with FIPS 140-2</td></tr>
+<tr><td>Isolation</td><td>Separate logical database and tables per customer</td></tr>
+<tr><td>Audits</td><td>SOC 2 Type II yearly, annual third-party pen test</td></tr>
+<tr><td>Access</td><td>SAML 2.0 SSO, MFA (TOTP or hardware keys), user, admin and super admin roles, per-user API tokens</td></tr>
+<tr><td>Data</td><td>IP addresses and network metadata, no packet payloads; IP redaction available</td></tr>
+</tbody></table>
+<h3>Default retention</h3>
+<table><thead><tr><th style="width:52%">Data</th><th>Kept</th></tr></thead><tbody>
+<tr><td>Full-resolution flow</td><td>45 days</td></tr>
+<tr><td>Summarized data</td><td>120 days</td></tr>
+<tr><td>NMS metrics</td><td>3 or 13 months by plan</td></tr>
+<tr><td>Device configs</td><td>Until you delete them</td></tr>
+</tbody></table>
+<p class="muted" style="font-size:12.5px">Contracts can change retention.</p>
+<h3>Kentik Data Engine</h3><ul>
+<li>Columnar and distributed. Masters split queries into subqueries for the workers that hold each slice.</li>
+<li>Each device has a Full dataseries (all records) and a Fast dataseries (a subset for queries of 24 hours or more).</li>
+<li>Every slice is stored as at least two shards on different machines.</li></ul>
+<h3>Getting data out</h3><ul>
+<li><b>APIs</b>: per-user API tokens on api.kentik.com.</li>
+<li><b>Firehose</b>: copies of enriched flow to <code>ktranslate</code>, which you run, then on to Kafka, Splunk, New Relic, HTTP, Prometheus or files. Not available for cloud flow logs from the portal.</li></ul>
+<h3>Licensing</h3><p>FlowPak, NMS (DevicePak), CloudPak and Synthetics credits. Confirm entitlements with your Infoblox account team.</p>`,
+src:[['Security Overview','https://kb.kentik.com/docs/security-overview'],['KDE Overview','https://kb.kentik.com/docs/kde-overview'],['Using Kentik Firehose','https://kb.kentik.com/docs/using-kentik-firehose'],['Licenses','https://kb.kentik.com/docs/licenses']]};
+/* ---------- Data centers: one Universal Agent per site, add or remove sites, and all sites together ---------- */
+const isDC = v => typeof v === 'string' && /^dc[2-6]?$/.test(v);
+const dcId = i => i === 1 ? 'dc' : 'dc' + i;
+const dcIndex = v => v === 'dc' ? 1 : +v.slice(2);
+const dcIds = () => Array.from({length:S.dcN}, (_, k) => dcId(k + 1));
+const modOf = v => isDC(v) || v === 'dcs' ? 'dc' : MOD[v] ? v : null;
+function dcCustom(i){ return String(S.dcNames[i - 1] || '').trim(); }
+function dcDefault(i){ return S.dcN > 1 ? 'Data center ' + i : 'Data center'; }
+function dcName(i){ return dcCustom(i) || dcDefault(i); }
+function dcMod(id){ return Object.assign({}, MOD.dc, {id, name:dcName(dcIndex(id))}); }
+function meshMath(n){ const sub = n * (n - 1), run = sub * 2.5; return {sub, run, month:run * 43200}; }
+const fmt = v => v.toLocaleString('en-US', {maximumFractionDigits:1});
+
+/* One data center: the full data center scene, named for this site */
+const REMOTE_MULTI = {t:'Other DCs, SaaS', go:['dcs', 'saas'],
+  i:{h:'Synthetic test targets: the agents in your other data centers, Kentik’s global and public cloud agents, SaaS apps, websites and DNS servers.',
+     d:['Agent-to-agent and mesh tests between data centers need TCP 8877 and UDP 9977 open between the agents.', 'Open All data centers to see every site and the tests between them.']}};
+function dcScene(i){
+  const base = SC.dc, n = S.dcN, name = dcName(i);
+  return Object.assign({}, base, {
+    frames:base.frames.map((f, k) => k ? f : Object.assign({}, f, {label:name + ' (on-prem)', labeld:n > 1 ? name + ' (on-prem) · site ' + i + ' of ' + n : name + ' (on-prem)'})),
+    nodes:base.nodes.map(nd => nd.id === 'remote' && n > 1 ? Object.assign({}, nd, REMOTE_MULTI) : nd)
+  });
+}
+
+/* Every data center at once: one row per site, each with its own agent */
+function dcsScene(){
+  const n = S.dcN, top = 58, bottom = 530, gap = n > 4 ? 8 : 14;
+  const rowH = Math.min(118, Math.floor((bottom - top - (n - 1) * gap) / n));
+  const nodeH = rowH >= 96 ? 52 : rowH >= 80 ? 46 : 40;
+  const used = n * rowH + (n - 1) * gap, y0 = top + Math.floor((bottom - top - used) / 2);
+  const frames = [{x:16, y:16, w:744, h:588, label:n > 1 ? 'Your data centers (on-prem)' : 'Your data center (on-prem)', labeld:n > 1 ? 'Your data centers: one Universal Agent at each site' : 'Your data center: one Universal Agent'}];
+  const nodes = [], edges = [], rows = [];
+  for(let i = 1; i <= n; i++){
+    const y = y0 + (i - 1) * (rowH + gap), ny = y + 24 + Math.floor((rowH - 30 - nodeH) / 2);
+    rows.push({y, ny, cy:ny + nodeH / 2});
+  }
+  rows.forEach((r, k) => {
+    const i = k + 1, name = dcName(i);
+    frames.push({id:'site-' + i, x:32, y:r.y, w:520, h:rowH, label:name, cls:'sframe', go:dcId(i),
+      i:{h:name + ' has its own Universal Agent. The site’s devices send to that agent, and the agent sends everything to Kentik over outbound HTTPS.',
+         d:['Same install command, capabilities and ports as every other site.', 'Assign the agent to this site’s Site in Kentik so devices and tests group by location.']}});
+    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:'Routers, switches, firewalls', sd:'Flow, SNMP, traps, syslog',
+      i:{h:'The routers, switches and firewalls at ' + name + ' export flow to the local agent, send it traps and syslog, and answer its SNMP polls.',
+         d:['Devices → agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.', 'Agent → devices: UDP 161 SNMP, ICMP, gNMI and TCP 22 for SSH.']}});
+    nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:'Linux host or Docker', sd:'Out: TCP 443 only', go:dcId(i),
+      i:{h:'The Universal Agent for ' + name + ', on a Linux host or in Docker, with the capabilities this site needs switched on.',
+         d:['Install: Settings › Universal Agents › Deploy Agent gives a Linux or Docker command. Portal tokens last 1 hour.', 'Size the host for the sum of its capabilities: for example SNMP/ST 2 cores / 8 GB, Synthetics 2 cores / 2 GB.', 'Agent-to-agent tests with the other sites use TCP 8877 and UDP 9977.']}});
+    nodes.push(Object.assign(EGRESS(760, r.cy), {id:'egress-' + i}));
+    edges.push({t:'flow', a:'dev-' + i, b:'ua-' + i, p:[[270, r.cy - 7], [320, r.cy - 7]]});
+    edges.push({t:'snmp', a:'ua-' + i, b:'dev-' + i, p:[[320, r.cy + 7], [270, r.cy + 7]], bi:true});
+    edges.push(Object.assign({t:'https', a:'ua-' + i, b:'kentik', p:[[536, r.cy], [780, r.cy]]},
+      k ? {} : {lab:'HTTPS, TLS 1.2+', labd:'TCP 443, outbound only', lp:[652, r.cy - 13]}));
+    if(k < n - 1){
+      const nx = rows[k + 1], y1 = r.ny + nodeH, y2 = nx.ny;
+      edges.push(Object.assign({t:'synth', a:'ua-' + i, b:'ua-' + (i + 1), p:[[428, y1], [428, y2]], c:'v', bi:true},
+        k ? {} : {lab:'Agent-to-agent tests', labd:'TCP 8877 · UDP 9977', lp:[438, (y1 + y2) / 2], anchor:'start'}));
+    }
+  });
+  const kh = Math.max(300, used), ky = Math.round(y0 + used / 2 - kh / 2);
+  nodes.push(KEN({y:ky, h:kh, s:'One account, all sites'}));
+  const m = meshMath(n);
+  const notes = n > 1
+    ? [{x:32, y:552, t:'Every site runs the same agent with the same install, all managed in one portal.', td:'Mesh of ' + n + ' agents every minute: ' + m.sub + ' subtests, ' + fmt(m.run) + ' credits per run, about ' + fmt(m.month) + ' a month.'},
+       {x:32, y:569, t:'The agents test the paths between your sites.', td:'Edge routers at each site peer BGP with Kentik directly on TCP 179.'}]
+    : [{x:32, y:552, t:'Add a data center with + to see more sites and the tests between them.', td:'Add a data center to see mesh test credits for your sites.'}];
+  return {frames, nodes, edges, notes};
+}
+
+function getScene(v){ return isDC(v) ? dcScene(dcIndex(v)) : v === 'dcs' ? dcsScene() : SC[v] || null; }
+
+function dcsInfo(){
+  const n = S.dcN, m = meshMath(n);
+  const hl = `<p class="lead">Every data center gets its own Universal Agent, installed on a Linux host or in Docker. Each agent sends its own site’s data to the same Kentik account over outbound HTTPS, and the agents test the paths between sites.</p>
+<h3>What changes when you add a site</h3><ul>
+<li>One more Linux host, or Docker host, running the Universal Agent</li>
+<li>The site’s routers, switches and firewalls point at their local agent</li>
+<li>The new agent joins your site-to-site tests</li>
+<li>Kentik SaaS stays the same: one account and one portal for every agent</li></ul>
+<h3>What stays the same at every site</h3><ul>
+<li>The install command, capabilities and ports</li>
+<li>Outbound TCP 443 only, nothing inbound from the Internet</li>
+<li>Agents update themselves and show Up or Down in Settings › Universal Agents</li></ul>`;
+  const dd = `<p class="lead">Repeat the same install at each site, then add the agents to a mesh test.</p>
+<h3>Checklist for each site</h3><ol style="padding-left:18px;margin:0 0 8px">
+<li>A Linux host or Docker host sized for the capabilities you turn on. Add up the sizing for each capability.</li>
+<li>Run the Linux or Docker command from Settings › Universal Agents › Deploy Agent, then authorize the agent. Portal tokens last 1 hour.</li>
+<li>Assign the agent to its Site in Kentik.</li>
+<li>Point devices at the agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.</li>
+<li>Allow UDP 161, ICMP and TCP 22 from the agent to the devices.</li>
+<li>Allow TCP 443 out to Kentik.</li></ol>
+<p>Rolling out many sites? Create provisioning tokens with the API. They take <code>maxUsageCount</code>, <code>expiresAt</code>, <code>requiresApproval</code> and <code>config.siteId</code>, so each agent registers into its own Site.</p>
+<h3>Between sites</h3>
+<table><thead><tr><th style="width:34%">Direction</th><th style="width:32%">Port</th><th>Used by</th></tr></thead><tbody>
+<tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Agent-to-agent and mesh tests</td></tr>
+<tr><td>Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>Every site, outbound only</td></tr>
+<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP from each site’s edge routers</td></tr>
+</tbody></table>
+<h3>Mesh test credits</h3>
+${n > 1 ? `<table><thead><tr><th style="width:64%">A mesh of your ${n} agents</th><th>Value</th></tr></thead><tbody>
+<tr><td>Subtests per run (${n} × ${n - 1})</td><td>${m.sub}</td></tr>
+<tr><td>Credits per run, at 2.5 per private subtest</td><td>${fmt(m.run)}</td></tr>
+<tr><td>Credits per month, running every minute</td><td>${fmt(m.month)}</td></tr>
+</tbody></table>
+<p class="muted" style="font-size:12.5px">Every minute is 43,200 runs in a 30-day month, and longer intervals cost less. This matches the KB example: 4 private agents every minute is 12 subtests, 30 credits per run.</p>` : '<p>Add a second data center to build a mesh between sites.</p>'}
+<h3>Licensing</h3><ul>
+<li>Devices at every site count toward FlowPak and NMS (DevicePak) licenses.</li>
+<li>Private agents need no extra license. Their subtests cost 2.5 credits per run.</li></ul>`;
+  return {kick:'Drill-in · On-prem', title:n > 1 ? 'All ' + n + ' data centers' : 'Your data center', hl, dd,
+    src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['UA Deployment','https://kb.kentik.com/docs/ua-deployment'],['UA Portal Management','https://kb.kentik.com/docs/ua-portal-management'],['Test Types Reference','https://kb.kentik.com/docs/test-types'],['Test Credits','https://kb.kentik.com/docs/test-credits']]};
+}
+
+function getInfo(v){
+  if(isDC(v)) return Object.assign({}, INFO.dc, {title:dcName(dcIndex(v)) + ' with a Universal Agent', site:dcIndex(v)});
+  if(v === 'dcs') return Object.assign(dcsInfo(), {sites:true});
+  return INFO[v];
+}
+
+/* Panel cards to rename, add and remove data centers */
+const BLDG = '<svg class="ico ico-left" aria-hidden="true"><use href="#i-building"/></svg>';
+function siteCard(i){
+  const n = S.dcN;
+  return `<div class="card site"><h4>${BLDG}${n > 1 ? 'Site ' + i + ' of ' + n : 'This data center'}<span class="tag">Universal Agent</span></h4>
+<label class="fld"><span>Site name</span><input type="text" id="dcNameIn" data-dc="${i}" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(dcCustom(i))}" placeholder="${esc(dcDefault(i))}"></label>
+<div class="btns"><button type="button" data-dcadd="1"${n < DC_MAX ? '' : ' disabled'}>+ Add a data center</button>${n > 1 ? `<button type="button" data-dcdel="${i}">Remove this site</button><button type="button" data-go="dcs">All ${n} together ›</button>` : ''}</div></div>`;
+}
+function sitesCard(){
+  const n = S.dcN;
+  return `<div class="card site"><h4>${BLDG}${n > 1 ? n + ' data centers' : '1 data center'}<span class="tag">Up to ${DC_MAX}</span></h4>
+<p>Each site has its own Universal Agent. Open a site to rename it or see its details.</p>
+<div class="btns">${dcIds().map((id, k) => `<button type="button" data-go="${id}">${esc(dcName(k + 1))} ›</button>`).join('')}<button type="button" data-dcadd="1"${n < DC_MAX ? '' : ' disabled'}>+ Add</button>${n > 1 ? '<button type="button" data-dcstep="-1">− Remove the last</button>' : ''}</div></div>`;
+}
+/* ---------- Rendering: helpers, state and the overview ---------- */
+const NS = 'http://www.w3.org/2000/svg';
+const $ = s => document.querySelector(s);
+const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
+const S = {mode:'high', sel:new Set(['dc','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED, dcN:1, dcNames:[]};
+const VB = [0, 0, 1000, 620];
+const FIT = [];       // texts that had to shrink to fit; empty means every label fits at its design size
+let OVR = {};         // overview card rectangles, used by the zoom transition
+
+function el(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  if(attrs) for(const k in attrs){ const v = attrs[k]; if(v !== undefined && v !== null && v !== false) e.setAttribute(k, v); }
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function txt(parent, x, y, s, cls, attrs){ const t = el('text', Object.assign({x, y, class:cls}, attrs || {}), parent); t.textContent = s; return t; }
+function icon(parent, name, x, y, size, cls){ return el('use', {href:'#i-' + name, x, y, width:size, height:size, class:cls || 'ico'}, parent); }
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[c]));
+
+/* Off-screen SVG for measuring text before layout */
+const MS = el('svg', {width:0, height:0, 'aria-hidden':'true', style:'position:absolute;left:-9999px;top:0;visibility:hidden'});
+document.body.appendChild(MS);
+const MT = el('text', {x:0, y:20}, MS);
+function measure(s, cls){ MT.setAttribute('class', cls); MT.textContent = s; return MT.getComputedTextLength(); }
+
+/* Never truncate: if a label is too wide, shrink it a little and log it */
+function fit(t, maxW, min){
+  if(!t || !t.textContent || maxW <= 0) return t;
+  let len = 0;
+  try { len = t.getComputedTextLength(); } catch(e){ return t; }
+  if(len > maxW + 0.5){
+    const fs = parseFloat(getComputedStyle(t).fontSize) || 12;
+    const ns = Math.max(min || 9, fs * maxW / len);
+    t.style.fontSize = ns.toFixed(2) + 'px';
+    FIT.push({text:t.textContent, len:Math.round(len), max:Math.round(maxW), size:+ns.toFixed(2), view:S.view, mode:S.mode});
+  }
+  return t;
+}
+
+/* Arrowheads, one per line type, kept with the icon sprite */
+(function(){
+  const defs = document.querySelector('#sprite defs');
+  Object.keys(TYPES).forEach(t => {
+    const m = el('marker', {id:'ah-' + t, viewBox:'0 0 10 10', refX:8, refY:5, markerWidth:7, markerHeight:7, orient:'auto-start-reverse', markerUnits:'userSpaceOnUse'}, defs);
+    el('path', {d:'M0,0.6 L10,5 L0,9.4 z', class:'ah-' + t}, m);
+  });
+})();
+
+/* Two points: a smooth curve (horizontal tangents, or vertical with c:'v'). More points: a polyline with rounded corners. */
+function pathD(p, c){
+  if(p.length === 2){
+    const [a, b] = p;
+    if(a[0] === b[0] || a[1] === b[1]) return `M${a[0]},${a[1]} L${b[0]},${b[1]}`;
+    if(c === 'v'){ const my = (a[1] + b[1]) / 2; return `M${a[0]},${a[1]} C${a[0]},${my} ${b[0]},${my} ${b[0]},${b[1]}`; }
+    const mx = (a[0] + b[0]) / 2;
+    return `M${a[0]},${a[1]} C${mx},${a[1]} ${mx},${b[1]} ${b[0]},${b[1]}`;
+  }
+  let d = `M${p[0][0]},${p[0][1]}`;
+  for(let i = 1; i < p.length - 1; i++){
+    const [px, py] = p[i - 1], [x, y] = p[i], [nx, ny] = p[i + 1];
+    const l1 = Math.hypot(x - px, y - py), l2 = Math.hypot(nx - x, ny - y), r = Math.min(10, l1 / 2, l2 / 2);
+    const ax = x - (x - px) / l1 * r, ay = y - (y - py) / l1 * r, bx = x + (nx - x) / l2 * r, by = y + (ny - y) / l2 * r;
+    d += ` L${ax.toFixed(1)},${ay.toFixed(1)} Q${x},${y} ${bx.toFixed(1)},${by.toFixed(1)}`;
+  }
+  const q = p[p.length - 1];
+  return d + ` L${q[0]},${q[1]}`;
+}
+
+function drawEdge(gE, gL, e, idx, dd, hit){
+  const g = el('g', {class:'edge e-' + e.t, 'data-edge':idx, 'data-t':e.t, 'data-a':e.a, 'data-b':e.b, 'data-bi':e.bi ? 1 : 0}, gE);
+  const d = pathD(e.p, e.c);
+  if(hit) el('path', {class:'hit', d}, g);
+  el('path', {class:'ln', d, 'marker-end':'url(#ah-' + e.t + ')', 'marker-start':e.bi ? 'url(#ah-' + e.t + ')' : null}, g);
+  const s = dd && e.labd ? e.labd : e.lab;
+  if(s && e.lp){
+    const lg = el('g', {class:'edge-l e-' + e.t, 'data-edge':idx}, gL);
+    const inner = el('g', {class:'elab'}, lg);
+    const r = el('rect', {rx:4}, inner);
+    const t = txt(inner, e.lp[0], e.lp[1], s, 't-edge', {'text-anchor':e.anchor || 'middle', 'dominant-baseline':'central'});
+    const b = t.getBBox();
+    r.setAttribute('x', (b.x - 4).toFixed(1)); r.setAttribute('y', (b.y - 1).toFixed(1));
+    r.setAttribute('width', (b.width + 8).toFixed(1)); r.setAttribute('height', (b.height + 2).toFixed(1));
+  }
+  return g;
+}
+
+/* ===== Overview ===== */
+const OV_EDGE = {
+  dc:{t:'https', lab:'HTTPS', labd:'TCP 443'}, branch:{t:'https', lab:'HTTPS', labd:'TCP 443'},
+  aws:{t:'pull', lab:'IAM role', labd:'AssumeRole'}, azure:{t:'pull', lab:'Entra app', labd:'Reader roles'},
+  gcp:{t:'pull', lab:'Pub/Sub', labd:'Subscriber'}, oci:{t:'pull', lab:'Policy', labd:'READ policy'},
+  saas:{t:'https', lab:'Test results', labd:'TCP 443'}
+};
+const OV_BGP = {t:'bgp', lab:'BGP', labd:'TCP 179'};
+const SW = 290, CW = 320, HW = 188, HH = 140, M = 16, GAP = 14;
+
+/* Card sizes, largest first: full (with the pipeline), compact (all chips), one (first row of chips), mini (title and subtitle) */
+function cardLayout(m, w, variant){
+  const inner = w - 28, rows = [];
+  let row = [], rw = 0;
+  m.chips.forEach(c => {
+    const cw = Math.ceil(measure(c[1], 'chiptxt')) + 26;
+    if(row.length && rw + 6 + cw > inner){ rows.push(row); row = []; rw = 0; }
+    rw += (row.length ? 6 : 0) + cw;
+    row.push({t:c[0], s:c[1], w:cw});
+  });
+  if(row.length) rows.push(row);
+  if(variant === 'mini') return {rows:[], top:62, variant, h:64};
+  if(variant === 'one' && rows.length > 1){
+    const first = rows[0].slice(), total = m.chips.length;
+    const moreW = k => Math.ceil(measure('+' + k + ' more', 'chiptxt')) + 18;
+    let used = first.reduce((a, c, i) => a + c.w + (i ? 6 : 0), 0);
+    while(first.length > 1 && used + 6 + moreW(total - first.length) > inner){ const c = first.pop(); used -= c.w + 6; }
+    const k = total - first.length;
+    first.push({t:'more', s:'+' + k + ' more', w:moreW(k), more:true});
+    return {rows:[first], top:62, variant, h:96};
+  }
+  const top = variant === 'full' ? 138 : 62;
+  return {rows, top, variant, h:top + rows.length * 20 + (rows.length - 1) * 6 + 14};
+}
+
+const PIPE_CLS = {agent:'ico-ktk', probe:'ico-ktk', egress:'ico-ktk', key:'ico-iam', bucket:'ico-store', storage:'ico-store', queue:'ico-store', connector:'ico-store',
+  router:'ico-net', network:'ico-net', server:'ico-srv', app:'ico-srv'};
+
+function drawCard(gN, r, m, dd){
+  const g = el('g', {class:'card-ov', role:'button', tabindex:0, 'data-go':m.id, 'aria-label':m.name + '. ' + (dd ? m.oned : m.one) + ' Press Enter to drill in.'}, gN);
+  el('rect', {class:'bg', x:r.x, y:r.y, width:r.w, height:r.h, rx:12}, g);
+  icon(g, m.icon, r.x + 14, r.y + 13, 20, 'ico ico-' + m.side);
+  const pw = Math.ceil(measure(m.tag, 't-tag')) + 14, px = r.x + r.w - 30 - pw;
+  el('rect', {class:'tagpill', x:px, y:r.y + 14, width:pw, height:18, rx:9}, g);
+  txt(g, px + 7, r.y + 27, m.tag, 't-tag');
+  txt(g, r.x + r.w - 15, r.y + 29, '›', 'drill', {'text-anchor':'middle', style:'font-size:18px'});
+  fit(txt(g, r.x + 42, r.y + 28, m.name, 't-label'), px - r.x - 50);
+  fit(txt(g, r.x + 14, r.y + 50, dd ? m.subd : m.sub, 't-sub'), r.w - 28);
+  if(r.lay.variant === 'full'){
+    const cy = r.y + 84, xs = [r.x + r.w / 6, r.x + r.w / 2, r.x + r.w * 5 / 6];
+    for(let i = 0; i < 2; i++) el('path', {class:'pipe-a', d:`M${(xs[i] + 22).toFixed(1)},${cy} L${(xs[i + 1] - 24).toFixed(1)},${cy}`, 'marker-end':'url(#ah-int)'}, g);
+    m.pipe.forEach((p, i) => {
+      el('circle', {class:'pipe-c', cx:xs[i].toFixed(1), cy, r:17}, g);
+      icon(g, p[0], (xs[i] - 9).toFixed(1), cy - 9, 18, 'ico ' + (PIPE_CLS[p[0]] || ''));
+      fit(txt(g, xs[i].toFixed(1), cy + 32, p[1], 'pipe-t', {'text-anchor':'middle'}), r.w / 3 - 6);
+      fit(txt(g, xs[i].toFixed(1), cy + 45, p[2], 'pipe-t', {'text-anchor':'middle'}), r.w / 3 - 6);
+    });
+  }
+  let y = r.y + r.lay.top;
+  r.lay.rows.forEach(row => {
+    let x = r.x + 14;
+    row.forEach(c => {
+      el('rect', {class:'ovchip', x, y, width:c.w, height:20, rx:10}, g);
+      if(c.more) txt(g, x + 9, y + 14, c.s, 'chiptxt');
+      else { el('circle', {class:'dot-' + c.t, cx:x + 11, cy:y + 10, r:3.6}, g); txt(g, x + 19, y + 14, c.s, 'chiptxt'); }
+      x += c.w + 6;
+    });
+    y += 26;
+  });
+  return g;
+}
+
+function drawHub(gN, h, dd){
+  const g = el('g', {class:'card-ov hub', role:'button', tabindex:0, 'data-go':'kentik', 'aria-label':'Kentik SaaS. Press Enter to see inside the platform.'}, gN);
+  el('rect', {class:'bg', x:h.x, y:h.y, width:h.w, height:h.h, rx:14}, g);
+  icon(g, 'ib', h.x + 15, h.y + 15, 20);
+  txt(g, h.x + 44, h.y + 31, HUB.name, 't-label');
+  fit(txt(g, h.x + 14, h.y + 54, dd ? 'Hosted in the US or EU' : 'Your Kentik account', 't-sub'), h.w - 28);
+  (dd ? ['flow.kentik.com', 'grpc.api.kentik.com', 'api.kentik.com'] : HUB.rows).forEach((s, i) => {
+    el('circle', {class:'hubdot', cx:h.x + 18, cy:h.y + 73 + i * 19, r:2.4}, g);
+    fit(txt(g, h.x + 26, h.y + 77 + i * 19, s, 't-sub'), h.w - 36);
+  });
+  txt(g, h.x + h.w / 2, h.y + h.h - 11, 'See inside ›', 'drill', {'text-anchor':'middle'});
+}
+
+function renderOverview(){
+  const svg = $('#ov');
+  svg.innerHTML = '';
+  OVR = {};
+  const dd = S.mode === 'deep';
+  const many = S.sel.has('dc') && S.dcN > 1;
+  const ids = CHIP_ORDER.filter(id => S.sel.has(id)).flatMap(id => id === 'dc' ? dcIds() : [id]);
+  const sideOf = id => isDC(id) ? 'left' : id === 'branch' && many ? 'bottom' : MOD[id].side;   // with several data centers the branch moves to the bottom
+  const modFor = id => isDC(id) ? dcMod(id) : MOD[id];
+  const side = s => ids.filter(id => sideOf(id) === s);
+  const L = side('left'), R = side('right'), T = side('top'), B = side('bottom');
+  const gE = el('g', {class:'edges'}, svg), gP = el('g', {class:'pts'}, svg), gN = el('g', {class:'nodes'}, svg), gL = el('g', {class:'labels'}, svg);
+
+  const column = (list, x) => {
+    if(!list.length) return [];
+    const each = (VB[3] - 2 * M - (list.length - 1) * GAP) / list.length;
+    const lays = list.map(id => {
+      const m = modFor(id);
+      for(const v of ['full', 'compact', 'one']){ const f = cardLayout(m, SW, v); if(f.h <= each) return f; }
+      return cardLayout(m, SW, 'mini');
+    });
+    let y = (VB[3] - lays.reduce((a, l) => a + l.h, 0) - (list.length - 1) * GAP) / 2;
+    return list.map((id, i) => { const r = {id, x, y, w:SW, h:lays[i].h, lay:lays[i]}; y += r.h + GAP; return r; });
+  };
+  const left = column(L, M), right = column(R, VB[2] - M - SW);
+  const both = T.length && B.length;
+  const center = (id, atTop) => { const lay = cardLayout(modFor(id), CW, both ? 'compact' : 'full'); return {id, x:(VB[2] - CW) / 2, y:atTop ? M : VB[3] - M - lay.h, w:CW, h:lay.h, lay}; };
+  const top = T.length ? center(T[0], true) : null, bot = B.length ? center(B[0], false) : null;
+  const y1 = top ? top.y + top.h : 0, y2 = bot ? bot.y : VB[3];
+  const hub = {x:(VB[2] - HW) / 2, w:HW, h:HH, y:Math.round((y1 + y2) / 2 - HH / 2)};
+  OVR.kentik = [hub.x, hub.y, hub.w, hub.h];
+
+  const edges = [];
+  const dcCards = left.filter(r => isDC(r.id)).length;
+  const sideEdges = (cards, fromRight) => {
+    const list = [];
+    cards.forEach(r => {
+      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2;   // BGP from the data center, while there is room for it
+      list.push({r, e:OV_EDGE[modOf(r.id)], y:two ? cy - 12 : cy});
+      if(two) list.push({r, e:OV_BGP, y:cy + 12});
+    });
+    const n = list.length;
+    list.forEach((it, i) => {
+      const ey = n === 1 ? hub.y + hub.h / 2 : hub.y + 34 + (hub.h - 52) * i / (n - 1);
+      const sx = fromRight ? it.r.x : it.r.x + it.r.w, ex = fromRight ? hub.x + hub.w : hub.x;
+      const e = Object.assign({}, it.e, {a:it.r.id, b:'kentik', p:[[sx, it.y], [ex, ey]], lp:[(sx + ex) / 2, (it.y + ey) / 2]});
+      if(isDC(it.r.id) && dcCards >= 4 && i !== Math.floor((n - 1) / 2)){ delete e.lab; delete e.labd; }   // one HTTPS label is enough for a stack of sites
+      edges.push(e);
+    });
+  };
+  sideEdges(left, false);
+  sideEdges(right, true);
+  const cx = VB[2] / 2;
+  if(top) edges.push(Object.assign({}, OV_EDGE[top.id], {a:top.id, b:'kentik', c:'v', p:[[cx, top.y + top.h], [cx, hub.y]], lp:[cx, (top.y + top.h + hub.y) / 2]}));
+  if(bot) edges.push(Object.assign({}, OV_EDGE[bot.id], {a:bot.id, b:'kentik', c:'v', p:[[cx, bot.y], [cx, hub.y + hub.h]], lp:[cx, (bot.y + hub.y + hub.h) / 2]}));
+  edges.forEach((e, i) => drawEdge(gE, gL, e, i, dd, false));
+
+  [...left, ...right, top, bot].filter(Boolean).forEach(r => { drawCard(gN, r, modFor(r.id), dd); OVR[r.id] = [r.x, r.y, r.w, r.h]; });
+  const dcs = left.filter(r => isDC(r.id));
+  if(dcs.length){
+    const last = dcs[dcs.length - 1];
+    OVR.dcs = [last.x, dcs[0].y, last.w, last.y + last.h - dcs[0].y];
+    const ay = last.y + last.h + 8;
+    if(S.dcN < DC_MAX && !left.some(r => r.y > last.y) && ay + 26 <= VB[3] - 4){
+      const g = el('g', {class:'addbtn', role:'button', tabindex:0, 'data-dcadd':1, 'aria-label':'Add a data center'}, gN);
+      el('rect', {x:last.x, y:ay, width:last.w, height:26, rx:9}, g);
+      txt(g, last.x + last.w / 2, ay + 17, '+ Add a data center', '', {'text-anchor':'middle'});
+    }
+  }
+  drawHub(gN, hub, dd);
+  if(!ids.length) txt(gN, cx, hub.y + hub.h + 42, 'Pick a starting point or deployments above', 'empty-t', {'text-anchor':'middle'});
+  svg._edges = edges;
+}
+
+/* ===== Legend and picker ===== */
+function legendTypes(){
+  const svg = S.view === 'ov' ? $('#ov') : $('#dt');
+  const set = new Set((svg._edges || []).map(e => e.t));
+  return Object.keys(TYPES).filter(t => set.has(t));
+}
+function renderLegend(){
+  const L = $('#legend');
+  L.innerHTML = legendTypes().map(t => `<button type="button" data-t="${t}" aria-pressed="${S.hl === t}" title="${esc(TYPES[t].d)}. Click to highlight."><svg viewBox="0 0 30 8" aria-hidden="true"><g class="edge e-${t}"><path class="ln" d="M2 4H28"/></g></svg>${esc(TYPES[t].n)}</button>`).join('');
+}
+function buildPicker(){
+  $('#presets').innerHTML = PRESETS.map(p => `<button type="button" class="pbtn" data-preset="${p.id}" aria-pressed="false">${esc(p.n)}</button>`).join('');
+  $('#chips').innerHTML = CHIP_ORDER.map((id, i) => {
+    const chip = `<button type="button" class="chip" data-chip="${id}" aria-pressed="false" title="Show or hide. Key ${i + 1} drills in."><span class="box" aria-hidden="true"></span><span class="lab">${esc(CHIP_NAMES[id])}</span></button>`;
+    if(id !== 'dc') return chip;
+    return `<span class="dcset">${chip}<span class="step" role="group" aria-label="Number of data centers"><button type="button" data-dcstep="-1" aria-label="Remove a data center" title="Remove a data center (key −)">−</button><span class="num" id="dcNum" aria-live="polite">1</span><button type="button" data-dcstep="1" aria-label="Add a data center" title="Add a data center (key +)">+</button></span></span>`;
+  }).join('');
+}
+function syncPicker(){
+  document.querySelectorAll('#presets [data-preset]').forEach(b => { const p = PRESETS.find(x => x.id === b.dataset.preset); b.setAttribute('aria-pressed', p.s.length === S.sel.size && p.s.every(x => S.sel.has(x)) ? 'true' : 'false'); });
+  document.querySelectorAll('#chips [data-chip]').forEach(b => b.setAttribute('aria-pressed', S.sel.has(b.dataset.chip) ? 'true' : 'false'));
+  const shown = S.sel.has('dc') ? S.dcN : 0;
+  $('#dcNum').textContent = shown;
+  $('#chips [data-chip="dc"] .lab').textContent = shown > 1 ? 'Data centers' : 'Data center';
+  $('#chips [data-dcstep="-1"]').disabled = shown === 0;
+  $('#chips [data-dcstep="1"]').disabled = shown >= DC_MAX;
+}
+/* ---------- Rendering: drill-in views, panel, motion and controls ---------- */
+function nodeText(n, dd){
+  return [n.t, dd && n.sd !== undefined ? n.sd : n.s, dd && n.sd2 !== undefined ? n.sd2 : n.s2].filter(s => s !== undefined && s !== '');
+}
+
+function drawNode(gN, n, dd){
+  const g = el('g', {class:'node k-' + n.k, role:'button', tabindex:0, 'data-id':n.id, 'aria-label':(n.t || n.tip || n.id) + (n.i ? '. ' + n.i.h : '')}, gN);
+  if(n.tip) el('title', {}, g).textContent = n.tip;
+  el('rect', {class:'bg', x:n.x, y:n.y, width:n.w, height:n.h, rx:n.k === 'ua' ? 12 : 9}, g);
+  if(!n.t){ icon(g, n.icon, n.x + n.w / 2 - 10, n.y + n.h / 2 - 10, 20); return g; }
+  const tx = nodeText(n, dd);
+  if(n.k === 'ua' || n.lines){
+    if(n.k === 'ua'){
+      el('rect', {class:'uahead', x:n.x + 1.2, y:n.y + 1.2, width:n.w - 2.4, height:50, rx:10.8}, g);
+      el('rect', {class:'uahead', x:n.x + 1.2, y:n.y + 30, width:n.w - 2.4, height:21.2}, g);
+    }
+    icon(g, n.icon, n.x + 14, n.y + 14, 22);
+    fit(txt(g, n.x + 44, n.y + 25, tx[0], 't-label'), n.w - 54);
+    if(tx[1]) fit(txt(g, n.x + 44, n.y + 41, tx[1], 't-sub'), n.w - 54);
+    if(n.lines){
+      el('line', {class:'sepl', x1:n.x + 14, x2:n.x + n.w - 14, y1:n.y + 56, y2:n.y + 56}, g);
+      (dd && n.linesd ? n.linesd : n.lines).forEach((s, i) => {
+        const y = n.y + 78 + i * 22;
+        el('circle', {class:'bul', cx:n.x + 19, cy:y - 4, r:2.4}, g);
+        fit(txt(g, n.x + 28, y, s, 't-line'), n.w - 40);
+      });
+    }
+    if(n.foot) fit(txt(g, n.x + 14, n.y + n.h - 14, dd && n.footd ? n.footd : n.foot, 't-sub'), n.w - 28);
+    return g;
+  }
+  icon(g, n.icon, n.x + 12, n.y + n.h / 2 - 10, 20);
+  const b0 = n.y + n.h / 2 - (tx.length - 1) * 8 + 4.5;
+  tx.forEach((s, i) => fit(txt(g, n.x + 42, b0 + i * 16, s, i ? 't-sub' : 't-label'), n.w - 52));
+  return g;
+}
+
+function drawFrame(gF, f, dd){
+  const cls = f.cls || 'frame', big = cls === 'frame', click = !!(f.id && f.i);
+  const g = el('g', click ? {class:'fnode', role:'button', tabindex:0, 'data-id':f.id, 'aria-label':f.label + '. ' + f.i.h} : {}, gF);
+  el('rect', {class:cls + (f.ghost ? ' ghost' : ''), x:f.x, y:f.y, width:f.w, height:f.h, rx:big ? 14 : 10}, g);
+  if(f.label) fit(txt(g, f.x + (big ? 16 : 12), f.y + (big ? 26 : 20), dd && f.labeld ? f.labeld : f.label, big ? 't-frame' : 't-sframe'), f.w - 24);
+  return g;
+}
+
+let SCN = null;   // the scene on screen: fixed data, or built for the current data centers
+function renderDetail(){
+  const svg = $('#dt');
+  svg.innerHTML = '';
+  const sc = SCN = getScene(S.view);
+  if(!sc){ svg._edges = []; return; }
+  const dd = S.mode === 'deep';
+  const gF = el('g', {class:'frames'}, svg), gE = el('g', {class:'edges'}, svg), gP = el('g', {class:'pts'}, svg);
+  const gN = el('g', {class:'nodes'}, svg), gT = el('g', {class:'notes'}, svg), gL = el('g', {class:'labels'}, svg);
+  sc.frames.forEach(f => drawFrame(gF, f, dd));
+  sc.edges.forEach((e, i) => drawEdge(gE, gL, e, i, dd, true));
+  sc.nodes.forEach(n => drawNode(gN, n, dd));
+  (sc.notes || []).forEach(n => { const s = dd ? n.td : n.t; if(s) txt(gT, n.x, n.y, s, 't-note'); });
+  svg.setAttribute('aria-label', viewName(S.view) + ' detail view');
+  svg._edges = sc.edges;
+}
+
+/* ===== Lookups ===== */
+function viewName(v){
+  if(v === 'ov') return 'All deployments';
+  if(v === 'kentik') return 'Kentik SaaS';
+  if(v === 'dcs') return S.dcN > 1 ? 'All data centers' : 'Your data center';
+  if(isDC(v)) return dcName(dcIndex(v));
+  return MOD[v] ? MOD[v].name : v;
+}
+function findItem(id){ const sc = SCN; if(!sc || S.view === 'ov') return null; return sc.nodes.find(n => n.id === id) || sc.frames.find(f => f.id === id) || null; }
+function itemName(id){
+  if(S.view === 'ov') return id === 'kentik' ? 'Kentik SaaS' : isDC(id) ? dcName(dcIndex(id)) : MOD[id] ? MOD[id].name : id;
+  const it = findItem(id);
+  return it ? (it.t || it.label || it.tip || id) : id;
+}
+function edgeLabel(e){ return (S.mode === 'deep' && e.labd) || e.lab || ''; }
+function focusName(){
+  const f = S.focus;
+  if(!f) return '';
+  if(f.k === 'edge'){ const e = SCN.edges[f.i]; return edgeLabel(e) || TYPES[e.t].n; }
+  return itemName(f.id);
+}
+const rectOf = it => [it.x, it.y, it.w, it.h];
+const inside = (a, b) => a[0] >= b[0] - 1 && a[1] >= b[1] - 1 && a[0] + a[2] <= b[0] + b[2] + 1 && a[1] + a[3] <= b[1] + b[3] + 1;
+
+/* ===== Highlighting ===== */
+function applyHighlight(){
+  const svg = S.view === 'ov' ? $('#ov') : $('#dt');
+  const edges = svg._edges || [];
+  let litE = null, litN = null;
+  if(S.focus && S.view !== 'ov'){
+    litE = new Set(); litN = new Set();
+    if(S.focus.k === 'edge'){ const e = edges[S.focus.i]; if(e){ litE.add(S.focus.i); litN.add(e.a); litN.add(e.b); } }
+    else {
+      const id = S.focus.id;
+      litN.add(id);
+      edges.forEach((e, i) => { if(e.a === id || e.b === id){ litE.add(i); litN.add(e.a); litN.add(e.b); } });
+    }
+  } else if(S.hl){
+    litE = new Set(); litN = new Set();
+    edges.forEach((e, i) => { if(e.t === S.hl){ litE.add(i); litN.add(e.a); litN.add(e.b); } });
+  }
+  if(litN && S.view !== 'ov' && SCN){
+    const lit = [...litN].map(findItem).filter(Boolean).map(rectOf);
+    SCN.nodes.forEach(n => { const r = rectOf(n); if(lit.some(l => inside(r, l) || inside(l, r))) litN.add(n.id); });
+  }
+  svg.querySelectorAll('[data-edge]').forEach(g => g.classList.toggle('dimmed', !!litE && !litE.has(+g.dataset.edge)));
+  svg.querySelectorAll('.node[data-id], .card-ov[data-go]').forEach(g => {
+    const id = g.dataset.id || g.dataset.go;
+    g.classList.toggle('dimmed', !!litN && !litN.has(id));
+    g.classList.toggle('sel', !!S.focus && S.focus.id === id);
+  });
+  svg.querySelectorAll('.fnode').forEach(g => g.classList.toggle('sel', !!S.focus && S.focus.id === g.dataset.id));
+  PT.list.forEach(p => p.el.classList.toggle('dimmed', p.edge.classList.contains('dimmed')));
+}
+
+/* ===== Side panel ===== */
+function srcList(src){
+  return src && src.length ? `<h3>Sources in the Kentik KB</h3><ul class="src">${src.map(s => `<li><a href="${s[1]}" target="_blank" rel="noopener">${esc(s[0])}</a></li>`).join('')}</ul>` : '';
+}
+function typeBlock(){
+  if(!S.hl) return '';
+  const T = TYPES[S.hl], svg = S.view === 'ov' ? $('#ov') : $('#dt');
+  const es = (svg._edges || []).filter(e => e.t === S.hl);
+  return `<p class="kick">Line type</p><h2>${esc(T.n)}</h2><p class="lead">${esc(T.d)}.</p><ul>${es.map(e => `<li>${esc(itemName(e.a))} ${e.bi ? '↔' : '→'} ${esc(itemName(e.b))}${edgeLabel(e) ? ': ' + esc(edgeLabel(e)) : ''}</li>`).join('')}</ul><button type="button" class="linkbtn" data-clear="1">‹ Clear the highlight</button><hr>`;
+}
+function focusBlock(dd){
+  const f = S.focus;
+  if(!f || S.view === 'ov') return '';
+  const back = `<button type="button" class="linkbtn" data-clear="1">‹ Back to all of ${esc(viewName(S.view))}</button><hr>`;
+  if(f.k === 'edge'){
+    const e = SCN.edges[f.i], T = TYPES[e.t];
+    return `<p class="kick">Connection · ${esc(T.n)}</p><h2>${esc(edgeLabel(e) || T.n)}</h2><p class="lead">${esc(T.d)}.</p><p>From <b>${esc(itemName(e.a))}</b> to <b>${esc(itemName(e.b))}</b>${e.bi ? ', in both directions' : ''}.</p>${back}`;
+  }
+  const it = findItem(f.id);
+  if(!it) return '';
+  const inf = it.i || {h:'', d:[]}, d = inf.d || [];
+  const kick = it.cap ? 'Universal Agent capability' : it.cls === 'sframe' ? 'Group' : 'Component';
+  let h = `<p class="kick">${kick} · ${esc(viewName(S.view))}</p><h2>${esc(it.t || it.label || it.tip)}</h2><p class="lead">${esc(inf.h)}</p>`;
+  if(dd && d.length) h += `<ul>${d.map(s => `<li>${esc(s)}</li>`).join('')}</ul>`;
+  else if(d.length) h += `<p class="muted" style="font-size:12.5px">Switch to <b>Deep dive</b> (key <span class="kbd">D</span>) for ports, sizing and permissions.</p>`;
+  if(it.go) h += [].concat(it.go).map(g => `<button type="button" class="gobtn" data-go="${g}">Open ${esc(viewName(g))} ›</button>`).join('');
+  return h + back;
+}
+function dcOverviewCard(dd){
+  const m = MOD.dc, n = S.dcN;
+  const btns = n > 1
+    ? `<button type="button" data-go="dcs">All ${n} together ›</button>` + dcIds().map((id, k) => `<button type="button" data-go="${id}">${esc(dcName(k + 1))} ›</button>`).join('')
+    : '<button type="button" data-go="dc">Drill in ›</button>';
+  return `<div class="card"><h4>${BLDG}${n > 1 ? n + ' data centers' : esc(dcName(1))}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}${n > 1 ? ' Each data center has its own agent.' : ''}</p><div class="btns">${btns}${n < DC_MAX ? '<button type="button" data-dcadd="1">+ Add a data center</button>' : ''}</div></div>`;
+}
+function renderPanel(){
+  const P = $('#panel'), dd = S.mode === 'deep';
+  if(S.view === 'ov'){
+    P.innerHTML = typeBlock() + (dd ? OV_DD : OV_HL);
+    const box = P.querySelector('#ov-sel'), ids = CHIP_ORDER.filter(id => S.sel.has(id));
+    box.innerHTML = ids.length
+      ? ids.map(id => { if(id === 'dc') return dcOverviewCard(dd); const m = MOD[id]; return `<div class="card"><h4><svg class="ico ico-${m.side}" aria-hidden="true"><use href="#i-${m.icon}"/></svg>${esc(m.name)}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><button type="button" data-go="${id}">Drill in ›</button></div>`; }).join('')
+        + `<div class="card"><h4><svg class="ico ico-ktk" aria-hidden="true"><use href="#i-ib"/></svg>Kentik SaaS<span class="tag">Platform</span></h4><p>${dd ? 'Hosting, encryption, retention, the Kentik Data Engine and Firehose.' : 'What happens to your data once it reaches Kentik.'}</p><button type="button" data-go="kentik">See inside ›</button></div>`
+      : '<p class="muted">Nothing selected yet. Pick a starting point or a deployment above.</p>';
+    return;
+  }
+  const inf = getInfo(S.view);
+  const site = inf.site ? siteCard(inf.site) : inf.sites ? sitesCard() : '';
+  P.innerHTML = typeBlock() + focusBlock(dd) + `<p class="kick">${esc(inf.kick)}</p><h2 class="ttl">${esc(inf.title)}</h2>` + site + (dd ? inf.dd : inf.hl) + srcList(inf.src);
+}
+
+function renderChrome(){
+  const c = $('#crumbs');
+  if(S.view === 'ov') c.innerHTML = '<span class="cur">All deployments</span>';
+  else {
+    let h = '<button type="button" data-nav="ov">All deployments</button><span class="sep">›</span>';
+    h += S.focus ? `<button type="button" data-nav="${S.view}">${esc(viewName(S.view))}</button><span class="sep">›</span><span class="cur">${esc(focusName())}</span>` : `<span class="cur">${esc(viewName(S.view))}</span>`;
+    c.innerHTML = h;
+  }
+  $('#hint').textContent = S.view === 'ov' ? 'Click a deployment to drill in, or Kentik SaaS to see inside' : 'Click any box or line for details · Esc goes back';
+  $('#backBtn').hidden = S.view === 'ov';
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === S.mode ? 'true' : 'false'));
+  $('#motionBtn').setAttribute('aria-pressed', S.anim ? 'true' : 'false');
+  syncPicker();
+}
+
+/* ===== Motion: particles along the lines, one rAF loop ===== */
+const PT = {list:[], raf:0};
+function tick(now){
+  PT.raf = requestAnimationFrame(tick);
+  if(document.hidden) return;
+  const s = now / 1000 * 42;
+  for(const p of PT.list){
+    let f = (s / p.len + p.off) % 1;
+    if(p.rev) f = 1 - f;
+    const q = p.path.getPointAtLength(f * p.len);
+    if(p.sq){ p.el.setAttribute('x', (q.x - 2.5).toFixed(1)); p.el.setAttribute('y', (q.y - 2.5).toFixed(1)); }
+    else { p.el.setAttribute('cx', q.x.toFixed(1)); p.el.setAttribute('cy', q.y.toFixed(1)); }
+  }
+}
+function stopTick(){ if(PT.raf) cancelAnimationFrame(PT.raf); PT.raf = 0; }
+function buildParticles(){
+  PT.list = [];
+  document.querySelectorAll('#ov g.pts, #dt g.pts').forEach(l => { l.innerHTML = ''; });
+  if(!S.anim){ stopTick(); return; }
+  const svg = S.view === 'ov' ? $('#ov') : $('#dt'), layer = svg.querySelector('g.pts');
+  if(!layer) return;
+  svg.querySelectorAll('g.edge').forEach(g => {
+    const t = g.dataset.t, ty = TYPES[t];
+    if(!ty || !ty.pt) return;
+    const path = g.querySelector('path.ln'), len = path.getTotalLength();
+    if(len < 30) return;
+    const n = Math.max(1, Math.min(4, Math.round(len / 190)));
+    for(let i = 0; i < n; i++){
+      const shape = ty.pt === 'sq' ? el('rect', {width:5, height:5, rx:1, class:'pt-' + t}, layer) : el('circle', {r:ty.pt === 'ring' ? 3.6 : 2.7, class:'pt-' + t}, layer);
+      PT.list.push({el:shape, path, len, off:i / n, rev:g.dataset.bi === '1' && i % 2 === 1, sq:ty.pt === 'sq', edge:g});
+    }
+  });
+  if(!PT.raf) PT.raf = requestAnimationFrame(tick);
+}
+
+/* ===== Zoom between the overview and a drill-in ===== */
+function aspectBox(r){
+  const cx = r[0] + r[2] / 2, cy = r[1] + r[3] / 2;
+  const W = Math.max(r[2] * 1.25, r[3] * 1.25 * VB[2] / VB[3]), H = W * VB[3] / VB[2];
+  return [cx - W / 2, cy - H / 2, W, H];
+}
+function setVB(svg, b){ svg.setAttribute('viewBox', b.map(v => Math.round(v * 100) / 100).join(' ')); }
+function animVB(svg, from, to, ms){
+  const tok = svg._tok = (svg._tok || 0) + 1;
+  if(REDUCED || !ms){ setVB(svg, to); return; }
+  setVB(svg, from);
+  const t0 = performance.now();
+  const step = now => {
+    if(svg._tok !== tok) return;
+    let k = Math.min(1, (now - t0) / ms);
+    k = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    setVB(svg, from.map((v, i) => v + (to[i] - v) * k));
+    if(k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+function show(svg, on){
+  clearTimeout(svg._hide);
+  svg.style.pointerEvents = on ? 'auto' : 'none';
+  svg.setAttribute('aria-hidden', on ? 'false' : 'true');
+  if(on){ svg.style.visibility = 'visible'; svg.style.opacity = 1; }
+  else { svg.style.opacity = 0; svg._hide = setTimeout(() => { svg.style.visibility = 'hidden'; }, REDUCED ? 0 : 320); }
+}
+const WIDE = [-100, -62, 1200, 744];
+
+function refresh(){ renderChrome(); renderPanel(); renderLegend(); buildParticles(); applyHighlight(); saveHash(); }
+
+function go(view, instant){
+  const mod = modOf(view);
+  if(mod && !S.sel.has(mod)){ S.sel.add(mod); renderOverview(); }
+  const prev = S.view, ov = $('#ov'), dt = $('#dt'), ms = instant ? 0 : 420;
+  if(prev === view){ if(S.focus || S.hl){ S.focus = null; S.hl = null; refresh(); } return; }
+  S.view = view; S.focus = null; S.hl = null;
+  if(view === 'ov'){
+    show(dt, false); animVB(dt, VB.slice(), WIDE, ms);
+    show(ov, true); animVB(ov, OVR[prev] ? aspectBox(OVR[prev]) : WIDE, VB.slice(), ms);
+  } else {
+    renderDetail();
+    if(prev === 'ov'){
+      show(ov, false); animVB(ov, VB.slice(), OVR[view] ? aspectBox(OVR[view]) : VB.slice(), ms);
+      show(dt, true); animVB(dt, WIDE, VB.slice(), ms);
+    } else {
+      setVB(dt, VB);
+      if(!REDUCED && !instant){ dt.style.transition = 'none'; dt.style.opacity = 0; void dt.getBoundingClientRect(); dt.style.transition = ''; }
+      show(dt, true);
+    }
+  }
+  refresh();
+  $('#panel').scrollTop = 0;
+}
+function setMode(m){
+  if(S.mode === m) return;
+  S.mode = m;
+  renderOverview();
+  if(S.view !== 'ov') renderDetail();
+  refresh();
+}
+function setFocus(f){
+  S.focus = f; S.hl = null;
+  refresh();
+  $('#panel').scrollTop = 0;
+}
+function setSelection(set){
+  S.sel = set;
+  renderOverview();
+  if(S.view !== 'ov') go('ov'); else refresh();
+}
+function toggleMotion(){ S.anim = !S.anim; refresh(); }
+
+/* ===== Adding, removing and renaming data centers ===== */
+function dcRefresh(target){
+  renderOverview();
+  const v = S.view, dcView = isDC(v) || v === 'dcs';
+  if(dcView && target && target !== v){ go(target); return; }
+  if(dcView){ S.focus = null; S.hl = null; renderDetail(); }
+  refresh();
+}
+function setDCCount(n){
+  const shown = Math.max(0, Math.min(DC_MAX, n)), v = S.view, sel = new Set(S.sel);
+  if(shown === 0) sel.delete('dc'); else { sel.add('dc'); S.dcN = shown; }
+  S.sel = sel;
+  let target = v;
+  if(isDC(v) || v === 'dcs'){
+    if(!sel.has('dc')) target = 'ov';
+    else if(isDC(v) && dcIndex(v) > S.dcN) target = dcId(S.dcN);
+  }
+  dcRefresh(target);
+}
+const stepDC = d => setDCCount((S.sel.has('dc') ? S.dcN : 0) + d);
+function removeDC(i){
+  if(S.dcN <= 1){ setDCCount(0); return; }
+  S.dcNames.splice(i - 1, 1);
+  S.dcN--;
+  dcRefresh('dcs');
+}
+function renameDC(i, v){
+  S.dcNames[i - 1] = String(v).slice(0, 32);
+  renderOverview();
+  if(isDC(S.view) || S.view === 'dcs'){ renderDetail(); buildParticles(); applyHighlight(); }
+  renderChrome(); saveHash();
+  const h = $('#panel h2.ttl');
+  if(h) h.textContent = getInfo(S.view).title;
+}
+
+/* ===== URL hash keeps the current view shareable ===== */
+function saveHash(){
+  let h = 'v=' + S.view + '&m=' + S.mode + '&s=' + CHIP_ORDER.filter(id => S.sel.has(id)).join('.');
+  if(S.dcN > 1) h += '&n=' + S.dcN;
+  const names = S.dcNames.slice(0, S.dcN).map(s => String(s || '').trim());
+  if(names.some(Boolean)) h += '&dn=' + names.map(encodeURIComponent).join('|');
+  try { history.replaceState(null, '', '#' + h); } catch(e){}
+}
+function loadHash(){
+  let h = '';
+  try { h = location.hash.slice(1); } catch(e){}
+  if(!h) return;
+  const q = {}, raw = {};
+  h.split('&').forEach(kv => {
+    const i = kv.indexOf('=');
+    if(i > 0){ const k = kv.slice(0, i), v = kv.slice(i + 1); raw[k] = v; try { q[k] = decodeURIComponent(v); } catch(e){ q[k] = v; } }
+  });
+  if(q.s !== undefined) S.sel = new Set(q.s.split('.').filter(id => MOD[id]));
+  if(q.m === 'deep' || q.m === 'high') S.mode = q.m;
+  if(q.n) S.dcN = Math.max(1, Math.min(DC_MAX, parseInt(q.n, 10) || 1));
+  if(raw.dn) S.dcNames = raw.dn.split('|').map(s => { try { return decodeURIComponent(s).slice(0, 32); } catch(e){ return ''; } });
+  const v = q.v;
+  if(v === 'ov' || v === 'kentik' || v === 'dcs' || (isDC(v) ? dcIndex(v) <= S.dcN : !!SC[v])) S.view = v;
+  const mod = modOf(S.view);
+  if(mod) S.sel.add(mod);
+}
+
+/* ===== Events ===== */
+$('#ov').addEventListener('click', ev => {
+  if(ev.target.closest('[data-dcadd]')){ stepDC(1); return; }
+  const g = ev.target.closest('[data-go]');
+  if(g) go(g.dataset.go);
+});
+$('#dt').addEventListener('click', ev => {
+  const n = ev.target.closest('[data-id]');
+  if(n){ setFocus(S.focus && S.focus.id === n.dataset.id ? null : {k:'node', id:n.dataset.id}); return; }
+  const e = ev.target.closest('g.edge');
+  if(e){ const i = +e.dataset.edge; setFocus(S.focus && S.focus.k === 'edge' && S.focus.i === i ? null : {k:'edge', i}); return; }
+  if(S.focus || S.hl) setFocus(null);
+});
+$('#panel').addEventListener('click', ev => {
+  const t = ev.target;
+  if(t.closest('[data-dcadd]')){ stepDC(1); return; }
+  const del = t.closest('[data-dcdel]');
+  if(del){ removeDC(+del.dataset.dcdel); return; }
+  const st = t.closest('[data-dcstep]');
+  if(st){ stepDC(+st.dataset.dcstep); return; }
+  const g = t.closest('[data-go]');
+  if(g){ go(g.dataset.go); return; }
+  if(t.closest('[data-clear]')) setFocus(null);
+});
+$('#panel').addEventListener('input', ev => { const t = ev.target; if(t && t.id === 'dcNameIn') renameDC(+t.dataset.dc, t.value); });
+$('#crumbs').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-nav]');
+  if(!b) return;
+  if(b.dataset.nav === 'ov') go('ov'); else setFocus(null);
+});
+$('#legend').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-t]');
+  if(!b) return;
+  S.hl = S.hl === b.dataset.t ? null : b.dataset.t;
+  S.focus = null;
+  refresh();
+});
+$('#presets').addEventListener('click', ev => { const b = ev.target.closest('[data-preset]'); if(b) setSelection(new Set(PRESETS.find(p => p.id === b.dataset.preset).s)); });
+$('#chips').addEventListener('click', ev => {
+  const st = ev.target.closest('[data-dcstep]');
+  if(st){ stepDC(+st.dataset.dcstep); return; }
+  const b = ev.target.closest('[data-chip]');
+  if(!b) return;
+  const s = new Set(S.sel), id = b.dataset.chip;
+  if(s.has(id)) s.delete(id); else s.add(id);
+  setSelection(s);
+});
+$('#backBtn').addEventListener('click', () => go('ov'));
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+$('#motionBtn').addEventListener('click', toggleMotion);
+$('#themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('ib-kentik-explorer-theme', next); } catch(e){}
+});
+document.addEventListener('keydown', ev => {
+  if(ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  const tg = ev.target, k = ev.key;
+  if(tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable)) return;
+  if((k === 'Enter' || k === ' ') && tg instanceof SVGElement && tg.getAttribute('role') === 'button'){
+    ev.preventDefault(); tg.dispatchEvent(new MouseEvent('click', {bubbles:true})); return;
+  }
+  if(k === 'Escape'){ if(S.focus || S.hl) setFocus(null); else if(S.view !== 'ov') go('ov'); return; }
+  if(/^[1-7]$/.test(k)){ go(CHIP_ORDER[+k - 1]); return; }
+  if(k === '+' || k === '='){ stepDC(1); return; }
+  if(k === '-' || k === '_'){ stepDC(-1); return; }
+  if(k === 'k' || k === 'K' || k === '0'){ go('kentik'); return; }
+  if(k === 'd' || k === 'D'){ setMode('deep'); return; }
+  if(k === 'h' || k === 'H'){ setMode('high'); return; }
+  if(k === 'm' || k === 'M'){ toggleMotion(); return; }
+  if((k === 'ArrowRight' || k === 'ArrowLeft') && S.view !== 'ov'){
+    const list = [];
+    CHIP_ORDER.filter(id => S.sel.has(id)).forEach(id => { if(id === 'dc'){ list.push(...dcIds()); if(S.dcN > 1) list.push('dcs'); } else list.push(id); });
+    list.push('kentik');
+    const i = list.indexOf(S.view);
+    go(list[(i + (k === 'ArrowRight' ? 1 : list.length - 1)) % list.length]);
+    ev.preventDefault();
+  }
+});
+document.addEventListener('visibilitychange', () => { if(!document.hidden && S.anim && !PT.raf) PT.raf = requestAnimationFrame(tick); });
+
+/* ===== Start ===== */
+(function init(){
+  try { const t = localStorage.getItem('ib-kentik-explorer-theme'); if(t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch(e){}
+  buildPicker();
+  loadHash();
+  renderOverview();
+  if(S.view === 'ov'){ show($('#ov'), true); show($('#dt'), false); }
+  else { renderDetail(); show($('#dt'), true); show($('#ov'), false); }
+  refresh();
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
+    FIT.length = 0;
+    renderOverview();
+    if(S.view !== 'ov') renderDetail();
+    buildParticles(); applyHighlight();
+  });
+})();
+</script>

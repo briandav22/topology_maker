@@ -1,0 +1,19 @@
+{
+  "customer": "Contoso Manufacturing",
+  "prepared_by": "Infoblox Solutions Engineering",
+  "project": "Hybrid network observability rollout",
+  "region": "US",
+  "detail": "deep",
+  "sites": [
+    {"name": "Primary DC", "kind": "dc", "location": "Ashburn, VA", "install": "linux", "capabilities": ["flow","snmp","trap","syslog","dns","synth","ssh"], "flow_mode": "edge", "fps": 40000, "devices": 350, "syslog_eps": 3000, "dns_lps": 50000, "bgp": true, "proxy": false},
+    {"name": "Secondary DC", "kind": "dc", "location": "Dallas, TX", "install": "linux", "capabilities": ["flow","snmp","trap","syslog","synth","ssh"], "flow_mode": "edge", "fps": 15000, "devices": 180, "syslog_eps": 1500, "bgp": true, "proxy": true},
+    {"name": "Chicago Branch", "kind": "branch", "location": "Chicago, IL", "install": "docker", "capabilities": ["flow","snmp","syslog","synth"], "flow_mode": "forward", "fps": 2000, "devices": 25, "syslog_eps": 200}
+  ],
+  "clouds": {
+    "aws": {"enabled": true, "features": ["metadata","flow","firewall","metrics"], "accounts": 4, "regions": "us-east-1, us-west-2", "multi_account": true, "test_agent": true},
+    "azure": {"enabled": true, "features": ["metadata","flow","firewall"], "accounts": 1, "auth": "enterprise"},
+    "gcp": {"enabled": false},
+    "oci": {"enabled": false}
+  },
+  "synthetics": {"enabled": true, "site_mesh": true, "mesh_interval_min": 1, "global_agents": 3, "saas_targets": ["Microsoft 365","Salesforce","ServiceNow"], "http_interval_min": 5, "http_timeout_s": 5, "bgp_monitor": true, "bgp_prefixes": 1}
+}
