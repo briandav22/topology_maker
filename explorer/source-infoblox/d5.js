@@ -47,6 +47,8 @@ function capsOf(kind, i){
   if(!arr[i - 1]) arr[i - 1] = new Set(kind === 'dc' ? DC_DEF : BR_DEF);
   return arr[i - 1];
 }
+/* BGP peering at a data center: off, routers peer directly with Kentik, or with the agent (BGP Proxy on) */
+function bgpMode(i){ return capsOf('dc', i).has('bgp') ? 'ua' : S.dcBgp[i - 1] === 'direct' ? 'direct' : 'off'; }
 function instOf(kind, i){ return (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] === 'docker' ? 'docker' : 'linux'; }
 const capList = (kind, i) => DRAW_ORDER.filter(c => capsOf(kind, i).has(c));
 function sizing(kind, i){
@@ -81,7 +83,8 @@ function agentScene(kind, i){
   frames.push({x:16, y:16, w:L.fw, h:588, label:name + (dc ? ' (on-prem)' : ''),
     labeld:dc ? (S.dcN > 1 ? name + ' (on-prem) · site ' + i + ' of ' + S.dcN : name + ' (on-prem)') : name + ' · agent at the branch'});
   frames.push(dc ? DC_NETGRP : BR_NETGRP);
-  nodes.push(...(dc ? DC_DEVICES : BR_DEVICES));
+  const bm = dc ? bgpMode(i) : '';
+  nodes.push(...(dc ? DC_DEVICES.map(n => n.id === 'edge' && bm === 'off' ? Object.assign({}, n, {sd:'Flow · SNMP · traps'}) : n) : BR_DEVICES));
 
   /* Left column under the devices: only what the capabilities need */
   const feeds = dc ? feeders(i) : [];
@@ -137,7 +140,7 @@ function agentScene(kind, i){
   const ur = L.ux + L.uw;
   if(on('bgp') && dc) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [ur + 12, 50], [ur + 12, cy('bgp')], [rx, cy('bgp')]], lab:'BGP: routers peer with the agent', labd:'BGP Proxy, TCP 179 to the agent', lp:[(236 + ur) / 2 + 6, 50]});
   else if(on('bgp')) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [294, 50], [294, cy('bgp')], [cx, cy('bgp')]], lab:'BGP', labd:'TCP 179', lp:[265, 50]});
-  else if(dc) edges.push({t:'bgp', a:'edge', b:'kentik', p:[[236, 90], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179 (BGP Proxy off)', lp:[566, 50]});
+  else if(bm === 'direct') edges.push({t:'bgp', a:'edge', b:'kentik', p:[[236, 90], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179', lp:[566, 50]});
 
   /* Branches with no agent of their own, across the WAN */
   if(brin){
@@ -261,7 +264,7 @@ function dcsScene(){
   const ta = testAgents().length, m = meshMath(ta);
   const notes = n > 1
     ? [{x:32, y:552, t:'Every site runs the same agent with its own capabilities, all managed in one portal.', td:ta > 1 ? 'Mesh of the ' + ta + ' agents with Connectivity Test, every minute: ' + m.sub + ' subtests, ' + fmt(m.run) + ' credits per run.' : 'Turn on Connectivity Test at two or more agents to build a mesh.'},
-       {x:32, y:569, t:'Agents with Connectivity Test on test the paths between sites.', td:'Edge routers peer BGP with their agent (BGP Proxy) or with Kentik on TCP 179.'}]
+       {x:32, y:569, t:'Agents with Connectivity Test on test the paths between sites.', td:'BGP peering is optional per site: routers peer with their agent (BGP Proxy) or with Kentik on TCP 179.'}]
     : [{x:32, y:552, t:'Add a data center with + to see more sites and the tests between them.', td:'Add a data center to see mesh test credits for your sites.'}];
   return {frames, nodes, edges, notes};
 }
@@ -404,11 +407,19 @@ function capsCard(kind, i, dd){
   return `<div class="card caps"><div class="caphead"><div><h4>Installed capabilities</h4><p>Running on this agent. The diagram follows what you turn on.</p></div><span class="capn" aria-label="${n} on">${n}</span></div>${rows}
 <div class="btns" style="margin-top:6px"><button type="button" data-capall="${kind}:${i}:1">Turn all on</button><button type="button" data-capall="${kind}:${i}:0">Turn all off</button></div>${size}</div>`;
 }
+function bgpCard(i, dd){
+  const m = bgpMode(i), on = m !== 'off';
+  const sub = !on ? 'Off: no routing data. Many enterprises skip it.' : m === 'ua' ? 'Routers peer with this agent (BGP Proxy)' : 'Routers peer directly with Kentik';
+  const seg = on ? `<div class="fld"><span>Routers peer with</span><div class="seg mini" role="group" aria-label="BGP peering">${[['direct', 'Kentik directly'], ['ua', 'The agent (BGP Proxy)']].map(o => `<button type="button" data-bgp="${i}:${o[0]}" aria-pressed="${m === o[0]}">${o[1]}</button>`).join('')}</div></div>` : '';
+  const dd1 = on && dd ? `<p class="muted" style="font-size:12px;margin:4px 0 0">${m === 'ua' ? 'TCP 179 from the edge routers to the agent; the agent relays routes over HTTPS.' : 'TCP 179 between the edge routers and Kentik’s ingest peering IPs (device settings › BGP).'}</p>` : '';
+  return `<div class="caprow solo${on ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${on}" data-bgpon="${i}" aria-label="BGP peering"><span></span></button><div class="capt"><b>BGP peering</b><span>${sub}</span></div></div>${seg}${dd1}`;
+}
 function siteCard(i, dd){
   const n = S.dcN, f = feeders(i).length;
   return `<div class="card site"><h4>${BLDG}${n > 1 ? 'Site ' + i + ' of ' + n : 'This data center'}<span class="tag">Universal Agent</span></h4>
 <label class="fld"><span>Site name</span><input type="text" class="nameIn" data-name="dc:${i}" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(dcCustom(i))}" placeholder="${esc(dcDefault(i))}"></label>
 ${instSeg('dc', i)}${f ? `<p style="font-size:12.5px">Collects for ${f} branch${f > 1 ? 'es' : ''} with no agent.</p>` : ''}
+${bgpCard(i, dd)}
 <div class="btns"><button type="button" data-dcadd="1"${n < DC_MAX ? '' : ' disabled'}>+ Add a data center</button>${n > 1 ? `<button type="button" data-dcdel="${i}">Remove this site</button><button type="button" data-go="dcs">All ${n} together ›</button>` : ''}</div></div>` + capsCard('dc', i, dd);
 }
 function branchCard(i, dd){

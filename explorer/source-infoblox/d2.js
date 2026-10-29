@@ -55,7 +55,7 @@ const CAP = {
   bgp:{h:'BGP Proxy (kbgp) lets routers peer BGP with the agent instead of with Kentik, and the agent relays the routes to Kentik over outbound HTTPS. Routers in private networks need no session to the Internet.',
     d:['Routers peer with the agent on TCP 179.',
        'Sizing: 2 cores / 2 GB RAM. Extra capacity helps the agent stay stable during BGP table updates.',
-       'With BGP Proxy off, edge routers peer with Kentik directly on TCP 179, as before.',
+       'BGP peering is optional. Without BGP Proxy, edge routers can peer with Kentik directly on TCP 179, or not peer at all.',
        'It appears in Installed Capabilities in the portal, while the KB page still lists it as coming soon. Confirm availability for your account with your Infoblox team.']}
 };
 
@@ -74,7 +74,7 @@ const DC_DEVICES = [
   {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge', sd:'Flow · SNMP · traps · BGP',
    i:{h:'Edge routers carry Internet and WAN traffic. Besides flow and device telemetry, they peer BGP so every flow gets AS path, community and next-hop context.',
       d:['With BGP Proxy on, routers peer with the Universal Agent on TCP 179 and the agent relays routes to Kentik over HTTPS.',
-         'With BGP Proxy off, routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
+         'BGP peering is optional; many enterprises skip it. Without BGP Proxy, routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
          'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
          'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
          'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.']}},
@@ -104,7 +104,7 @@ hl:`<p class="lead">One Universal Agent per data center collects everything. Dev
 <li>The Universal Agent on a Linux host (VM or bare metal) or in Docker</li>
 <li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy: Forwarding, SNMP Trap Receiver, SNMP/ST and Syslog Server</li>
 <li>Devices pointed at the agent for flow, traps and syslog, including branches that have no agent of their own</li>
-<li>BGP from the edge routers, to the agent (BGP Proxy) or directly to Kentik</li></ul>
+<li>Optionally, BGP from the edge routers, to the agent (BGP Proxy) or directly to Kentik</li></ul>
 <h3>What Kentik collects</h3><ul>
 <li>Flow, enriched with interface names, BGP, GeoIP and your custom dimensions</li>
 <li>Device health and interface metrics</li><li>Traps and syslog events</li><li>DNS lookups</li><li>Synthetic test results</li><li>Config backups and changes</li></ul>
@@ -123,7 +123,7 @@ dd:`<p class="lead">Universal Agent on a Linux host or in Docker, managed from S
 <tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Connectivity Test</td></tr>
 <tr><td>DNS → agent</td><td>DNSTAP port you set</td><td>DNS OTT Tap</td></tr>
 <tr><td>Router → agent</td><td>TCP 179</td><td>BGP Proxy</td></tr>
-<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP peering, when BGP Proxy is off</td></tr>
+<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP peering directly with Kentik, if used</td></tr>
 <tr><td>Branch devices → agent</td><td>UDP 9995 · 162 · 514</td><td>Branches with no agent, across the WAN</td></tr>
 </tbody></table>
 <h3>Outbound allowlist</h3>

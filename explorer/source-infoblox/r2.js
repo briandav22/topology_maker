@@ -323,7 +323,7 @@ function setDCCount(n){
 const stepDC = d => setDCCount((S.sel.has('dc') ? S.dcN : 0) + d);
 function removeDC(i){
   if(S.dcN <= 1){ setDCCount(0); return; }
-  [S.dcNames, S.dcCaps, S.dcInst].forEach(a => a.splice(i - 1, 1));
+  [S.dcNames, S.dcCaps, S.dcInst, S.dcBgp].forEach(a => a.splice(i - 1, 1));
   S.brTo = S.brTo.map(t => { t = +t || 1; return t === i ? 1 : t > i ? t - 1 : t; });   // branches that pointed at the removed site move to the first one
   S.dcN--;
   dcRefresh('dcs');
@@ -363,8 +363,19 @@ function siteChanged(){
   refresh();
   $('#panel').scrollTop = top;
 }
-function toggleCap(kind, i, c){ const s = capsOf(kind, i); if(s.has(c)) s.delete(c); else s.add(c); siteChanged(); }
+function toggleCap(kind, i, c){
+  const s = capsOf(kind, i);
+  if(s.has(c)){ s.delete(c); if(kind === 'dc' && c === 'bgp') S.dcBgp[i - 1] = 'direct'; }   // peering stays on, now directly with Kentik
+  else s.add(c);
+  siteChanged();
+}
 function setAllCaps(kind, i, on){ (kind === 'dc' ? S.dcCaps : S.brCaps)[i - 1] = new Set(on ? DRAW_ORDER : []); siteChanged(); }
+function setBgp(i, m){
+  const c = capsOf('dc', i);
+  if(m === 'ua') c.add('bgp'); else c.delete('bgp');
+  S.dcBgp[i - 1] = m === 'direct' ? 'direct' : 'off';
+  siteChanged();
+}
 function setInst(kind, i, v){ (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
 function toggleBRUA(i){ S.brUA[i - 1] = !brUA(i); siteChanged(); }
 function setBRTarget(i, t){ S.brTo[i - 1] = +t; siteChanged(); }
@@ -379,6 +390,7 @@ function stateHash(){
   if(dn.some(x => String(x || '').trim())) h += '&dn=' + enc(dn);
   if(bn.some(x => String(x || '').trim())) h += '&bn=' + enc(bn);
   h += '&dc=' + dcIds().map((id, k) => capCode(capsOf('dc', k + 1))).join('|');
+  h += '&bg=' + dcIds().map((id, k) => bgpMode(k + 1)[0]).join('');
   h += '&di=' + dcIds().map((id, k) => instOf('dc', k + 1)[0]).join('');
   h += '&bu=' + brIds().map((id, k) => brUA(k + 1) ? 1 : 0).join('');
   h += '&bt=' + brIds().map((id, k) => +S.brTo[k] || 1).join('.');
@@ -410,6 +422,7 @@ function loadHash(){
   if(raw.bn) S.brNames = dec(raw.bn);
   if(q.dc !== undefined) S.dcCaps = q.dc.split('|').map(caps);
   if(q.bc !== undefined) S.brCaps = q.bc.split('|').map(caps);
+  if(q.bg) S.dcBgp = [...q.bg].map(c => c === 'd' ? 'direct' : 'off');   // 'u' comes back through the bgp capability
   if(q.di) S.dcInst = [...q.di].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bi) S.brInst = [...q.bi].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bu) S.brUA = [...q.bu].map(c => c === '1');
@@ -453,6 +466,10 @@ $('#panel').addEventListener('click', ev => {
   if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, +i, c); return; }
   const ca = t.closest('[data-capall]');
   if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, +i, on === '1'); return; }
+  const bo = t.closest('[data-bgpon]');
+  if(bo){ const i = +bo.dataset.bgpon; setBgp(i, bgpMode(i) === 'off' ? 'direct' : 'off'); return; }
+  const bm = t.closest('[data-bgp]');
+  if(bm){ const [i, m] = bm.dataset.bgp.split(':'); setBgp(+i, m); return; }
   const ins = t.closest('[data-inst]');
   if(ins){ const [k, i, v] = ins.dataset.inst.split(':'); setInst(k, +i, v); return; }
   const bu = t.closest('[data-brua]');

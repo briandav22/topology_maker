@@ -509,10 +509,10 @@ const OV_DD = `
 <table><thead><tr><th style="width:34%">From → to</th><th style="width:30%">Port</th><th>Why</th></tr></thead><tbody>
 <tr><td>Universal Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>flow, grpc.api, api, portal .kentik.com and storage.googleapis.com (EU: .kentik.eu)</td></tr>
 <tr><td>Devices → Universal Agent</td><td>UDP 9995 · UDP 162 · UDP/TCP 514</td><td>Flow, SNMP traps, syslog (also from branches with no agent, across the WAN)</td></tr>
-<tr><td>Routers → Universal Agent</td><td>TCP 179</td><td>BGP Proxy, when it is on</td></tr>
+<tr><td>Routers → Universal Agent</td><td>TCP 179</td><td>BGP Proxy, if peering goes through the agent</td></tr>
 <tr><td>Universal Agent → devices</td><td>UDP 161 · gNMI · ICMP · TCP 22</td><td>SNMP, streaming telemetry, reachability, SSH config</td></tr>
 <tr><td>Agent ↔ agent</td><td>TCP 8877 · UDP 9977</td><td>Agent-to-agent and mesh tests</td></tr>
-<tr><td>Edge router ↔ Kentik</td><td>TCP 179</td><td>Direct BGP peering when BGP Proxy is off, with the ingest peering IPs shown in device settings</td></tr>
+<tr><td>Edge router ↔ Kentik</td><td>TCP 179</td><td>Direct BGP peering, if peering is on without BGP Proxy; use the ingest peering IPs shown in device settings</td></tr>
 <tr><td>Kentik → Azure storage</td><td>From 20.69.189.228 and 20.69.185.115</td><td>Only if the storage account firewall is restricted</td></tr>
 </tbody></table>
 <h3>Cloud access you grant</h3>
@@ -589,7 +589,7 @@ const CAP = {
   bgp:{h:'BGP Proxy (kbgp) lets routers peer BGP with the agent instead of with Kentik, and the agent relays the routes to Kentik over outbound HTTPS. Routers in private networks need no session to the Internet.',
     d:['Routers peer with the agent on TCP 179.',
        'Sizing: 2 cores / 2 GB RAM. Extra capacity helps the agent stay stable during BGP table updates.',
-       'With BGP Proxy off, edge routers peer with Kentik directly on TCP 179, as before.',
+       'BGP peering is optional. Without BGP Proxy, edge routers can peer with Kentik directly on TCP 179, or not peer at all.',
        'It appears in Installed Capabilities in the portal, while the KB page still lists it as coming soon. Confirm availability for your account with your Infoblox team.']}
 };
 
@@ -608,7 +608,7 @@ const DC_DEVICES = [
   {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge', sd:'Flow · SNMP · traps · BGP',
    i:{h:'Edge routers carry Internet and WAN traffic. Besides flow and device telemetry, they peer BGP so every flow gets AS path, community and next-hop context.',
       d:['With BGP Proxy on, routers peer with the Universal Agent on TCP 179 and the agent relays routes to Kentik over HTTPS.',
-         'With BGP Proxy off, routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
+         'BGP peering is optional; many enterprises skip it. Without BGP Proxy, routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
          'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
          'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
          'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.']}},
@@ -638,7 +638,7 @@ hl:`<p class="lead">One Universal Agent per data center collects everything. Dev
 <li>The Universal Agent on a Linux host (VM or bare metal) or in Docker</li>
 <li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy: Forwarding, SNMP Trap Receiver, SNMP/ST and Syslog Server</li>
 <li>Devices pointed at the agent for flow, traps and syslog, including branches that have no agent of their own</li>
-<li>BGP from the edge routers, to the agent (BGP Proxy) or directly to Kentik</li></ul>
+<li>Optionally, BGP from the edge routers, to the agent (BGP Proxy) or directly to Kentik</li></ul>
 <h3>What Kentik collects</h3><ul>
 <li>Flow, enriched with interface names, BGP, GeoIP and your custom dimensions</li>
 <li>Device health and interface metrics</li><li>Traps and syslog events</li><li>DNS lookups</li><li>Synthetic test results</li><li>Config backups and changes</li></ul>
@@ -657,7 +657,7 @@ dd:`<p class="lead">Universal Agent on a Linux host or in Docker, managed from S
 <tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Connectivity Test</td></tr>
 <tr><td>DNS → agent</td><td>DNSTAP port you set</td><td>DNS OTT Tap</td></tr>
 <tr><td>Router → agent</td><td>TCP 179</td><td>BGP Proxy</td></tr>
-<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP peering, when BGP Proxy is off</td></tr>
+<tr><td>Router ↔ Kentik</td><td>TCP 179</td><td>BGP peering directly with Kentik, if used</td></tr>
 <tr><td>Branch devices → agent</td><td>UDP 9995 · 162 · 514</td><td>Branches with no agent, across the WAN</td></tr>
 </tbody></table>
 <h3>Outbound allowlist</h3>
@@ -1406,6 +1406,8 @@ function capsOf(kind, i){
   if(!arr[i - 1]) arr[i - 1] = new Set(kind === 'dc' ? DC_DEF : BR_DEF);
   return arr[i - 1];
 }
+/* BGP peering at a data center: off, routers peer directly with Kentik, or with the agent (BGP Proxy on) */
+function bgpMode(i){ return capsOf('dc', i).has('bgp') ? 'ua' : S.dcBgp[i - 1] === 'direct' ? 'direct' : 'off'; }
 function instOf(kind, i){ return (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] === 'docker' ? 'docker' : 'linux'; }
 const capList = (kind, i) => DRAW_ORDER.filter(c => capsOf(kind, i).has(c));
 function sizing(kind, i){
@@ -1440,7 +1442,8 @@ function agentScene(kind, i){
   frames.push({x:16, y:16, w:L.fw, h:588, label:name + (dc ? ' (on-prem)' : ''),
     labeld:dc ? (S.dcN > 1 ? name + ' (on-prem) · site ' + i + ' of ' + S.dcN : name + ' (on-prem)') : name + ' · agent at the branch'});
   frames.push(dc ? DC_NETGRP : BR_NETGRP);
-  nodes.push(...(dc ? DC_DEVICES : BR_DEVICES));
+  const bm = dc ? bgpMode(i) : '';
+  nodes.push(...(dc ? DC_DEVICES.map(n => n.id === 'edge' && bm === 'off' ? Object.assign({}, n, {sd:'Flow · SNMP · traps'}) : n) : BR_DEVICES));
 
   /* Left column under the devices: only what the capabilities need */
   const feeds = dc ? feeders(i) : [];
@@ -1496,7 +1499,7 @@ function agentScene(kind, i){
   const ur = L.ux + L.uw;
   if(on('bgp') && dc) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [ur + 12, 50], [ur + 12, cy('bgp')], [rx, cy('bgp')]], lab:'BGP: routers peer with the agent', labd:'BGP Proxy, TCP 179 to the agent', lp:[(236 + ur) / 2 + 6, 50]});
   else if(on('bgp')) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [294, 50], [294, cy('bgp')], [cx, cy('bgp')]], lab:'BGP', labd:'TCP 179', lp:[265, 50]});
-  else if(dc) edges.push({t:'bgp', a:'edge', b:'kentik', p:[[236, 90], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179 (BGP Proxy off)', lp:[566, 50]});
+  else if(bm === 'direct') edges.push({t:'bgp', a:'edge', b:'kentik', p:[[236, 90], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179', lp:[566, 50]});
 
   /* Branches with no agent of their own, across the WAN */
   if(brin){
@@ -1620,7 +1623,7 @@ function dcsScene(){
   const ta = testAgents().length, m = meshMath(ta);
   const notes = n > 1
     ? [{x:32, y:552, t:'Every site runs the same agent with its own capabilities, all managed in one portal.', td:ta > 1 ? 'Mesh of the ' + ta + ' agents with Connectivity Test, every minute: ' + m.sub + ' subtests, ' + fmt(m.run) + ' credits per run.' : 'Turn on Connectivity Test at two or more agents to build a mesh.'},
-       {x:32, y:569, t:'Agents with Connectivity Test on test the paths between sites.', td:'Edge routers peer BGP with their agent (BGP Proxy) or with Kentik on TCP 179.'}]
+       {x:32, y:569, t:'Agents with Connectivity Test on test the paths between sites.', td:'BGP peering is optional per site: routers peer with their agent (BGP Proxy) or with Kentik on TCP 179.'}]
     : [{x:32, y:552, t:'Add a data center with + to see more sites and the tests between them.', td:'Add a data center to see mesh test credits for your sites.'}];
   return {frames, nodes, edges, notes};
 }
@@ -1763,11 +1766,19 @@ function capsCard(kind, i, dd){
   return `<div class="card caps"><div class="caphead"><div><h4>Installed capabilities</h4><p>Running on this agent. The diagram follows what you turn on.</p></div><span class="capn" aria-label="${n} on">${n}</span></div>${rows}
 <div class="btns" style="margin-top:6px"><button type="button" data-capall="${kind}:${i}:1">Turn all on</button><button type="button" data-capall="${kind}:${i}:0">Turn all off</button></div>${size}</div>`;
 }
+function bgpCard(i, dd){
+  const m = bgpMode(i), on = m !== 'off';
+  const sub = !on ? 'Off: no routing data. Many enterprises skip it.' : m === 'ua' ? 'Routers peer with this agent (BGP Proxy)' : 'Routers peer directly with Kentik';
+  const seg = on ? `<div class="fld"><span>Routers peer with</span><div class="seg mini" role="group" aria-label="BGP peering">${[['direct', 'Kentik directly'], ['ua', 'The agent (BGP Proxy)']].map(o => `<button type="button" data-bgp="${i}:${o[0]}" aria-pressed="${m === o[0]}">${o[1]}</button>`).join('')}</div></div>` : '';
+  const dd1 = on && dd ? `<p class="muted" style="font-size:12px;margin:4px 0 0">${m === 'ua' ? 'TCP 179 from the edge routers to the agent; the agent relays routes over HTTPS.' : 'TCP 179 between the edge routers and Kentik’s ingest peering IPs (device settings › BGP).'}</p>` : '';
+  return `<div class="caprow solo${on ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${on}" data-bgpon="${i}" aria-label="BGP peering"><span></span></button><div class="capt"><b>BGP peering</b><span>${sub}</span></div></div>${seg}${dd1}`;
+}
 function siteCard(i, dd){
   const n = S.dcN, f = feeders(i).length;
   return `<div class="card site"><h4>${BLDG}${n > 1 ? 'Site ' + i + ' of ' + n : 'This data center'}<span class="tag">Universal Agent</span></h4>
 <label class="fld"><span>Site name</span><input type="text" class="nameIn" data-name="dc:${i}" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(dcCustom(i))}" placeholder="${esc(dcDefault(i))}"></label>
 ${instSeg('dc', i)}${f ? `<p style="font-size:12.5px">Collects for ${f} branch${f > 1 ? 'es' : ''} with no agent.</p>` : ''}
+${bgpCard(i, dd)}
 <div class="btns"><button type="button" data-dcadd="1"${n < DC_MAX ? '' : ' disabled'}>+ Add a data center</button>${n > 1 ? `<button type="button" data-dcdel="${i}">Remove this site</button><button type="button" data-go="dcs">All ${n} together ›</button>` : ''}</div></div>` + capsCard('dc', i, dd);
 }
 function branchCard(i, dd){
@@ -1792,7 +1803,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
 const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
-  dcN:1, dcNames:[], dcCaps:[], dcInst:[],
+  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[],
   brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
   meta:{cu:'', pb:'', rg:'US'}};
 const VB = [0, 0, 1000, 620];
@@ -2035,7 +2046,7 @@ function renderOverview(){
   const sideEdges = (cards, fromRight) => {
     const list = [];
     cards.forEach(r => {
-      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2 && !capsOf('dc', dcIndex(r.id)).has('bgp');   // direct BGP from the data center, when BGP Proxy is off and there is room
+      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2 && bgpMode(dcIndex(r.id)) === 'direct';   // direct BGP from the data center, when it peers with Kentik and there is room
       list.push({r, e:OV_EDGE[modOf(r.id)], y:two ? cy - 12 : cy});
       if(two) list.push({r, e:OV_BGP, y:cy + 12});
     });
@@ -2463,7 +2474,7 @@ function setDCCount(n){
 const stepDC = d => setDCCount((S.sel.has('dc') ? S.dcN : 0) + d);
 function removeDC(i){
   if(S.dcN <= 1){ setDCCount(0); return; }
-  [S.dcNames, S.dcCaps, S.dcInst].forEach(a => a.splice(i - 1, 1));
+  [S.dcNames, S.dcCaps, S.dcInst, S.dcBgp].forEach(a => a.splice(i - 1, 1));
   S.brTo = S.brTo.map(t => { t = +t || 1; return t === i ? 1 : t > i ? t - 1 : t; });   // branches that pointed at the removed site move to the first one
   S.dcN--;
   dcRefresh('dcs');
@@ -2503,8 +2514,19 @@ function siteChanged(){
   refresh();
   $('#panel').scrollTop = top;
 }
-function toggleCap(kind, i, c){ const s = capsOf(kind, i); if(s.has(c)) s.delete(c); else s.add(c); siteChanged(); }
+function toggleCap(kind, i, c){
+  const s = capsOf(kind, i);
+  if(s.has(c)){ s.delete(c); if(kind === 'dc' && c === 'bgp') S.dcBgp[i - 1] = 'direct'; }   // peering stays on, now directly with Kentik
+  else s.add(c);
+  siteChanged();
+}
 function setAllCaps(kind, i, on){ (kind === 'dc' ? S.dcCaps : S.brCaps)[i - 1] = new Set(on ? DRAW_ORDER : []); siteChanged(); }
+function setBgp(i, m){
+  const c = capsOf('dc', i);
+  if(m === 'ua') c.add('bgp'); else c.delete('bgp');
+  S.dcBgp[i - 1] = m === 'direct' ? 'direct' : 'off';
+  siteChanged();
+}
 function setInst(kind, i, v){ (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
 function toggleBRUA(i){ S.brUA[i - 1] = !brUA(i); siteChanged(); }
 function setBRTarget(i, t){ S.brTo[i - 1] = +t; siteChanged(); }
@@ -2519,6 +2541,7 @@ function stateHash(){
   if(dn.some(x => String(x || '').trim())) h += '&dn=' + enc(dn);
   if(bn.some(x => String(x || '').trim())) h += '&bn=' + enc(bn);
   h += '&dc=' + dcIds().map((id, k) => capCode(capsOf('dc', k + 1))).join('|');
+  h += '&bg=' + dcIds().map((id, k) => bgpMode(k + 1)[0]).join('');
   h += '&di=' + dcIds().map((id, k) => instOf('dc', k + 1)[0]).join('');
   h += '&bu=' + brIds().map((id, k) => brUA(k + 1) ? 1 : 0).join('');
   h += '&bt=' + brIds().map((id, k) => +S.brTo[k] || 1).join('.');
@@ -2550,6 +2573,7 @@ function loadHash(){
   if(raw.bn) S.brNames = dec(raw.bn);
   if(q.dc !== undefined) S.dcCaps = q.dc.split('|').map(caps);
   if(q.bc !== undefined) S.brCaps = q.bc.split('|').map(caps);
+  if(q.bg) S.dcBgp = [...q.bg].map(c => c === 'd' ? 'direct' : 'off');   // 'u' comes back through the bgp capability
   if(q.di) S.dcInst = [...q.di].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bi) S.brInst = [...q.bi].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bu) S.brUA = [...q.bu].map(c => c === '1');
@@ -2593,6 +2617,10 @@ $('#panel').addEventListener('click', ev => {
   if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, +i, c); return; }
   const ca = t.closest('[data-capall]');
   if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, +i, on === '1'); return; }
+  const bo = t.closest('[data-bgpon]');
+  if(bo){ const i = +bo.dataset.bgpon; setBgp(i, bgpMode(i) === 'off' ? 'direct' : 'off'); return; }
+  const bm = t.closest('[data-bgp]');
+  if(bm){ const [i, m] = bm.dataset.bgp.split(':'); setBgp(+i, m); return; }
   const ins = t.closest('[data-inst]');
   if(ins){ const [k, i, v] = ins.dataset.inst.split(':'); setInst(k, +i, v); return; }
   const bu = t.closest('[data-brua]');
@@ -2709,7 +2737,7 @@ function savedHTML(){
 function exportCfg(){
   const sites = [];
   if(dcOn()) for(let i = 1; i <= S.dcN; i++){
-    sites.push({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:!capsOf('dc', i).has('bgp')});
+    sites.push({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:bgpMode(i) === 'direct'});
   }
   if(brOn()) for(let i = 1; i <= S.brN; i++){
     const ua = brUA(i), t = brTarget(i);

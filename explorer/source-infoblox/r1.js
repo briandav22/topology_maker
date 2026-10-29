@@ -3,7 +3,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
 const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
-  dcN:1, dcNames:[], dcCaps:[], dcInst:[],
+  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[],
   brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
   meta:{cu:'', pb:'', rg:'US'}};
 const VB = [0, 0, 1000, 620];
@@ -246,7 +246,7 @@ function renderOverview(){
   const sideEdges = (cards, fromRight) => {
     const list = [];
     cards.forEach(r => {
-      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2 && !capsOf('dc', dcIndex(r.id)).has('bgp');   // direct BGP from the data center, when BGP Proxy is off and there is room
+      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2 && bgpMode(dcIndex(r.id)) === 'direct';   // direct BGP from the data center, when it peers with Kentik and there is room
       list.push({r, e:OV_EDGE[modOf(r.id)], y:two ? cy - 12 : cy});
       if(two) list.push({r, e:OV_BGP, y:cy + 12});
     });
