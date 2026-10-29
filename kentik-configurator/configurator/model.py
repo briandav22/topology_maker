@@ -14,7 +14,7 @@ def new_site(kind="dc", n=1):
     if kind == "dc":
         return {"name": f"Data Center {n}", "kind": "dc", "location": "", "install": "linux",
                 "capabilities": list(DC_CAPS), "flow_mode": "forward", "fps": 20000, "devices": 200,
-                "syslog_eps": 2000, "dns_lps": 0, "bgp": True, "proxy": False, "agent": True, "send_to": ""}
+                "syslog_eps": 2000, "dns_lps": 0, "bgp": False, "proxy": False, "agent": True, "send_to": ""}
     return {"name": f"Branch {n}", "kind": "branch", "location": "", "install": "docker",
             "capabilities": list(BRANCH_CAPS), "flow_mode": "forward", "fps": 2000, "devices": 20,
             "syslog_eps": 200, "dns_lps": 0, "bgp": False, "proxy": False, "agent": False, "send_to": ""}

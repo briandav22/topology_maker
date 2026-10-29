@@ -106,10 +106,10 @@ const OV_DD = `
 <table><thead><tr><th style="width:34%">From → to</th><th style="width:30%">Port</th><th>Why</th></tr></thead><tbody>
 <tr><td>Universal Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>flow, grpc.api, api, portal .kentik.com and storage.googleapis.com (EU: .kentik.eu)</td></tr>
 <tr><td>Devices → Universal Agent</td><td>UDP 9995 · UDP 162 · UDP/TCP 514</td><td>Flow, SNMP traps, syslog (also from branches with no agent, across the WAN)</td></tr>
-<tr><td>Routers → Universal Agent</td><td>TCP 179</td><td>BGP Proxy, when it is on</td></tr>
+<tr><td>Routers → Universal Agent</td><td>TCP 179</td><td>BGP Proxy, if peering goes through the agent</td></tr>
 <tr><td>Universal Agent → devices</td><td>UDP 161 · gNMI · ICMP · TCP 22</td><td>SNMP, streaming telemetry, reachability, SSH config</td></tr>
 <tr><td>Agent ↔ agent</td><td>TCP 8877 · UDP 9977</td><td>Agent-to-agent and mesh tests</td></tr>
-<tr><td>Edge router ↔ Kentik</td><td>TCP 179</td><td>Direct BGP peering when BGP Proxy is off, with the ingest peering IPs shown in device settings</td></tr>
+<tr><td>Edge router ↔ Kentik</td><td>TCP 179</td><td>Direct BGP peering, if peering is on without BGP Proxy; use the ingest peering IPs shown in device settings</td></tr>
 <tr><td>Kentik → Azure storage</td><td>From 20.69.189.228 and 20.69.185.115</td><td>Only if the storage account firewall is restricted</td></tr>
 </tbody></table>
 <h3>Cloud access you grant</h3>

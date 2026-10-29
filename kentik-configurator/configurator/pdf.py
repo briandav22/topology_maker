@@ -407,7 +407,8 @@ def guide_pdf(cfg, images=None):
         size = M.site_sizing(s, cfg)
         rows.append([s["name"] + (f" ({s['location']})" if s["location"] else ""),
                      "Universal Agent on " + ("Docker" if s["install"] == "docker" else "Linux"),
-                     ", ".join(C.CAPABILITIES[c]["name"] for c in s["capabilities"]) or "None selected",
+                     (", ".join(C.CAPABILITIES[c]["name"] for c in s["capabilities"]) or "None selected")
+                     + ("; edge routers peer BGP directly with Kentik" if s.get("bgp") else "; no BGP peering" if s["kind"] == "dc" and "bgp" not in s["capabilities"] else ""),
                      f"{size['rec_cpu']} vCPU / {size['rec_ram']} GB"])
     for cid in clouds:
         cl = cfg["clouds"][cid]

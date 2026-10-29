@@ -28,7 +28,7 @@ function savedHTML(){
 function exportCfg(){
   const sites = [];
   if(dcOn()) for(let i = 1; i <= S.dcN; i++){
-    sites.push({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:!capsOf('dc', i).has('bgp')});
+    sites.push({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:bgpMode(i) === 'direct'});
   }
   if(brOn()) for(let i = 1; i <= S.brN; i++){
     const ua = brUA(i), t = brTarget(i);

@@ -3,7 +3,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
 const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
-  dcN:1, dcNames:[], dcCaps:[], dcInst:[],
+  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[],
   brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
   meta:{cu:'', pb:'', rg:'US'}};
 const VB = [0, 0, 1000, 620];
@@ -180,7 +180,7 @@ function drawBranchTile(gN, r, i, dd){
   el('rect', {class:'bg', x:r.x, y:r.y, width:r.w, height:r.h, rx:10}, g);
   icon(g, ua ? 'agent' : 'store', r.x + 9, r.y + 9, 17, 'ico ' + (ua ? 'ico-ktk' : 'ico-left'));
   fit(txt(g, r.x + 31, r.y + 22, brName(i), 't-label', {style:'font-size:12.5px'}), r.w - 40);
-  fit(txt(g, r.x + 10, r.y + 41, status, 't-sub'), r.w - 20);
+  fit(txt(g, r.x + 10, r.y + 41, r.h < 70 && !ua && t && !dd ? 'To ' + dcName(t) : status, 't-sub'), r.w - 20);   // short form for the small two-row tiles
   if(r.h >= 70){
     const dots = ua ? caps : t ? ['flow', 'snmp', 'trap', 'syslog'].filter(c => capsOf('dc', t).has(c)) : [];
     dots.forEach((c, k) => el('circle', {class:'dot-' + c, cx:r.x + 14 + k * 11, cy:r.y + 58, r:3.6}, g));
@@ -192,10 +192,10 @@ function drawBranchTile(gN, r, i, dd){
 
 /* Branch row geometry: one row, or two staggered rows so lines from the back row pass between the tiles in front */
 function branchBand(rightCol){
-  const brs = brIds().map(brIndex), add = S.brN < BR_MAX;
+  const brs = brIds().map(brIndex);   // branches are added from the menu at the top, not from the diagram
   const x0 = M, x1 = rightCol ? VB[2] - M - SW - 26 : VB[2] - M, rowW = x1 - x0, g = 10;
   const per = Math.max(2, Math.floor((rowW + g) / (100 + g)));
-  let slots = brs.length + (add ? 1 : 0), rows = 1, k1 = slots;
+  let slots = brs.length, rows = 1, k1 = slots;
   if(slots > per){ rows = 2; k1 = Math.ceil((slots + 1) / 2); if(k1 > per){ k1 = per; slots = Math.min(slots, 2 * per - 1); } }
   const tw = Math.min(rows === 1 ? 188 : 160, (rowW - (k1 - 1) * g) / k1), th = rows === 1 ? 74 : 52;
   const top = VB[3] - M - (rows * th + (rows - 1) * 10), ox = x0 + (rowW - (k1 * tw + (k1 - 1) * g)) / 2;
@@ -246,7 +246,7 @@ function renderOverview(){
   const sideEdges = (cards, fromRight) => {
     const list = [];
     cards.forEach(r => {
-      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2 && !capsOf('dc', dcIndex(r.id)).has('bgp');   // direct BGP from the data center, when BGP Proxy is off and there is room
+      const cy = r.y + r.h / 2, two = isDC(r.id) && dcCards <= 2 && bgpMode(dcIndex(r.id)) === 'direct';   // direct BGP from the data center, when it peers with Kentik and there is room
       list.push({r, e:OV_EDGE[modOf(r.id)], y:two ? cy - 12 : cy});
       if(two) list.push({r, e:OV_BGP, y:cy + 12});
     });
@@ -292,10 +292,7 @@ function renderOverview(){
   [...left, ...right, top].filter(Boolean).forEach(r => { drawCard(gN, r, modFor(r.id), dd); OVR[r.id] = [r.x, r.y, r.w, r.h]; });
   if(band){
     band.tiles.forEach(t => {
-      if(t.i){ drawBranchTile(gN, t, t.i, dd); OVR[brId(t.i)] = [t.x, t.y, t.w, t.h]; return; }
-      const g = el('g', {class:'addbtn', role:'button', tabindex:0, 'data-bradd':1, 'aria-label':'Add a branch office'}, gN);
-      el('rect', {x:t.x, y:t.y, width:t.w, height:t.h, rx:10}, g);
-      txt(g, t.x + t.w / 2, t.y + t.h / 2 + 4, '+ Add a branch', '', {'text-anchor':'middle'});
+      drawBranchTile(gN, t, t.i, dd); OVR[brId(t.i)] = [t.x, t.y, t.w, t.h];
     });
     const xs = band.tiles.map(t => t.x), ys = band.tiles.map(t => t.y);
     OVR.brs = [Math.min(...xs), Math.min(...ys), Math.max(...band.tiles.map(t => t.x + t.w)) - Math.min(...xs), Math.max(...band.tiles.map(t => t.y + t.h)) - Math.min(...ys)];
@@ -304,12 +301,6 @@ function renderOverview(){
   if(dcs.length){
     const last = dcs[dcs.length - 1];
     OVR.dcs = [last.x, dcs[0].y, last.w, last.y + last.h - dcs[0].y];
-    const ay = last.y + last.h + 8;
-    if(S.dcN < DC_MAX && !left.some(r => r.y > last.y) && ay + 26 <= leftBottom + 6){
-      const g = el('g', {class:'addbtn', role:'button', tabindex:0, 'data-dcadd':1, 'aria-label':'Add a data center'}, gN);
-      el('rect', {x:last.x, y:ay, width:last.w, height:26, rx:9}, g);
-      txt(g, last.x + last.w / 2, ay + 17, '+ Add a data center', '', {'text-anchor':'middle'});
-    }
   }
   drawHub(gN, hub, dd);
   if(!ids.length && !band) txt(gN, cx, hub.y + hub.h + 42, 'Pick a starting point or deployments above', 'empty-t', {'text-anchor':'middle'});
