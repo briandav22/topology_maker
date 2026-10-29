@@ -757,7 +757,7 @@ def guide_pdf(cfg, images=None):
 
     # ---- 11. open items
     story += H1("Open items to confirm with Kentik", num["Open items to confirm with Kentik"])
-    story += bullets(C.OPEN_ITEMS)
+    story += bullets(C.OPEN_ITEMS + ([C.OPEN_ITEM_BGP_PROXY] if "bgp" in caps_used else []))
 
     # ---- appendix
     story.append(PageBreak())

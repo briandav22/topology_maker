@@ -440,6 +440,7 @@ OPEN_ITEMS = [
     "Which continuous synthetic test types run on the Universal Agent today (the KB names the capability Connectivity Test).",
     "Licensing names and entitlements per contract (FlowPak, NMS/DevicePak, CloudPak, Synthetics credits).",
     "Disk sizing for Universal Agent hosts is not published in the KB.",
-    "BGP Proxy shows in Installed Capabilities in the portal, but the KB page still lists it as coming soon. Confirm it is available for this account before relying on it.",
     "Flow Proxy Forwarding (ktraffic) is marked beta in the KB. Confirm the mode (Forwarding or Edge Processing) per site. Above the KB flow figures, sizing is scaled linearly and is an estimate.",
 ]
+# Listed only when a site uses the BGP Proxy capability
+OPEN_ITEM_BGP_PROXY = "BGP Proxy shows in Installed Capabilities in the portal, but the KB page still lists it as coming soon. Confirm it is available for this account before relying on it."

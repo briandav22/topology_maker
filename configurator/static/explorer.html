@@ -2628,11 +2628,15 @@ function siteChanged(){
 }
 function toggleCap(kind, i, c){
   const s = capsOf(kind, i);
-  if(s.has(c)){ s.delete(c); if(kind === 'dc' && c === 'bgp') S.dcBgp[i - 1] = 'direct'; }   // peering stays on, now directly with Kentik
-  else s.add(c);
+  if(s.has(c)) s.delete(c); else s.add(c);
+  if(kind === 'dc' && c === 'bgp') S.dcBgp[i - 1] = 'off';   // BGP Proxy on: routers peer with the agent; off: no BGP at all
   siteChanged();
 }
-function setAllCaps(kind, i, on){ (kind === 'dc' ? S.dcCaps : S.brCaps)[i - 1] = new Set(on ? DRAW_ORDER : []); siteChanged(); }
+function setAllCaps(kind, i, on){
+  if(kind === 'dc' && (on || capsOf('dc', i).has('bgp'))) S.dcBgp[i - 1] = 'off';   // same rule; direct peering survives "all off" only when the agent was not the peer
+  (kind === 'dc' ? S.dcCaps : S.brCaps)[i - 1] = new Set(on ? DRAW_ORDER : []);
+  siteChanged();
+}
 function setBgp(i, m){
   const c = capsOf('dc', i);
   if(m === 'ua') c.add('bgp'); else c.delete('bgp');
