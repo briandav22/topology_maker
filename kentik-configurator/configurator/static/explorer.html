@@ -406,7 +406,7 @@ const TYPES = {
   flow:   {n:'Flow and flow logs', d:'NetFlow, sFlow or IPFIX sent to the Universal Agent, or cloud flow logs written to storage', pt:'sq'},
   snmp:   {n:'SNMP and telemetry', d:'The Universal Agent polls SNMP or dials in with gNMI streaming telemetry', pt:'ring'},
   trap:   {n:'SNMP traps', d:'Devices push SNMP traps to the Universal Agent', pt:'dot'},
-  syslog: {n:'Syslog', d:'Devices and servers push syslog to the Universal Agent', pt:'sq'},
+  syslog: {n:'Syslog', d:'Network devices push syslog to the Universal Agent', pt:'sq'},
   dns:    {n:'DNS', d:'A DNSTAP stream (for example from Infoblox) or mirrored DNS traffic', pt:'dot'},
   synth:  {n:'Synthetic tests', d:'Ping, traceroute, DNS and HTTP tests between agents and targets', pt:'ring'},
   ssh:    {n:'SSH', d:'Read-only SSH for config backups and show commands', pt:'sq'},
@@ -562,7 +562,7 @@ const CAP = {
     d:['Listens on UDP 162. Filter and alert by trap name and OID. Event alerts need manual clearing.',
        'Query in Data Explorer with the metric “SNMP Traps: Events”.',
        'Traps must come from a device licensed for NMS.']},
-  syslog:{h:'The Syslog Server collects log messages from devices and servers, so you can search them, alert on them and line them up with traffic.',
+  syslog:{h:'The Syslog Server collects log messages from your network devices (routers, switches, firewalls and load balancers), so you can search them, alert on them and line them up with traffic.',
     d:['Listens on UDP and TCP 514. Filter by severity, message content and device.',
        'Query in Data Explorer with the metric “Syslog: Events”.',
        'Sizing: 1 core / 1 GB RAM for about 8,000 events per second.',
@@ -611,12 +611,10 @@ const DC_DEVICES = [
    i:{h:'Data center switches export sFlow or IPFIX and are polled for interface counters, so Kentik sees east-west traffic and link health together.',
       d:['sFlow is the only common flow protocol that carries a packet sample. IPFIX and NetFlow v9 add MAC and VLAN through option templates.',
          'Sanity check: flow volume should land within about 20% of SNMP interface traffic.']}},
-  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls', s:'Perimeter and internal', sd:'Flow · syslog · traps',
-   i:{h:'Firewalls export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
+  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls and load balancers', s:'Perimeter, internal, ADCs', sd:'Flow · syslog · traps',
+   i:{h:'Firewalls and load balancers export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
       d:['Syslog to the agent on UDP or TCP 514; traps to UDP 162.','Trap and syslog ingestion require the device to be licensed for NMS.']}}
 ];
-const DC_SRV = {id:'srv', k:'srv', icon:'server', t:'Servers and hypervisors', s:'Linux, Windows, VMware', sd:'Syslog to UDP/TCP 514',
-  i:{h:'Servers and hypervisors can send syslog to the same agent, so server events line up with network events.', d:['Changing the syslog port currently needs Kentik support.']}};
 const DC_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'DNS servers', s:'Infoblox, BIND resolvers', sd:'DNSTAP stream to the agent',
   i:{h:'DNS servers stream queries and answers to the agent, which turns DNS into records Kentik can join with traffic.', d:CAP.dns.d}};
 const UA_DC_I = {h:'The Universal Agent is one software package that runs capabilities. Install it once per site, then toggle capabilities on in Settings › Universal Agents. It updates itself and reports its own health.',
@@ -1443,7 +1441,6 @@ function agentScene(kind, i){
   /* Left column under the devices: only what the capabilities need */
   const feeds = dc ? feeders(i) : [];
   const left = [];
-  if(dc && on('syslog')) left.push(Object.assign({}, DC_SRV));
   if(on('dns')) left.push(Object.assign({}, dc ? DC_DNS : BR_DNS));
   if(!dc) left.push(Object.assign({}, BR_USERS));
   if(feeds.length){
@@ -1483,11 +1480,7 @@ function agentScene(kind, i){
   if(on('flow')) edges.push({t:'flow', a:'netgrp', b:'c-flow', p:[[272, 104], [cx, cy('flow')]]});
   if(on('snmp')) edges.push({t:'snmp', a:'c-snmp', b:'netgrp', p:[[cx, cy('snmp')], [272, 148]], bi:true});
   if(on('trap')) edges.push({t:'trap', a:'netgrp', b:'c-trap', p:[[272, 192], [cx, cy('trap')]]});
-  if(on('syslog')){
-    edges.push({t:'syslog', a:'netgrp', b:'c-syslog', p:[[272, 236], [cx, cy('syslog')]]});
-    const srv = byId('srv');
-    if(srv) edges.push({t:'syslog', a:'srv', b:'c-syslog', p:[[272, srv.y + 26], [cx, cy('syslog') + 10]]});
-  }
+  if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'c-syslog', p:[[272, 236], [cx, cy('syslog')]]});   // logs come from the network devices
   if(on('dns')){ const d = byId('dnsn'); edges.push({t:'dns', a:'dnsn', b:'c-dns', p:[[272, d.y + 26], [cx, cy('dns')]]}); }
   if(on('ssh')) edges.push({t:'ssh', a:'c-ssh', b:'netgrp', p:[[cx, cy('ssh')], [298, cy('ssh')], [298, 268], [272, 268]]});
   const router = dc ? 'edge' : 'wan';

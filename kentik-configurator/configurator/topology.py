@@ -256,9 +256,7 @@ def draw_site(sc, s, x, y, deep, compact, cfg=None):
     rows = math.ceil(len(caps) / cols) if caps else 1
     chip_h = 17 if not deep or cols == 2 else 20
     ua_h = 40 + rows * (chip_h + 3) + 4
-    dev_rows = ["Routers, switches, firewalls"]
-    if "syslog" in caps:
-        dev_rows.append("Servers (syslog)")
+    dev_rows = ["Routers, switches, firewalls, load balancers"]
     if "dns" in caps:
         dev_rows.append("DNS servers (DNSTAP)")
     h = 30 + max(ua_h, 22 + 16 * len(dev_rows) + (14 if s.get("bgp") else 0)) + 12

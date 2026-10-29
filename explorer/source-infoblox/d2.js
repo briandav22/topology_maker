@@ -33,7 +33,7 @@ const CAP = {
     d:['Listens on UDP 162. Filter and alert by trap name and OID. Event alerts need manual clearing.',
        'Query in Data Explorer with the metric “SNMP Traps: Events”.',
        'Traps must come from a device licensed for NMS.']},
-  syslog:{h:'The Syslog Server collects log messages from devices and servers, so you can search them, alert on them and line them up with traffic.',
+  syslog:{h:'The Syslog Server collects log messages from your network devices (routers, switches, firewalls and load balancers), so you can search them, alert on them and line them up with traffic.',
     d:['Listens on UDP and TCP 514. Filter by severity, message content and device.',
        'Query in Data Explorer with the metric “Syslog: Events”.',
        'Sizing: 1 core / 1 GB RAM for about 8,000 events per second.',
@@ -82,12 +82,10 @@ const DC_DEVICES = [
    i:{h:'Data center switches export sFlow or IPFIX and are polled for interface counters, so Kentik sees east-west traffic and link health together.',
       d:['sFlow is the only common flow protocol that carries a packet sample. IPFIX and NetFlow v9 add MAC and VLAN through option templates.',
          'Sanity check: flow volume should land within about 20% of SNMP interface traffic.']}},
-  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls', s:'Perimeter and internal', sd:'Flow · syslog · traps',
-   i:{h:'Firewalls export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
+  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls and load balancers', s:'Perimeter, internal, ADCs', sd:'Flow · syslog · traps',
+   i:{h:'Firewalls and load balancers export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
       d:['Syslog to the agent on UDP or TCP 514; traps to UDP 162.','Trap and syslog ingestion require the device to be licensed for NMS.']}}
 ];
-const DC_SRV = {id:'srv', k:'srv', icon:'server', t:'Servers and hypervisors', s:'Linux, Windows, VMware', sd:'Syslog to UDP/TCP 514',
-  i:{h:'Servers and hypervisors can send syslog to the same agent, so server events line up with network events.', d:['Changing the syslog port currently needs Kentik support.']}};
 const DC_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'DNS servers', s:'Infoblox, BIND resolvers', sd:'DNSTAP stream to the agent',
   i:{h:'DNS servers stream queries and answers to the agent, which turns DNS into records Kentik can join with traffic.', d:CAP.dns.d}};
 const UA_DC_I = {h:'The Universal Agent is one software package that runs capabilities. Install it once per site, then toggle capabilities on in Settings › Universal Agents. It updates itself and reports its own health.',

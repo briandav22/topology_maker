@@ -89,7 +89,6 @@ function agentScene(kind, i){
   /* Left column under the devices: only what the capabilities need */
   const feeds = dc ? feeders(i) : [];
   const left = [];
-  if(dc && on('syslog')) left.push(Object.assign({}, DC_SRV));
   if(on('dns')) left.push(Object.assign({}, dc ? DC_DNS : BR_DNS));
   if(!dc) left.push(Object.assign({}, BR_USERS));
   if(feeds.length){
@@ -129,11 +128,7 @@ function agentScene(kind, i){
   if(on('flow')) edges.push({t:'flow', a:'netgrp', b:'c-flow', p:[[272, 104], [cx, cy('flow')]]});
   if(on('snmp')) edges.push({t:'snmp', a:'c-snmp', b:'netgrp', p:[[cx, cy('snmp')], [272, 148]], bi:true});
   if(on('trap')) edges.push({t:'trap', a:'netgrp', b:'c-trap', p:[[272, 192], [cx, cy('trap')]]});
-  if(on('syslog')){
-    edges.push({t:'syslog', a:'netgrp', b:'c-syslog', p:[[272, 236], [cx, cy('syslog')]]});
-    const srv = byId('srv');
-    if(srv) edges.push({t:'syslog', a:'srv', b:'c-syslog', p:[[272, srv.y + 26], [cx, cy('syslog') + 10]]});
-  }
+  if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'c-syslog', p:[[272, 236], [cx, cy('syslog')]]});   // logs come from the network devices
   if(on('dns')){ const d = byId('dnsn'); edges.push({t:'dns', a:'dnsn', b:'c-dns', p:[[272, d.y + 26], [cx, cy('dns')]]}); }
   if(on('ssh')) edges.push({t:'ssh', a:'c-ssh', b:'netgrp', p:[[cx, cy('ssh')], [298, cy('ssh')], [298, 268], [272, 268]]});
   const router = dc ? 'edge' : 'wan';

@@ -8,7 +8,7 @@ const TYPES = {
   flow:   {n:'Flow and flow logs', d:'NetFlow, sFlow or IPFIX sent to the Universal Agent, or cloud flow logs written to storage', pt:'sq'},
   snmp:   {n:'SNMP and telemetry', d:'The Universal Agent polls SNMP or dials in with gNMI streaming telemetry', pt:'ring'},
   trap:   {n:'SNMP traps', d:'Devices push SNMP traps to the Universal Agent', pt:'dot'},
-  syslog: {n:'Syslog', d:'Devices and servers push syslog to the Universal Agent', pt:'sq'},
+  syslog: {n:'Syslog', d:'Network devices push syslog to the Universal Agent', pt:'sq'},
   dns:    {n:'DNS', d:'A DNSTAP stream (for example from Infoblox) or mirrored DNS traffic', pt:'dot'},
   synth:  {n:'Synthetic tests', d:'Ping, traceroute, DNS and HTTP tests between agents and targets', pt:'ring'},
   ssh:    {n:'SSH', d:'Read-only SSH for config backups and show commands', pt:'sq'},
