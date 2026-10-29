@@ -339,6 +339,7 @@ function getScene(v){
   if(isBR(v)) return brUA(brIndex(v)) ? agentScene('br', brIndex(v)) : branchRemoteScene(brIndex(v));
   if(v === 'dcs') return dcsScene();
   if(v === 'brs') return brsScene();
+  if(v === 'aws' && S.awsNested) return awsNestedScene();
   return SC[v] || null;
 }
 
@@ -418,6 +419,13 @@ function getInfo(v){
 /* ===== Panel cards: rename sites, choose where a branch sends, toggle capabilities ===== */
 const BLDG = '<svg class="ico ico-left" aria-hidden="true"><use href="#i-building"/></svg>';
 const STORE = '<svg class="ico ico-left" aria-hidden="true"><use href="#i-store"/></svg>';
+/* AWS: one account, or nested (a primary account whose role assumes a role in each secondary account) */
+function awsCard(){
+  const n = !!S.awsNested;
+  return `<div class="card site"><h4><svg class="ico ico-right" aria-hidden="true"><use href="#i-cloud"/></svg>AWS accounts<span class="tag">${n ? 'Nested' : 'One account'}</span></h4>
+<div class="seg mini" role="group" aria-label="AWS accounts">${[[0, 'One account'], [1, 'Several (nested)']].map(o => `<button type="button" data-awsn="${o[0]}" aria-pressed="${n === !!o[0]}">${o[1]}</button>`).join('')}</div>
+<p style="font-size:12.5px;margin:8px 0 0">${n ? 'Kentik assumes the primary role in account A; that role assumes a secondary role in each other account.' : 'Kentik assumes one read-only role in your account.'}</p></div>`;
+}
 function instSeg(kind, i){
   const v = instOf(kind, i);
   return `<div class="fld"><span>Install the agent</span><div class="seg mini" role="group" aria-label="Install method">${[['linux', 'Linux host'], ['docker', 'Docker']].map(o => `<button type="button" data-inst="${kind}:${i}:${o[0]}" aria-pressed="${v === o[0]}">${o[1]}</button>`).join('')}</div></div>`;

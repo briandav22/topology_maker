@@ -626,10 +626,18 @@ def guide_pdf(cfg, images=None):
             if cid == "aws":
                 story.append(P("<b>Steps</b>", "h3"))
                 story += steps([s.format(fw=" and Network Firewalls" if "firewall" in cl["features"] else "") for s in C.AWS_STEPS])
-                if cl.get("multi_account") or cl["accounts"] > 1:
-                    story.append(callout(esc(C.AWS_MULTI), W))
-                story.append(P("<b>IAM role trust policy</b>", "h3"))
+                story.append(P("<b>How data moves</b>", "h3"))
+                story += bullets(C.AWS_DATA_PATH)
+                nested = cl.get("multi_account") or cl["accounts"] > 1
+                story.append(P("<b>IAM role trust policy</b>" + (" (primary account)" if nested else ""), "h3"))
                 story.append(code(C.AWS_TRUST_POLICY, W))
+                if nested:
+                    story.append(P("<b>Nested accounts: primary and secondary roles</b>", "h3"))
+                    story.append(P("Kentik's account assumes the primary role in account A. The primary role then assumes a secondary role "
+                                   "in each other account (B, C and so on) to read its metadata.", "body"))
+                    story += steps(C.AWS_NESTED_STEPS)
+                    story.append(P("<b>Secondary role trust policy</b>", "h3"))
+                    story.append(code(C.AWS_SECONDARY_TRUST, W))
                 story.append(P("<b>IAM permissions policy</b>", "h3"))
                 story.append(table(["Service", "Actions"], C.AWS_PERMISSIONS, [1.5 * inch, 5.5 * inch], bold_first=True))
                 story.append(P("Export status values: Start, Pending, Error, OK, Disabled or Halt. Licensing: CloudPak, measured in flows per second.", "small"))

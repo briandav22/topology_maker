@@ -38,6 +38,7 @@ function exportCfg(){
   }
   const clouds = {};
   ['aws', 'azure', 'gcp', 'oci'].forEach(c => { clouds[c] = {enabled:S.sel.has(c)}; });
+  clouds.aws.multi_account = !!S.awsNested;
   return {customer:S.meta.cu || 'Example Customer', prepared_by:S.meta.pb, region:S.meta.rg, detail:S.mode, sites, clouds,
     synthetics:{enabled:S.sel.has('saas') || testAgents().length > 0, site_mesh:true, bgp_monitor:S.sel.has('saas')},
     explorer_state:stateHash()};

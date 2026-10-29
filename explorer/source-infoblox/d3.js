@@ -36,11 +36,11 @@ SC.aws = {
         d:['Trust: Principal arn:aws:iam::834693425129:root, Action sts:AssumeRole, StringEquals sts:ExternalId = your Company ID (Account # on the Licenses page), ArnEquals aws:PrincipalArn = arn:aws:iam::834693425129:role/eks-ingest-node.',
            'Policy: ec2:Describe*, ec2:Search*, ec2:GetManagedPrefixListEntries, directconnect:Describe*/List*, elasticloadbalancing:Describe*, iam:ListAccountAliases, network-firewall:Describe*/List*, networkmanager core network reads, cloudwatch reads, and s3:Get* and s3:List* on the bucket.',
            'Kentik support can issue a random 16-digit ExternalId instead of the Company ID.']}},
-    {id:'nested', x:330, y:470, w:220, h:72, k:'iam', icon:'org', t:'Nested option', s:'Many accounts: a hub role', s2:'assumes a role in each', sd:'Hub assumes spoke roles', sd2:'organizations:ListAccounts',
+    {id:'nested', x:330, y:470, w:220, h:72, k:'iam', icon:'org', t:'Several AWS accounts?', s:'Pick Several (nested) in', s2:'the panel to see the roles', sd:'Primary assumes secondary roles', sd2:'Switch on Nested in the panel',
      i:{h:'For many accounts, Kentik trusts one hub (primary) role. The hub role assumes a spoke (secondary) role in each member account.',
         d:['Hub policy: sts:AssumeRole on the spoke roles plus organizations:ListAccounts.','Spoke trust: the hub account root, no ExternalId needed. Spoke policy: the same read-only permissions as Standard.','In the export: tick “This is an AWS organization role”, then enter the spoke account IDs, their regions and the spoke role name (role suffix).','Fits large organizations, Control Tower and MSPs, or a central log-archive account with metadata from member accounts.']}},
-    COLLECTOR({s:'In Kentik’s AWS account', s2:'Uses your role, read-only', sd:'Account 834693425129', sd2:'Role eks-ingest-node',
-     i:{h:'Kentik’s cloud collector runs in Kentik’s own AWS account. It assumes your role, reads new log files and calls the describe APIs.',
+    COLLECTOR({s:'In Kentik’s AWS account', s2:'Reads your logs inside AWS', sd:'Account 834693425129', sd2:'Role eks-ingest-node',
+     i:{h:'Kentik’s cloud collector runs in Kentik’s own AWS account. It assumes your role and reads new flow log files from your bucket inside AWS, then sends them on to Kentik SaaS, so you don’t pay egress charges for the logs.',
         d:['Kentik account 834693425129, calling role eks-ingest-node.','Each VPC, Transit Gateway, subnet or interface writing logs becomes a cloud device in Kentik.']}}),
     KEN({y:250, h:250, lines:CLOUD_LINES, linesd:['Cloud export per bucket','Device per VPC or ENI','Sampling: 2–2000 or none','CloudPak flows per second']})
   ],
@@ -51,8 +51,9 @@ SC.aws = {
     {t:'perm', a:'role', b:'s3', p:[[437,316],[437,196]], lab:'Read logs', labd:'s3:Get*, s3:List*', lp:[445,262], anchor:'start'},
     {t:'perm', a:'role', b:'apis', p:[[330,340],[260,340]]},
     {t:'perm', a:'role', b:'cw', p:[[330,364],[260,410]]},
-    {t:'pull', a:'role', b:'collector', p:[[544,352],[780,140]], lab:'Kentik assumes your role', labd:'sts:AssumeRole with ExternalId', lp:[662,268]},
+    {t:'flow', a:'s3', b:'collector', p:[[544,168],[780,140]], lab:'Logs read inside AWS', labd:'No egress charge for you', lp:[662,146]},
     {t:'int', a:'collector', b:'kentik', p:[[882,184],[882,250]]},
+    {t:'pull', a:'kentik', b:'role', p:[[780,352],[544,352]], lab:'Metadata API calls', labd:'sts:AssumeRole with ExternalId', lp:[662,342]},
     {t:'https', a:'ua', b:'kentik', p:[[260,514],[300,514],[300,584],[882,584],[882,500]], lab:'Test results over HTTPS', labd:'TCP 443 outbound', lp:[600,584]}
   ],
   notes:[
@@ -62,13 +63,60 @@ SC.aws = {
   ]
 };
 
+/* Nested accounts, as in the KB: Kentik assumes the primary role in account A, which assumes a secondary role in B, C and so on */
+function awsNestedScene(){
+  const N = id => Object.assign({}, SC.aws.nodes.find(n => n.id === id));
+  const at = (id, x, y, o) => Object.assign(N(id), {x, y}, o || {});
+  const roleI = {h:'The primary role in account A. Kentik’s account assumes it, and it assumes the secondary role in each other account to read that account’s metadata.',
+    d:['Trust: Kentik’s account 834693425129 with sts:ExternalId = your Company ID, as in a single account.', 'Policy: the read-only permissions, plus sts:AssumeRole on the secondary roles (AssumeSecondaryRoles) and organizations:ListAccounts.']};
+  const nodes = [
+    at('vpc', 40, 62, {h:50}), at('tgw', 40, 122, {h:50}), at('nfw', 40, 182, {h:50}),
+    at('apis', 40, 262, {h:50}), at('cw', 40, 322, {h:50}),
+    at('s3', 330, 122, {s:'Central log archive', sd:'One per region, all accounts'}),
+    at('role', 330, 262, {t:'Primary IAM role', s:'Trusts Kentik’s account', s2:'Assumes the secondary roles', sd:'ExternalId = Company ID', sd2:'sts:AssumeRole on secondaries', i:roleI}),
+    N('collector'), N('kentik')
+  ];
+  const frames = [{x:16, y:16, w:744, h:418, label:'Account A: primary', labeld:'Account A: primary (hub), the only account Kentik trusts'}];
+  const edges = [
+    {t:'flow', a:'vpc', b:'s3', p:[[260,87],[330,140]], lab:'Flow logs', labd:'1 or 10 min', lp:[296,96]},
+    {t:'flow', a:'tgw', b:'s3', p:[[260,147],[330,150]]},
+    {t:'flow', a:'nfw', b:'s3', p:[[260,207],[330,160]]},
+    {t:'perm', a:'role', b:'s3', p:[[437,262],[437,178]], lab:'Read logs', labd:'s3:Get*, s3:List*', lp:[445,224], anchor:'start'},
+    {t:'perm', a:'role', b:'apis', p:[[330,287],[260,287]]},
+    {t:'perm', a:'role', b:'cw', p:[[330,312],[260,347]]},
+    {t:'flow', a:'s3', b:'collector', p:[[544,150],[780,140]], lab:'Logs read inside AWS', labd:'No egress charge for you', lp:[662,136]},
+    {t:'int', a:'collector', b:'kentik', p:[[882,184],[882,250]]},
+    {t:'pull', a:'kentik', b:'role', p:[[780,298],[544,298]], lab:'Metadata API calls', labd:'sts:AssumeRole with ExternalId', lp:[662,288]}
+  ];
+  const sec = (key, x, name) => {
+    const rx = x + 16, ax = x + 212, y = 504;
+    frames.push({x, y:452, w:364, h:152, label:'Account ' + name, labeld:'Account ' + name});
+    nodes.push({id:'r' + key, x:rx, y, w:172, h:60, k:'iam', icon:'key', t:'Secondary role', s:'For metadata, trusts A', sd:'Principal: account A root',
+      i:{h:'A secondary role in account ' + name + '. It trusts account A, so the primary role can assume it. No ExternalId is needed.',
+         d:['Trust: arn:aws:iam::<account A ID>:root, sts:AssumeRole, empty Condition.', 'Policy: the read-only metadata permissions (describe and list calls, CloudWatch reads).', 'Use the same role name in every secondary account; the export asks for it once.']}},
+      {id:'a' + key, x:ax, y, w:136, h:60, k:'srv', icon:'api', t:'AWS APIs', s:'ec2, etc.', sd:'Describe, list',
+       i:{h:'Account ' + name + '’s topology metadata, read through its secondary role.', d:[]}});
+    edges.push({t:'perm', a:'r' + key, b:'a' + key, p:[[rx + 172, y + 30], [ax, y + 30]]});
+    return rx + 128;   // enter the role right of the frame label
+  };
+  const bx = sec('b', 16, 'B'), cx = sec('c', 396, 'C');
+  edges.push({t:'pull', a:'role', b:'rb', p:[[410,334],[410,436],[bx,436],[bx,504]], lab:'sts:AssumeRole', labd:'Primary assumes secondary', lp:[260,436]},
+             {t:'pull', a:'role', b:'rc', p:[[464,334],[464,436],[cx,436],[cx,504]], lab:'sts:AssumeRole', labd:'Primary assumes secondary', lp:[cx + 70,436]});
+  const notes = [
+    {x:572, y:66, t:'Kentik trusts only account A.', td:'Add more secondaries the same way:'},
+    {x:572, y:83, t:'A reaches B, C and so on.', td:'the export lists their IDs and regions.'}
+  ];
+  return {frames, nodes, edges, notes};
+}
+
 INFO.aws = {kick:'Drill-in · Public cloud', title:'AWS: flow logs to S3, read-only role',
 hl:`<p class="lead">No agent in AWS. You turn on flow logs, send them to an S3 bucket you own, and create a read-only IAM role that Kentik’s collector assumes.</p>
 <h3>What you set up</h3><ul>
 <li>Flow logs on VPCs, Transit Gateways and Network Firewalls, written to S3 (one bucket per region)</li>
 <li>An IAM role that trusts Kentik’s AWS account, protected by an ExternalId</li>
 <li>A cloud export in Kentik (Settings › Public Clouds) with the role ARN and bucket</li>
-<li>Many accounts? A hub role that assumes a role in each account</li></ul>
+<li>Many accounts? Turn on Nested above: Kentik assumes a primary role in one account, and it assumes a secondary role in each of the others</li></ul>
+<h3>How data moves</h3><ul><li>Flow logs: Kentik’s collector in Kentik’s AWS account reads them from your bucket inside AWS and sends them on to Kentik SaaS, so you don’t pay egress for them</li><li>Metadata: Kentik SaaS calls the AWS APIs through your read-only role</li></ul>
 <h3>What Kentik collects</h3><ul>
 <li>Flow and firewall logs</li><li>Topology metadata: VPCs, subnets, routes, security groups, gateways</li><li>CloudWatch metrics (optional)</li></ul>
 <h3>Where you see it</h3><p>Kentik Map, Data Explorer, Cloud Pathfinder, Cloud Performance Monitor and alerts, next to your on-prem data.</p>
