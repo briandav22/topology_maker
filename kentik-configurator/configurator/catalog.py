@@ -253,7 +253,9 @@ CLOUDS = {
     "aws": {
         "name": "AWS", "full": "Amazon Web Services",
         "pipeline": ["VPC, TGW and firewall flow logs", "S3 bucket per region", "Read-only IAM role"],
-        "summary": "No agent. Flow logs are written to S3 buckets the customer owns, and Kentik assumes a read-only IAM role protected by an ExternalId.",
+        "summary": "No agent. Flow logs are written to S3 buckets the customer owns. Kentik's collector, running in Kentik's own AWS account, "
+                   "reads them inside AWS and sends them on to Kentik SaaS, so the customer pays no egress for the logs. Metadata API calls "
+                   "come from Kentik SaaS through a read-only IAM role, protected by an ExternalId.",
         "features": {"metadata": "Topology metadata (required)", "flow": "VPC and Transit Gateway flow logs", "firewall": "Network Firewall logs", "metrics": "CloudWatch metrics history"},
         "grant_who": "AWS IAM administrator",
         "grant_what": "IAM role trusting arn:aws:iam::834693425129:root with sts:ExternalId = Kentik Company ID; Describe/List APIs, CloudWatch read, s3:Get* and s3:List* on the log bucket",
@@ -325,8 +327,30 @@ AWS_STEPS = [
     "Pick sampling (Legacy, a rate from 2 to 2000, or Unsampled), name the export, choose the billing plan and Save.",
     "Optional: tick \"Help me configure my provider via Terraform\" for a main.tf that creates the role, bucket and flow logs.",
 ]
-AWS_MULTI = ("Many accounts: create a hub role in one account that assumes a role in each spoke account. In the export, the nested settings take "
-             "the spoke account IDs, regions and role suffix.")
+AWS_DATA_PATH = [
+    "Flow logs: Kentik's collector runs in Kentik's AWS account (834693425129). It assumes your role and reads new log files from your S3 "
+    "buckets inside AWS, then sends them to Kentik SaaS, so you don't pay egress charges for the logs.",
+    "Metadata: Kentik SaaS calls the AWS describe APIs (EC2, Direct Connect, ELB, Network Firewall and so on) through the same read-only role, "
+    "using sts:AssumeRole with your ExternalId.",
+]
+AWS_NESTED_STEPS = [
+    "Pick the primary (hub) account, for example the account that holds the log buckets. Kentik assumes only the primary role.",
+    "In the primary account, create the primary role with the trust policy above (Kentik's account, ExternalId = Company ID).",
+    "Give the primary role a policy with sts:AssumeRole on the secondary roles (\"AssumeSecondaryRoles\") and organizations:ListAccounts.",
+    "In each secondary account, create a secondary role that trusts the primary account (arn:aws:iam::<primary account ID>:root, "
+    "sts:AssumeRole, no ExternalId) and attach the read-only metadata permissions below. Use the same role name in every account.",
+    "In the Kentik export, tick \"This is an AWS organization role\", then enter the secondary account IDs, their regions and the secondary role name.",
+    "Flow logs from the secondary accounts can be sent to a bucket in the primary account (a central log archive), so one export reads them all.",
+]
+AWS_SECONDARY_TRUST = """{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": { "AWS": "arn:aws:iam::<primary account ID>:root" },
+    "Action": "sts:AssumeRole",
+    "Condition": {}
+  }]
+}"""
 
 AZURE_ROLES = [
     ("Reader", "Subscription or resource group holding the logs", "Read resources"),

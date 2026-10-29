@@ -170,7 +170,7 @@ function renderPanel(){
     return;
   }
   const inf = getInfo(S.view);
-  const site = inf.site ? (inf.site[0] === 'dc' ? siteCard(inf.site[1], dd) : branchCard(inf.site[1], dd)) : inf.sites ? sitesCard(inf.sites) : '';
+  const site = inf.site ? (inf.site[0] === 'dc' ? siteCard(inf.site[1], dd) : branchCard(inf.site[1], dd)) : inf.sites ? sitesCard(inf.sites) : S.view === 'aws' ? awsCard() : '';
   P.innerHTML = typeBlock() + focusBlock(dd) + `<p class="kick">${esc(inf.kick)}</p><h2 class="ttl">${esc(inf.title)}</h2>` + site + (dd ? inf.dd : inf.hl) + srcList(inf.src);
 }
 
@@ -386,6 +386,7 @@ function setLoad(kind, i, k, v){
   saveHash();
   document.querySelectorAll('#panel [data-szout]').forEach(p => { const [pk, pi] = p.dataset.szout.split(':'); if(pk !== 'br' || brUA(+pi)) p.innerHTML = sizeLine(pk, +pi); });
 }
+function setAwsNested(on){ S.awsNested = !!on; siteChanged(); }
 function setInst(kind, i, v){ (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
 function toggleBRUA(i){ S.brUA[i - 1] = !brUA(i); siteChanged(); }
 function setBRTarget(i, t){ S.brTo[i - 1] = +t; siteChanged(); }
@@ -412,6 +413,7 @@ function stateHash(){
   h += '&bt=' + brIds().map((id, k) => +S.brTo[k] || 1).join('.');
   h += '&bc=' + brIds().map((id, k) => capCode(capsOf('br', k + 1))).join('|');
   h += '&bi=' + brIds().map((id, k) => instOf('br', k + 1)[0]).join('');
+  if(S.awsNested) h += '&an=1';
   if(S.meta.cu) h += '&cu=' + encodeURIComponent(S.meta.cu);
   if(S.meta.pb) h += '&pb=' + encodeURIComponent(S.meta.pb);
   if(S.meta.rg !== 'US') h += '&rg=' + S.meta.rg;
@@ -449,6 +451,7 @@ function loadHash(){
   if(q.bi) S.brInst = [...q.bi].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bu) S.brUA = [...q.bu].map(c => c === '1');
   if(q.bt) S.brTo = q.bt.split('.').map(x => parseInt(x, 10) || 1);
+  if(q.an === '1') S.awsNested = true;
   if(q.cu) S.meta.cu = q.cu.slice(0, 80);
   if(q.pb) S.meta.pb = q.pb.slice(0, 80);
   if(q.rg === 'EU') S.meta.rg = 'EU';
@@ -486,6 +489,8 @@ $('#panel').addEventListener('click', ev => {
   if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, +i, c); return; }
   const ca = t.closest('[data-capall]');
   if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, +i, on === '1'); return; }
+  const an = t.closest('[data-awsn]');
+  if(an){ setAwsNested(an.dataset.awsn === '1'); return; }
   const fmb = t.closest('[data-fm]');
   if(fmb){ const [k, i, m] = fmb.dataset.fm.split(':'); setFlowMode(k, +i, m); return; }
   const bo = t.closest('[data-bgpon]');
