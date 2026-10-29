@@ -265,7 +265,7 @@ function dcsScene(){
   const notes = n > 1
     ? [{x:32, y:552, t:'Every site runs the same agent with its own capabilities, all managed in one portal.', td:ta > 1 ? 'Mesh of the ' + ta + ' agents with Connectivity Test, every minute: ' + m.sub + ' subtests, ' + fmt(m.run) + ' credits per run.' : 'Turn on Connectivity Test at two or more agents to build a mesh.'},
        {x:32, y:569, t:'Agents with Connectivity Test on test the paths between sites.', td:'BGP peering is optional per site: routers peer with their agent (BGP Proxy) or with Kentik on TCP 179.'}]
-    : [{x:32, y:552, t:'Add a data center with + to see more sites and the tests between them.', td:'Add a data center to see mesh test credits for your sites.'}];
+    : [{x:32, y:552, t:'Add a data center with + next to Data center at the top to see more sites and the tests between them.', td:'Add a data center to see mesh test credits for your sites.'}];
   return {frames, nodes, edges, notes};
 }
 

@@ -438,8 +438,6 @@ function loadHash(){
 
 /* ===== Events ===== */
 $('#ov').addEventListener('click', ev => {
-  if(ev.target.closest('[data-dcadd]')){ stepDC(1); return; }
-  if(ev.target.closest('[data-bradd]')){ stepBR(1); return; }
   const g = ev.target.closest('[data-go]');
   if(g) go(g.dataset.go);
 });
