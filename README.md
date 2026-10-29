@@ -19,6 +19,6 @@ See [kentik-configurator/README.md](kentik-configurator/README.md) for details. 
 
 Self-contained HTML pages; open them directly in a browser.
 
-- `infoblox-kentik-deployment-explorer.html` is the current Infoblox-branded version. It drops Kubernetes / Kentik Kube and shows the Universal Agent on Linux or Docker only.
+- `infoblox-kentik-deployment-explorer.html` is the current Infoblox-branded version. It drops Kubernetes / Kentik Kube and shows the Universal Agent on Linux or Docker only. Use the + and − next to Data center to show up to six data centers, each with its own Universal Agent, and open "All data centers" to see them side by side.
 - `kentik-deployment-explorer.html` is the original version, which still includes Kubernetes.
 - `source-infoblox/` holds the pieces the Infoblox page is built from. Run `sh explorer/source-infoblox/build.sh` to rebuild it.
