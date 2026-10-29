@@ -24,15 +24,17 @@ function savedHTML(){
   return h.replace('</head>', st + '</head>');
 }
 
+/* Optional load for the guide's sizing; null means not given, so the guide plans for the KB baseline */
+function loadOf(kind, i){ const z = szOf(kind, i); return {flow_mode:fmOf(kind, i), devices:z.d || null, fps:z.f || null, syslog_eps:null, dns_lps:null}; }
 /* The design in the shape the Python app's deployment guide expects */
 function exportCfg(){
   const sites = [];
   if(dcOn()) for(let i = 1; i <= S.dcN; i++){
-    sites.push({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:bgpMode(i) === 'direct'});
+    sites.push(Object.assign({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:bgpMode(i) === 'direct'}, loadOf('dc', i)));
   }
   if(brOn()) for(let i = 1; i <= S.brN; i++){
     const ua = brUA(i), t = brTarget(i);
-    sites.push({name:brName(i), kind:'branch', agent:ua, install:instOf('br', i), capabilities:ua ? capList('br', i) : [], send_to:ua || !t ? '' : dcName(t), bgp:false});
+    sites.push(Object.assign({name:brName(i), kind:'branch', agent:ua, install:instOf('br', i), capabilities:ua ? capList('br', i) : [], send_to:ua || !t ? '' : dcName(t), bgp:false}, loadOf('br', i)));
   }
   const clouds = {};
   ['aws', 'azure', 'gcp', 'oci'].forEach(c => { clouds[c] = {enabled:S.sel.has(c)}; });

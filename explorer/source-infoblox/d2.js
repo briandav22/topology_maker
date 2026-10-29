@@ -16,10 +16,10 @@ function EGRESS(x, y){ return {id:'egress', x:x-18, y:y-18, w:36, h:36, k:'net',
 
 /* Capability descriptions shared by every site */
 const CAP = {
-  flow:{h:'Flow Proxy: Forwarding receives NetFlow, sFlow and IPFIX from your devices and forwards it to Kentik over TLS. It is the light way to collect flow.',
-    d:['Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.',
-       'Forwarding (ktraffic, beta in the KB) ships raw flow with about 10x less compute: 1 core / 2 GB for 20,000+ flows per second.',
-       'The Edge Processing flavor (kproxy) decodes, enriches with SNMP and rDNS, and samples locally: 8 cores / 32 GB RAM for 25,000+ flows per second.',
+  flow:{h:'Flow Proxy receives NetFlow, sFlow and IPFIX from your devices and sends it to Kentik over TLS, in one of two modes you pick per agent.',
+    d:['Flow Proxy Forwarding (formerly ktraffic, beta in the KB) does not decode: it forwards the raw flow to Kentik SaaS, which decodes it. That is why it is light: 1 core / 2 GB for 20,000+ flows per second.',
+       'Flow Proxy Edge Processing (formerly kproxy) decodes and enriches the flow on the agent before sending it: 8 cores / 32 GB RAM for 25,000+ flows per second.',
+       'Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.',
        'Branches without their own agent can export flow across the WAN to this agent on UDP 9995.',
        'Sends to flow.kentik.com on TCP 443, with an optional UDP 40010 base port.',
        'Replaces the standalone kproxy agent, which reaches end of life on May 1, 2027.']},
@@ -100,7 +100,7 @@ INFO.dc = {kick:'Drill-in · On-prem', title:'Data center with a Universal Agent
 hl:`<p class="lead">One Universal Agent per data center collects everything. Devices send to it, it polls them, and it forwards it all to Kentik over outbound HTTPS.</p>
 <h3>What you deploy</h3><ul>
 <li>The Universal Agent on a Linux host (VM or bare metal) or in Docker</li>
-<li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy: Forwarding, SNMP Trap Receiver, SNMP/ST and Syslog Server</li>
+<li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy (Forwarding or Edge Processing), SNMP Trap Receiver, SNMP/ST and Syslog Server</li>
 <li>Devices pointed at the agent for flow, traps and syslog, including branches that have no agent of their own</li>
 <li>Optionally, BGP from the edge routers, to the agent (BGP Proxy) or directly to Kentik</li></ul>
 <h3>What Kentik collects</h3><ul>
@@ -137,8 +137,8 @@ export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
 <li>Agents update themselves and their capabilities.</li></ul>
 <h3>Sizing per capability</h3>
 <table><thead><tr><th style="width:50%">Capability</th><th>CPU / RAM</th></tr></thead><tbody>
-<tr><td>Flow Proxy: Forwarding</td><td>1 core / 2 GB, 20k+ FPS</td></tr>
-<tr><td>Flow Proxy (Edge Processing)</td><td>8 cores / 32 GB, 25k+ FPS</td></tr>
+<tr><td>Flow Proxy Forwarding</td><td>1 core / 2 GB, 20k+ FPS</td></tr>
+<tr><td>Flow Proxy Edge Processing</td><td>8 cores / 32 GB, 25k+ FPS</td></tr>
 <tr><td>SNMP/ST</td><td>2 cores / 8 GB, up to 500 devices</td></tr>
 <tr><td>Syslog Server</td><td>1 core / 1 GB per 8k events/s</td></tr>
 <tr><td>Connectivity Test</td><td>2 cores / 2 GB</td></tr>
@@ -195,7 +195,7 @@ INFO.branch = {kick:'Drill-in · On-prem', title:'Branch or campus with a Univer
 hl:`<p class="lead">The same Universal Agent, sized for a small site. It adds local flow and device health, and it tests the paths your users depend on.</p>
 <h3>What you deploy</h3><ul>
 <li>The Universal Agent on a small Linux host (a VM or a small PC) or in Docker</li>
-<li>Only the capabilities this site needs, for example Flow Proxy: Forwarding, SNMP/ST and Connectivity Test</li>
+<li>Only the capabilities this site needs, for example Flow Proxy (Forwarding or Edge Processing), SNMP/ST and Connectivity Test</li>
 <li>Tests from the branch to the data center, cloud regions, SaaS apps and DNS</li></ul>
 <h3>Why it matters</h3><ul>
 <li>Site-to-site tests show latency, loss and jitter between locations</li>

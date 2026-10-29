@@ -6,10 +6,10 @@ const UACAPS = [
   {id:'synth', ui:'Connectivity Test', icon:'probe', s:'Tests to sites and apps', sd:'TCP 8877 · UDP 9977', chip:'Tests', cpu:2, ram:2},
   {id:'ssh', ui:'Device Configuration Sync', icon:'terminal', s:'Config backups over SSH', sd:'TCP 22 to management IPs', chip:'Config', cpu:0, ram:0},
   {id:'dns', ui:'DNS OTT Tap', icon:'dns', s:'DNS queries as flow', sd:'DNSTAP, SPAN or on-server', chip:'DNS', cpu:1, ram:1},
-  {id:'flow', ui:'Flow Proxy: Forwarding', icon:'flow', s:'NetFlow, sFlow, IPFIX', sd:'Listens on UDP 9995', chip:'Flow', cpu:1, ram:2},
+  {id:'flow', ui:'Flow Proxy', icon:'flow', s:'NetFlow, sFlow, IPFIX', sd:'Listens on UDP 9995', chip:'Flow', cpu:1, ram:2},
   {id:'trap', ui:'SNMP Trap Receiver', icon:'bolt', s:'Real-time device events', sd:'Listens on UDP 162', chip:'Traps', cpu:0, ram:0},
   {id:'snmp', ui:'SNMP/ST', icon:'gauge', s:'Health and interfaces', sd:'UDP 161 · gNMI · ICMP', chip:'SNMP/ST', cpu:2, ram:8},
-  {id:'syslog', ui:'Syslog Server', icon:'list', s:'Device and server logs', sd:'Listens on UDP/TCP 514', chip:'Syslog', cpu:1, ram:1}
+  {id:'syslog', ui:'Syslog Server', icon:'list', s:'Network device logs', sd:'Listens on UDP/TCP 514', chip:'Syslog', cpu:1, ram:1}
 ];
 const UAC = Object.fromEntries(UACAPS.map(c => [c.id, c]));
 const DRAW_ORDER = ['flow', 'snmp', 'trap', 'syslog', 'dns', 'synth', 'ssh', 'bgp'];   // order inside the agent box, matching the device lines
@@ -51,11 +51,30 @@ function capsOf(kind, i){
 function bgpMode(i){ return capsOf('dc', i).has('bgp') ? 'ua' : S.dcBgp[i - 1] === 'direct' ? 'direct' : 'off'; }
 function instOf(kind, i){ return (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] === 'docker' ? 'docker' : 'linux'; }
 const capList = (kind, i) => DRAW_ORDER.filter(c => capsOf(kind, i).has(c));
+/* Flow Proxy runs in one of two modes. Forwarding sends raw flow to Kentik SaaS to decode; Edge Processing decodes on the agent. */
+const FLOW_MODES = {
+  forward:{ui:'Flow Proxy Forwarding', short:'Forwarding', s:'Forwards raw flow; Kentik decodes it', cpu:1, ram:2, per:20000},
+  edge:{ui:'Flow Proxy Edge Processing', short:'Edge Processing', s:'Decodes flow on the agent', cpu:8, ram:32, per:25000}
+};
+function fmOf(kind, i){ return (kind === 'dc' ? S.dcFm : S.brFm)[i - 1] === 'edge' ? 'edge' : 'forward'; }
+const capUI = (kind, i, c) => c === 'flow' ? FLOW_MODES[fmOf(kind, i)].ui : UAC[c].ui;
+/* Optional load per site: network devices and flows per second. 0 means not given, so sizing uses the KB baseline. */
+function szOf(kind, i){ const a = kind === 'dc' ? S.dcSz : S.brSz; return a[i - 1] || (a[i - 1] = {d:0, f:0}); }
+const SNMP_PER = 500;
 function sizing(kind, i){
-  const list = capList(kind, i);
-  const cpu = list.reduce((a, c) => a + UAC[c].cpu, 0), ram = list.reduce((a, c) => a + UAC[c].ram, 0);
-  return {cpu, ram, rc:list.length ? Math.max(2, Math.ceil(cpu * 1.3)) : 0, rr:list.length ? Math.max(2, Math.ceil(ram * 1.3)) : 0};
+  const list = capList(kind, i), own = szOf(kind, i);
+  let d = own.d || 0, f = own.f || 0;
+  if(kind === 'dc') feeders(i).forEach(b => { const z = szOf('br', b); d += z.d || 0; f += z.f || 0; });   // branches without an agent add their load here
+  let cpu = 0, ram = 0, est = false;
+  list.forEach(c => {
+    let cc = UAC[c].cpu, rr = UAC[c].ram, n = 1;
+    if(c === 'flow'){ const m = FLOW_MODES[fmOf(kind, i)]; cc = m.cpu; rr = m.ram; n = Math.max(1, Math.ceil(f / m.per)); est = n > 1; }
+    if(c === 'snmp') n = Math.max(1, Math.ceil(d / SNMP_PER));
+    cpu += cc * n; ram += rr * n;
+  });
+  return {cpu, ram, d, f, est, given:!!(d || f), rc:list.length ? Math.max(2, Math.ceil(cpu * 1.3)) : 0, rr:list.length ? Math.max(2, Math.ceil(ram * 1.3)) : 0};
 }
+const fmtN = v => v >= 10000 ? fmt(v / 1000) + 'k' : fmt(v);
 /* Every agent that has Connectivity Test on: private test points for site-to-site tests */
 function testAgents(){
   const out = [];
@@ -72,6 +91,15 @@ function dcMod(id){
     sub:f ? 'Also collects for ' + f + (f > 1 ? ' branches' : ' branch') : caps.length + ' capabilit' + (caps.length === 1 ? 'y' : 'ies') + ' on',
     subd:f ? 'Branches send across the WAN to this agent' : MOD.dc.subd,
     chips:caps.length ? caps.map(c => [c, UAC[c].chip]) : [['more', 'No capabilities on']]});
+}
+
+/* The agent's footer on the map: its planned host, and the load it was sized for when one was entered */
+function uaFoot(kind, i, dd){
+  const z = sizing(kind, i);
+  if(!capList(kind, i).length) return 'No capabilities on';
+  const host = z.rc + ' vCPU / ' + z.rr + ' GB';
+  if(!z.given) return dd ? 'Plan ' + host + ' RAM at the KB baseline' : 'Plan ' + host;
+  return host + ' · ' + [z.d ? fmtN(z.d) + ' devices' : '', z.f ? fmtN(z.f) + ' flows/s' : ''].filter(Boolean).join(' · ');
 }
 
 /* ===== One site with a Universal Agent: the layout follows the capabilities that are on ===== */
@@ -108,7 +136,7 @@ function agentScene(kind, i){
 
   /* Agent box and its capability chips */
   const list = DRAW_ORDER.filter(on), top = 118, step = 52;
-  const chips = list.map((c, k) => ({id:'c-' + c, x:L.cx, y:top + k * step, w:L.cw, h:46, k:'chip', icon:UAC[c].icon, t:UAC[c].ui, s:UAC[c].s, sd:UAC[c].sd, i:CAP[c], cap:c}));
+  const chips = list.map((c, k) => ({id:'c-' + c, x:L.cx, y:top + k * step, w:L.cw, h:46, k:'chip', icon:UAC[c].icon, t:capUI(kind, i, c), s:c === 'flow' ? FLOW_MODES[fmOf(kind, i)].s : UAC[c].s, sd:UAC[c].sd, i:CAP[c], cap:c}));
   if(!chips.length) chips.push({id:'c-none', x:L.cx, y:top, w:L.cw, h:46, k:'opt', icon:'agent', t:'No capabilities on', s:'Toggle them in the side panel', sd:'Installed Capabilities',
     i:{h:'This agent is installed but has no capabilities on yet. Toggle capabilities in the side panel, the same way you do under Installed Capabilities in the portal.', d:[]}});
   const chipBottom = chips[chips.length - 1].y + 46;
@@ -116,7 +144,7 @@ function agentScene(kind, i){
   const uh = Math.max(chipBottom + 40 - 58, brin ? brin.y + brin.h + 12 - 58 : 0, !dc && on('synth') ? 352 : 230);
   const ua = {id:'ua', x:L.ux, y:58, w:L.uw, h:uh, k:'ua', icon:'agent', t:'Universal Agent', s:inst === 'docker' ? 'In Docker' : 'On a Linux host',
     sd:inst === 'docker' ? 'docker run from the portal' : 'Debian, Ubuntu, Oracle Linux',
-    foot:list.length + ' of 8 capabilities on', footd:'Toggle capabilities in the side panel', i:dc ? UA_DC_I : UA_BR_I};
+    foot:uaFoot(kind, i), footd:uaFoot(kind, i, true), i:dc ? UA_DC_I : UA_BR_I};
   nodes.push(ua, ...chips);
   const cy = c => top + list.indexOf(c) * step + 23;
   const ex = 16 + L.fw, ey = !dc && on('synth') ? 380 : Math.round(Math.min(Math.max(58 + uh / 2, 150), 440));   // under the branch test targets
@@ -198,8 +226,8 @@ function branchRemoteScene(i){
   frames.push({x:478, y:16, w:286, h:588, label:dname + ' (on-prem)', labeld:dname + ' · collects for this branch', go:dcId(t)});
   const uh = Math.max(220, 64 + Math.max(rel.length, 1) * 22 + 28);
   nodes.push({id:'ua', x:494, y:90, w:254, h:uh, k:'ua', icon:'agent', t:'Universal Agent', s:'In ' + dname, sd:instOf('dc', t) === 'docker' ? 'In Docker' : 'On a Linux host', go:dcId(t),
-    lines:rel.length ? rel.map(c => UAC[c].ui) : ['No capabilities on'], linesd:rel.length ? rel.map(c => UAC[c].ui + ' · ' + UAC[c].sd.replace('Listens on ', '')) : ['Toggle them on in ' + dname],
-    foot:'Collects for this branch', footd:'Size it for the branch load too',
+    lines:rel.length ? rel.map(c => capUI('dc', t, c)) : ['No capabilities on'], linesd:rel.length ? rel.map(c => capUI('dc', t, c) + ' · ' + UAC[c].sd.replace('Listens on ', '')) : ['Toggle them on in ' + dname],
+    foot:uaFoot('dc', t), footd:'Plan ' + sizing('dc', t).rc + ' vCPU / ' + sizing('dc', t).rr + ' GB, branch load included',
     i:{h:'The ' + dname + ' agent collects for this branch. Only the capabilities that are on at ' + dname + ' reach the branch devices.', d:UA_DC_I.d}});
   const ex = 764, ey = 90 + Math.round(uh / 2);
   nodes.push(EGRESS(ex, ey), KEN());
@@ -211,7 +239,7 @@ function branchRemoteScene(i){
   if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'ua', p:[[R, 182], [U, 182]], lab:'Syslog', labd:'UDP/TCP 514', lp:[387, 182]});
   if(on('ssh')) edges.push({t:'ssh', a:'ua', b:'netgrp', p:[[U, 208], [R, 208]], lab:'Config sync', labd:'SSH, TCP 22', lp:[387, 208]});
   if(on('synth')) edges.push({t:'synth', a:'ua', b:'wan', p:[[U, 240], [R, 240]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 240]});
-  const miss = ['flow', 'snmp', 'trap', 'syslog'].filter(c => !on(c)).map(c => UAC[c].ui);
+  const miss = ['flow', 'snmp', 'trap', 'syslog'].filter(c => !on(c)).map(c => capUI('dc', t, c));
   notes.push({x:32, y:384, t:'No agent here: devices send to', td:'No local tests: test the branch'},
              {x:32, y:401, t:'the ' + dname + ' agent.', td:'router from the data center agent.'});
   if(miss.length) notes.push({x:494, y:90 + uh + 26, t:'Off at ' + dname + ':', td:'Off at ' + dname + ':'}, {x:494, y:90 + uh + 43, t:miss.join(', '), td:miss.join(', ')});
@@ -241,8 +269,8 @@ function dcsScene(){
     nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls', sd:'Flow, SNMP, traps, syslog',
       i:{h:'The routers, switches and firewalls at ' + name + (f ? ', plus the devices of ' + f + ' branch office' + (f > 1 ? 's' : '') + ' with no agent,' : '') + ' send to the local agent and answer its polls.',
          d:['Devices → agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.', 'Agent → devices: UDP 161 SNMP, ICMP, gNMI and TCP 22 for SSH.']}});
-    nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:caps.length + ' of 8 capabilities on', sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(i),
-      i:{h:'The Universal Agent for ' + name + ', ' + (instOf('dc', i) === 'docker' ? 'in Docker' : 'on a Linux host') + '. On: ' + (caps.length ? caps.map(c => UAC[c].ui).join(', ') : 'nothing yet') + '.',
+    nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:uaFoot('dc', i), sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(i),
+      i:{h:'The Universal Agent for ' + name + ', ' + (instOf('dc', i) === 'docker' ? 'in Docker' : 'on a Linux host') + '. On: ' + (caps.length ? caps.map(c => capUI('dc', i, c)).join(', ') : 'nothing yet') + '.',
          d:['Install: Settings › Universal Agents › Deploy Agent gives a Linux or Docker command. Portal tokens last 1 hour.', 'Size the host for the sum of its capabilities: for example SNMP/ST 2 cores / 8 GB, Connectivity Test 2 cores / 2 GB.', 'Agent-to-agent tests with the other sites use TCP 8877 and UDP 9977.']}});
     nodes.push(Object.assign(EGRESS(760, r.cy), {id:'egress-' + i}));
     if(caps.includes('flow')) edges.push({t:'flow', a:'dev-' + i, b:'ua-' + i, p:[[270, r.cy - 7], [320, r.cy - 7]]});
@@ -357,7 +385,7 @@ hl:`<p class="lead">Most branches don’t get their own agent. The branch router
 dd:`<p class="lead">Branch devices are configured to use the data center agent as their collector.</p>
 <h3>Across the WAN</h3>
 <table><thead><tr><th style="width:38%">Direction</th><th style="width:30%">Port</th><th>Used by</th></tr></thead><tbody>
-<tr><td>Branch devices → DC agent</td><td>UDP 9995</td><td>Flow Proxy: Forwarding</td></tr>
+<tr><td>Branch devices → DC agent</td><td>UDP 9995</td><td>Flow Proxy</td></tr>
 <tr><td>Branch devices → DC agent</td><td>UDP 162</td><td>SNMP Trap Receiver</td></tr>
 <tr><td>Branch devices → DC agent</td><td>UDP and TCP 514</td><td>Syslog Server</td></tr>
 <tr><td>DC agent → branch devices</td><td>UDP 161, ICMP</td><td>SNMP/ST</td></tr>
@@ -367,7 +395,7 @@ dd:`<p class="lead">Branch devices are configured to use the data center agent a
 <li>Add the branch devices with the data center agent as their collection agent (SNMP tab: Flow Enrichment or Full Monitoring via Universal Agent).</li>
 <li>Assign the devices to the branch Site, so dashboards and maps still group them by location.</li>
 <li>Set each device’s flow sample rate in Kentik to match the router.</li></ul>
-<h3>Sizing</h3><p>Add the branch flow rate and device count to the data center agent’s sizing: SNMP/ST covers up to 500 devices per 2 cores / 8 GB, and Flow Proxy: Forwarding about 20,000 flows per second per core.</p>`,
+<h3>Sizing</h3><p>Enter this branch’s devices and flows under Branch load and they are added to the data center agent’s sizing. SNMP/ST covers up to 500 devices per 2 cores / 8 GB. Flow Proxy Forwarding handles 20,000+ flows per second on 1 core / 2 GB; Edge Processing needs 8 cores / 32 GB per 25,000.</p>`,
 src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['Device Settings','https://kb.kentik.com/docs/device-settings'],['Router Configuration','https://kb.kentik.com/docs/router-configuration'],['NMS Setup','https://kb.kentik.com/docs/nms-setup']]};
 
 function brsInfo(){
@@ -395,12 +423,30 @@ function instSeg(kind, i){
   return `<div class="fld"><span>Install the agent</span><div class="seg mini" role="group" aria-label="Install method">${[['linux', 'Linux host'], ['docker', 'Docker']].map(o => `<button type="button" data-inst="${kind}:${i}:${o[0]}" aria-pressed="${v === o[0]}">${o[1]}</button>`).join('')}</div></div>`;
 }
 function capsCard(kind, i, dd){
-  const caps = capsOf(kind, i), n = caps.size;
-  const rows = UACAPS.map(c => `<div class="caprow${caps.has(c.id) ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${caps.has(c.id)}" data-cap="${kind}:${i}:${c.id}" aria-label="${esc(c.ui)}"><span></span></button><div class="capt"><b>${esc(c.ui)}${c.aka ? ' <span class="aka">(AKA ' + c.aka + ')</span>' : ''}</b><span>${esc(dd ? c.sd : c.s)}</span></div></div>`).join('');
-  const z = sizing(kind, i);
-  const size = dd ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${n ? `Host for these capabilities at the KB baseline: ${z.cpu} cores / ${z.ram} GB, about <b>${z.rc} vCPU / ${z.rr} GB</b> with 30% headroom.` : 'Nothing to size yet.'}</p>` : '';
+  const caps = capsOf(kind, i), n = caps.size, fm = fmOf(kind, i);
+  const modeSeg = `<div class="fmseg"><div class="seg mini" role="group" aria-label="Flow Proxy mode">${[['forward', 'Forwarding'], ['edge', 'Edge Processing']].map(o => `<button type="button" data-fm="${kind}:${i}:${o[0]}" aria-pressed="${fm === o[0]}">${o[1]}</button>`).join('')}</div><span>${fm === 'edge' ? 'Decodes on the agent: 8 cores / 32 GB per 25k flows/s' : 'Kentik decodes: 1 core / 2 GB per 20k flows/s'}</span></div>`;
+  const rows = UACAPS.map(c => {
+    const on = caps.has(c.id), ui = capUI(kind, i, c.id), sub = c.id === 'flow' ? FLOW_MODES[fm].s : dd ? c.sd : c.s;
+    return `<div class="caprow${on ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${on}" data-cap="${kind}:${i}:${c.id}" aria-label="${esc(ui)}"><span></span></button><div class="capt"><b>${esc(ui)}${c.aka ? ' <span class="aka">(AKA ' + c.aka + ')</span>' : ''}</b><span>${esc(sub)}</span></div></div>` + (c.id === 'flow' && on ? modeSeg : '');
+  }).join('');
   return `<div class="card caps"><div class="caphead"><div><h4>Installed capabilities</h4><p>Running on this agent. The diagram follows what you turn on.</p></div><span class="capn" aria-label="${n} on">${n}</span></div>${rows}
-<div class="btns" style="margin-top:6px"><button type="button" data-capall="${kind}:${i}:1">Turn all on</button><button type="button" data-capall="${kind}:${i}:0">Turn all off</button></div>${size}</div>`;
+<div class="btns" style="margin-top:6px"><button type="button" data-capall="${kind}:${i}:1">Turn all on</button><button type="button" data-capall="${kind}:${i}:0">Turn all off</button></div></div>` + loadCard(kind, i);
+}
+/* Optional load: devices and flows. Collapsed by default so the panel stays simple. */
+function sizeLine(kind, i){
+  if(!capList(kind, i).length) return 'Turn on a capability to size this agent.';
+  const z = sizing(kind, i), f = kind === 'dc' ? feeders(i).filter(b => { const q = szOf('br', b); return q.d || q.f; }).length : 0;
+  return `Plan <b>${z.rc} vCPU / ${z.rr} GB RAM</b> ` + (z.given ? `for ${[z.d ? fmt(z.d) + ' devices' : '', z.f ? fmt(z.f) + ' flows/s' : ''].filter(Boolean).join(' and ')}${f ? ', branch load included' : ''}` : 'at the KB baseline (up to 500 devices, 20k+ flows/s)')
+    + ', with 30% headroom.' + (z.est ? ' Above the KB flow figure this is an estimate: confirm with your Infoblox team.' : '');
+}
+function loadCard(kind, i){
+  const z = szOf(kind, i), agentless = kind === 'br' && !brUA(i), t = agentless ? brTarget(i) : 0;
+  const inp = (k, label, ph) => `<label class="fld"><span>${label}</span><input type="number" min="0" max="10000000" step="1" inputmode="numeric" data-sz="${kind}:${i}:${k}" value="${z[k] || ''}" placeholder="${ph}"></label>`;
+  const out = agentless ? (t ? `Added to the ${esc(dcName(t))} agent’s sizing.` : 'Add a data center to collect this branch.') : sizeLine(kind, i);
+  return `<details class="card load"${S.szOpen ? ' open' : ''}><summary><h4>${agentless ? 'Branch load' : 'Size this agent'}<span class="tag">Optional</span></h4></summary>
+<p>${agentless ? 'Devices and flows at this branch. They count toward the data center agent it sends to.' : 'Enter what this agent collects to size its host. Leave blank to use the KB baseline.'}</p>
+<div class="ldrow">${inp('d', 'Network devices', 'e.g. 200')}${inp('f', 'Flows per second', 'e.g. 20000')}</div>
+<p class="szout" data-szout="${kind}:${i}">${out}</p></details>`;
 }
 function bgpCard(i, dd){
   const m = bgpMode(i), on = m !== 'off';
@@ -425,7 +471,7 @@ function branchCard(i, dd){
 <label class="fld"><span>Branch name</span><input type="text" class="nameIn" data-name="br:${i}" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(brCustom(i))}" placeholder="${esc(brDefault(i))}"></label>
 <div class="caprow solo${ua ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${ua}" data-brua="${i}" aria-label="Universal Agent at this branch"><span></span></button><div class="capt"><b>Universal Agent at this branch</b><span>${ua ? 'Collects locally and tests from the branch' : 'Off: devices send across the WAN to a data center'}</span></div></div>
 ${ua ? instSeg('br', i) : sel}
-<div class="btns"><button type="button" data-bradd="1"${n < BR_MAX ? '' : ' disabled'}>+ Add a branch</button><button type="button" data-brdel="${i}">Remove this branch</button>${n > 1 ? `<button type="button" data-go="brs">All ${n} branches ›</button>` : ''}</div></div>` + (ua ? capsCard('br', i, dd) : '');
+<div class="btns"><button type="button" data-bradd="1"${n < BR_MAX ? '' : ' disabled'}>+ Add a branch</button><button type="button" data-brdel="${i}">Remove this branch</button>${n > 1 ? `<button type="button" data-go="brs">All ${n} branches ›</button>` : ''}</div></div>` + (ua ? capsCard('br', i, dd) : loadCard('br', i));
 }
 function sitesCard(kind){
   const dc = kind === 'dc', n = dc ? S.dcN : S.brN, max = dc ? DC_MAX : BR_MAX;

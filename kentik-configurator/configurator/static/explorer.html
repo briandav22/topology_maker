@@ -260,6 +260,17 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 .panel .fld .seg{align-self:flex-start}
 .panel .fld select{font:inherit;font-size:13.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 8px;width:100%}
 .card-ov.warn rect.bg{stroke:var(--l-trap);stroke-dasharray:4 3}
+.fmseg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:-2px 0 8px 10px;font-size:11.5px;color:var(--muted)}
+details.load summary{list-style:none;cursor:pointer}
+details.load summary::-webkit-details-marker{display:none}
+details.load summary h4{margin:0}
+details.load summary h4::before{content:'▸';display:inline-block;width:14px;color:var(--muted);transition:transform .15s}
+details.load[open] summary h4::before{transform:rotate(90deg)}
+details.load[open] summary{margin-bottom:6px}
+.ldrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ldrow .fld{margin:0 0 4px}
+.panel .fld input[type=number]{-moz-appearance:textfield}
+.szout{font-size:12.5px;margin:6px 0 0}
 /* Save and export */
 dialog.xdlg{border:1px solid var(--border);border-radius:14px;padding:0;background:var(--surface);color:var(--text);width:min(460px,calc(100vw - 32px));box-shadow:0 12px 40px rgba(0,0,0,.25)}
 dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
@@ -488,7 +499,7 @@ const OV_HL = `
 <h2>How Kentik is deployed</h2>
 <p class="lead">Kentik, now part of Infoblox, is SaaS. You run a small footprint where your network lives, and everything lands in your Kentik account over encrypted, outbound connections.</p>
 <h3>Three patterns cover almost everything</h3>
-<div class="card"><h4>On-prem: a Universal Agent in each data center</h4><p>A single agent on a Linux host or in Docker. You toggle on only the capabilities you need, just like Installed Capabilities in the portal: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy: Forwarding, SNMP Trap Receiver, SNMP/ST and Syslog Server. Devices point at it, and it talks to Kentik over HTTPS.</p></div>
+<div class="card"><h4>On-prem: a Universal Agent in each data center</h4><p>A single agent on a Linux host or in Docker. You toggle on only the capabilities you need, just like Installed Capabilities in the portal: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy (Forwarding or Edge Processing), SNMP Trap Receiver, SNMP/ST and Syslog Server. Devices point at it, and it talks to Kentik over HTTPS.</p></div>
 <div class="card"><h4>Branch offices: agent optional</h4><p>Most branches don’t get an agent. Their routers send flow, traps and syslog across the WAN to a data center agent. Give a branch its own agent when you want local tests or to keep telemetry local.</p></div>
 <div class="card"><h4>Public cloud: agentless</h4><p>You turn on flow logs, send them to storage in your own account, and grant Kentik read-only access. Kentik also reads topology metadata and metrics.</p></div>
 <div class="card"><h4>Internet and SaaS: synthetic tests</h4><p>Kentik’s global agents and your own agents test SaaS apps, websites, DNS and paths between your sites and clouds.</p></div>
@@ -545,10 +556,10 @@ function EGRESS(x, y){ return {id:'egress', x:x-18, y:y-18, w:36, h:36, k:'net',
 
 /* Capability descriptions shared by every site */
 const CAP = {
-  flow:{h:'Flow Proxy: Forwarding receives NetFlow, sFlow and IPFIX from your devices and forwards it to Kentik over TLS. It is the light way to collect flow.',
-    d:['Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.',
-       'Forwarding (ktraffic, beta in the KB) ships raw flow with about 10x less compute: 1 core / 2 GB for 20,000+ flows per second.',
-       'The Edge Processing flavor (kproxy) decodes, enriches with SNMP and rDNS, and samples locally: 8 cores / 32 GB RAM for 25,000+ flows per second.',
+  flow:{h:'Flow Proxy receives NetFlow, sFlow and IPFIX from your devices and sends it to Kentik over TLS, in one of two modes you pick per agent.',
+    d:['Flow Proxy Forwarding (formerly ktraffic, beta in the KB) does not decode: it forwards the raw flow to Kentik SaaS, which decodes it. That is why it is light: 1 core / 2 GB for 20,000+ flows per second.',
+       'Flow Proxy Edge Processing (formerly kproxy) decodes and enriches the flow on the agent before sending it: 8 cores / 32 GB RAM for 25,000+ flows per second.',
+       'Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.',
        'Branches without their own agent can export flow across the WAN to this agent on UDP 9995.',
        'Sends to flow.kentik.com on TCP 443, with an optional UDP 40010 base port.',
        'Replaces the standalone kproxy agent, which reaches end of life on May 1, 2027.']},
@@ -629,7 +640,7 @@ INFO.dc = {kick:'Drill-in · On-prem', title:'Data center with a Universal Agent
 hl:`<p class="lead">One Universal Agent per data center collects everything. Devices send to it, it polls them, and it forwards it all to Kentik over outbound HTTPS.</p>
 <h3>What you deploy</h3><ul>
 <li>The Universal Agent on a Linux host (VM or bare metal) or in Docker</li>
-<li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy: Forwarding, SNMP Trap Receiver, SNMP/ST and Syslog Server</li>
+<li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy (Forwarding or Edge Processing), SNMP Trap Receiver, SNMP/ST and Syslog Server</li>
 <li>Devices pointed at the agent for flow, traps and syslog, including branches that have no agent of their own</li>
 <li>Optionally, BGP from the edge routers, to the agent (BGP Proxy) or directly to Kentik</li></ul>
 <h3>What Kentik collects</h3><ul>
@@ -666,8 +677,8 @@ export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
 <li>Agents update themselves and their capabilities.</li></ul>
 <h3>Sizing per capability</h3>
 <table><thead><tr><th style="width:50%">Capability</th><th>CPU / RAM</th></tr></thead><tbody>
-<tr><td>Flow Proxy: Forwarding</td><td>1 core / 2 GB, 20k+ FPS</td></tr>
-<tr><td>Flow Proxy (Edge Processing)</td><td>8 cores / 32 GB, 25k+ FPS</td></tr>
+<tr><td>Flow Proxy Forwarding</td><td>1 core / 2 GB, 20k+ FPS</td></tr>
+<tr><td>Flow Proxy Edge Processing</td><td>8 cores / 32 GB, 25k+ FPS</td></tr>
 <tr><td>SNMP/ST</td><td>2 cores / 8 GB, up to 500 devices</td></tr>
 <tr><td>Syslog Server</td><td>1 core / 1 GB per 8k events/s</td></tr>
 <tr><td>Connectivity Test</td><td>2 cores / 2 GB</td></tr>
@@ -724,7 +735,7 @@ INFO.branch = {kick:'Drill-in · On-prem', title:'Branch or campus with a Univer
 hl:`<p class="lead">The same Universal Agent, sized for a small site. It adds local flow and device health, and it tests the paths your users depend on.</p>
 <h3>What you deploy</h3><ul>
 <li>The Universal Agent on a small Linux host (a VM or a small PC) or in Docker</li>
-<li>Only the capabilities this site needs, for example Flow Proxy: Forwarding, SNMP/ST and Connectivity Test</li>
+<li>Only the capabilities this site needs, for example Flow Proxy (Forwarding or Edge Processing), SNMP/ST and Connectivity Test</li>
 <li>Tests from the branch to the data center, cloud regions, SaaS apps and DNS</li></ul>
 <h3>Why it matters</h3><ul>
 <li>Site-to-site tests show latency, loss and jitter between locations</li>
@@ -1358,10 +1369,10 @@ const UACAPS = [
   {id:'synth', ui:'Connectivity Test', icon:'probe', s:'Tests to sites and apps', sd:'TCP 8877 · UDP 9977', chip:'Tests', cpu:2, ram:2},
   {id:'ssh', ui:'Device Configuration Sync', icon:'terminal', s:'Config backups over SSH', sd:'TCP 22 to management IPs', chip:'Config', cpu:0, ram:0},
   {id:'dns', ui:'DNS OTT Tap', icon:'dns', s:'DNS queries as flow', sd:'DNSTAP, SPAN or on-server', chip:'DNS', cpu:1, ram:1},
-  {id:'flow', ui:'Flow Proxy: Forwarding', icon:'flow', s:'NetFlow, sFlow, IPFIX', sd:'Listens on UDP 9995', chip:'Flow', cpu:1, ram:2},
+  {id:'flow', ui:'Flow Proxy', icon:'flow', s:'NetFlow, sFlow, IPFIX', sd:'Listens on UDP 9995', chip:'Flow', cpu:1, ram:2},
   {id:'trap', ui:'SNMP Trap Receiver', icon:'bolt', s:'Real-time device events', sd:'Listens on UDP 162', chip:'Traps', cpu:0, ram:0},
   {id:'snmp', ui:'SNMP/ST', icon:'gauge', s:'Health and interfaces', sd:'UDP 161 · gNMI · ICMP', chip:'SNMP/ST', cpu:2, ram:8},
-  {id:'syslog', ui:'Syslog Server', icon:'list', s:'Device and server logs', sd:'Listens on UDP/TCP 514', chip:'Syslog', cpu:1, ram:1}
+  {id:'syslog', ui:'Syslog Server', icon:'list', s:'Network device logs', sd:'Listens on UDP/TCP 514', chip:'Syslog', cpu:1, ram:1}
 ];
 const UAC = Object.fromEntries(UACAPS.map(c => [c.id, c]));
 const DRAW_ORDER = ['flow', 'snmp', 'trap', 'syslog', 'dns', 'synth', 'ssh', 'bgp'];   // order inside the agent box, matching the device lines
@@ -1403,11 +1414,30 @@ function capsOf(kind, i){
 function bgpMode(i){ return capsOf('dc', i).has('bgp') ? 'ua' : S.dcBgp[i - 1] === 'direct' ? 'direct' : 'off'; }
 function instOf(kind, i){ return (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] === 'docker' ? 'docker' : 'linux'; }
 const capList = (kind, i) => DRAW_ORDER.filter(c => capsOf(kind, i).has(c));
+/* Flow Proxy runs in one of two modes. Forwarding sends raw flow to Kentik SaaS to decode; Edge Processing decodes on the agent. */
+const FLOW_MODES = {
+  forward:{ui:'Flow Proxy Forwarding', short:'Forwarding', s:'Forwards raw flow; Kentik decodes it', cpu:1, ram:2, per:20000},
+  edge:{ui:'Flow Proxy Edge Processing', short:'Edge Processing', s:'Decodes flow on the agent', cpu:8, ram:32, per:25000}
+};
+function fmOf(kind, i){ return (kind === 'dc' ? S.dcFm : S.brFm)[i - 1] === 'edge' ? 'edge' : 'forward'; }
+const capUI = (kind, i, c) => c === 'flow' ? FLOW_MODES[fmOf(kind, i)].ui : UAC[c].ui;
+/* Optional load per site: network devices and flows per second. 0 means not given, so sizing uses the KB baseline. */
+function szOf(kind, i){ const a = kind === 'dc' ? S.dcSz : S.brSz; return a[i - 1] || (a[i - 1] = {d:0, f:0}); }
+const SNMP_PER = 500;
 function sizing(kind, i){
-  const list = capList(kind, i);
-  const cpu = list.reduce((a, c) => a + UAC[c].cpu, 0), ram = list.reduce((a, c) => a + UAC[c].ram, 0);
-  return {cpu, ram, rc:list.length ? Math.max(2, Math.ceil(cpu * 1.3)) : 0, rr:list.length ? Math.max(2, Math.ceil(ram * 1.3)) : 0};
+  const list = capList(kind, i), own = szOf(kind, i);
+  let d = own.d || 0, f = own.f || 0;
+  if(kind === 'dc') feeders(i).forEach(b => { const z = szOf('br', b); d += z.d || 0; f += z.f || 0; });   // branches without an agent add their load here
+  let cpu = 0, ram = 0, est = false;
+  list.forEach(c => {
+    let cc = UAC[c].cpu, rr = UAC[c].ram, n = 1;
+    if(c === 'flow'){ const m = FLOW_MODES[fmOf(kind, i)]; cc = m.cpu; rr = m.ram; n = Math.max(1, Math.ceil(f / m.per)); est = n > 1; }
+    if(c === 'snmp') n = Math.max(1, Math.ceil(d / SNMP_PER));
+    cpu += cc * n; ram += rr * n;
+  });
+  return {cpu, ram, d, f, est, given:!!(d || f), rc:list.length ? Math.max(2, Math.ceil(cpu * 1.3)) : 0, rr:list.length ? Math.max(2, Math.ceil(ram * 1.3)) : 0};
 }
+const fmtN = v => v >= 10000 ? fmt(v / 1000) + 'k' : fmt(v);
 /* Every agent that has Connectivity Test on: private test points for site-to-site tests */
 function testAgents(){
   const out = [];
@@ -1424,6 +1454,15 @@ function dcMod(id){
     sub:f ? 'Also collects for ' + f + (f > 1 ? ' branches' : ' branch') : caps.length + ' capabilit' + (caps.length === 1 ? 'y' : 'ies') + ' on',
     subd:f ? 'Branches send across the WAN to this agent' : MOD.dc.subd,
     chips:caps.length ? caps.map(c => [c, UAC[c].chip]) : [['more', 'No capabilities on']]});
+}
+
+/* The agent's footer on the map: its planned host, and the load it was sized for when one was entered */
+function uaFoot(kind, i, dd){
+  const z = sizing(kind, i);
+  if(!capList(kind, i).length) return 'No capabilities on';
+  const host = z.rc + ' vCPU / ' + z.rr + ' GB';
+  if(!z.given) return dd ? 'Plan ' + host + ' RAM at the KB baseline' : 'Plan ' + host;
+  return host + ' · ' + [z.d ? fmtN(z.d) + ' devices' : '', z.f ? fmtN(z.f) + ' flows/s' : ''].filter(Boolean).join(' · ');
 }
 
 /* ===== One site with a Universal Agent: the layout follows the capabilities that are on ===== */
@@ -1460,7 +1499,7 @@ function agentScene(kind, i){
 
   /* Agent box and its capability chips */
   const list = DRAW_ORDER.filter(on), top = 118, step = 52;
-  const chips = list.map((c, k) => ({id:'c-' + c, x:L.cx, y:top + k * step, w:L.cw, h:46, k:'chip', icon:UAC[c].icon, t:UAC[c].ui, s:UAC[c].s, sd:UAC[c].sd, i:CAP[c], cap:c}));
+  const chips = list.map((c, k) => ({id:'c-' + c, x:L.cx, y:top + k * step, w:L.cw, h:46, k:'chip', icon:UAC[c].icon, t:capUI(kind, i, c), s:c === 'flow' ? FLOW_MODES[fmOf(kind, i)].s : UAC[c].s, sd:UAC[c].sd, i:CAP[c], cap:c}));
   if(!chips.length) chips.push({id:'c-none', x:L.cx, y:top, w:L.cw, h:46, k:'opt', icon:'agent', t:'No capabilities on', s:'Toggle them in the side panel', sd:'Installed Capabilities',
     i:{h:'This agent is installed but has no capabilities on yet. Toggle capabilities in the side panel, the same way you do under Installed Capabilities in the portal.', d:[]}});
   const chipBottom = chips[chips.length - 1].y + 46;
@@ -1468,7 +1507,7 @@ function agentScene(kind, i){
   const uh = Math.max(chipBottom + 40 - 58, brin ? brin.y + brin.h + 12 - 58 : 0, !dc && on('synth') ? 352 : 230);
   const ua = {id:'ua', x:L.ux, y:58, w:L.uw, h:uh, k:'ua', icon:'agent', t:'Universal Agent', s:inst === 'docker' ? 'In Docker' : 'On a Linux host',
     sd:inst === 'docker' ? 'docker run from the portal' : 'Debian, Ubuntu, Oracle Linux',
-    foot:list.length + ' of 8 capabilities on', footd:'Toggle capabilities in the side panel', i:dc ? UA_DC_I : UA_BR_I};
+    foot:uaFoot(kind, i), footd:uaFoot(kind, i, true), i:dc ? UA_DC_I : UA_BR_I};
   nodes.push(ua, ...chips);
   const cy = c => top + list.indexOf(c) * step + 23;
   const ex = 16 + L.fw, ey = !dc && on('synth') ? 380 : Math.round(Math.min(Math.max(58 + uh / 2, 150), 440));   // under the branch test targets
@@ -1550,8 +1589,8 @@ function branchRemoteScene(i){
   frames.push({x:478, y:16, w:286, h:588, label:dname + ' (on-prem)', labeld:dname + ' · collects for this branch', go:dcId(t)});
   const uh = Math.max(220, 64 + Math.max(rel.length, 1) * 22 + 28);
   nodes.push({id:'ua', x:494, y:90, w:254, h:uh, k:'ua', icon:'agent', t:'Universal Agent', s:'In ' + dname, sd:instOf('dc', t) === 'docker' ? 'In Docker' : 'On a Linux host', go:dcId(t),
-    lines:rel.length ? rel.map(c => UAC[c].ui) : ['No capabilities on'], linesd:rel.length ? rel.map(c => UAC[c].ui + ' · ' + UAC[c].sd.replace('Listens on ', '')) : ['Toggle them on in ' + dname],
-    foot:'Collects for this branch', footd:'Size it for the branch load too',
+    lines:rel.length ? rel.map(c => capUI('dc', t, c)) : ['No capabilities on'], linesd:rel.length ? rel.map(c => capUI('dc', t, c) + ' · ' + UAC[c].sd.replace('Listens on ', '')) : ['Toggle them on in ' + dname],
+    foot:uaFoot('dc', t), footd:'Plan ' + sizing('dc', t).rc + ' vCPU / ' + sizing('dc', t).rr + ' GB, branch load included',
     i:{h:'The ' + dname + ' agent collects for this branch. Only the capabilities that are on at ' + dname + ' reach the branch devices.', d:UA_DC_I.d}});
   const ex = 764, ey = 90 + Math.round(uh / 2);
   nodes.push(EGRESS(ex, ey), KEN());
@@ -1563,7 +1602,7 @@ function branchRemoteScene(i){
   if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'ua', p:[[R, 182], [U, 182]], lab:'Syslog', labd:'UDP/TCP 514', lp:[387, 182]});
   if(on('ssh')) edges.push({t:'ssh', a:'ua', b:'netgrp', p:[[U, 208], [R, 208]], lab:'Config sync', labd:'SSH, TCP 22', lp:[387, 208]});
   if(on('synth')) edges.push({t:'synth', a:'ua', b:'wan', p:[[U, 240], [R, 240]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 240]});
-  const miss = ['flow', 'snmp', 'trap', 'syslog'].filter(c => !on(c)).map(c => UAC[c].ui);
+  const miss = ['flow', 'snmp', 'trap', 'syslog'].filter(c => !on(c)).map(c => capUI('dc', t, c));
   notes.push({x:32, y:384, t:'No agent here: devices send to', td:'No local tests: test the branch'},
              {x:32, y:401, t:'the ' + dname + ' agent.', td:'router from the data center agent.'});
   if(miss.length) notes.push({x:494, y:90 + uh + 26, t:'Off at ' + dname + ':', td:'Off at ' + dname + ':'}, {x:494, y:90 + uh + 43, t:miss.join(', '), td:miss.join(', ')});
@@ -1593,8 +1632,8 @@ function dcsScene(){
     nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls', sd:'Flow, SNMP, traps, syslog',
       i:{h:'The routers, switches and firewalls at ' + name + (f ? ', plus the devices of ' + f + ' branch office' + (f > 1 ? 's' : '') + ' with no agent,' : '') + ' send to the local agent and answer its polls.',
          d:['Devices → agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.', 'Agent → devices: UDP 161 SNMP, ICMP, gNMI and TCP 22 for SSH.']}});
-    nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:caps.length + ' of 8 capabilities on', sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(i),
-      i:{h:'The Universal Agent for ' + name + ', ' + (instOf('dc', i) === 'docker' ? 'in Docker' : 'on a Linux host') + '. On: ' + (caps.length ? caps.map(c => UAC[c].ui).join(', ') : 'nothing yet') + '.',
+    nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:uaFoot('dc', i), sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(i),
+      i:{h:'The Universal Agent for ' + name + ', ' + (instOf('dc', i) === 'docker' ? 'in Docker' : 'on a Linux host') + '. On: ' + (caps.length ? caps.map(c => capUI('dc', i, c)).join(', ') : 'nothing yet') + '.',
          d:['Install: Settings › Universal Agents › Deploy Agent gives a Linux or Docker command. Portal tokens last 1 hour.', 'Size the host for the sum of its capabilities: for example SNMP/ST 2 cores / 8 GB, Connectivity Test 2 cores / 2 GB.', 'Agent-to-agent tests with the other sites use TCP 8877 and UDP 9977.']}});
     nodes.push(Object.assign(EGRESS(760, r.cy), {id:'egress-' + i}));
     if(caps.includes('flow')) edges.push({t:'flow', a:'dev-' + i, b:'ua-' + i, p:[[270, r.cy - 7], [320, r.cy - 7]]});
@@ -1709,7 +1748,7 @@ hl:`<p class="lead">Most branches don’t get their own agent. The branch router
 dd:`<p class="lead">Branch devices are configured to use the data center agent as their collector.</p>
 <h3>Across the WAN</h3>
 <table><thead><tr><th style="width:38%">Direction</th><th style="width:30%">Port</th><th>Used by</th></tr></thead><tbody>
-<tr><td>Branch devices → DC agent</td><td>UDP 9995</td><td>Flow Proxy: Forwarding</td></tr>
+<tr><td>Branch devices → DC agent</td><td>UDP 9995</td><td>Flow Proxy</td></tr>
 <tr><td>Branch devices → DC agent</td><td>UDP 162</td><td>SNMP Trap Receiver</td></tr>
 <tr><td>Branch devices → DC agent</td><td>UDP and TCP 514</td><td>Syslog Server</td></tr>
 <tr><td>DC agent → branch devices</td><td>UDP 161, ICMP</td><td>SNMP/ST</td></tr>
@@ -1719,7 +1758,7 @@ dd:`<p class="lead">Branch devices are configured to use the data center agent a
 <li>Add the branch devices with the data center agent as their collection agent (SNMP tab: Flow Enrichment or Full Monitoring via Universal Agent).</li>
 <li>Assign the devices to the branch Site, so dashboards and maps still group them by location.</li>
 <li>Set each device’s flow sample rate in Kentik to match the router.</li></ul>
-<h3>Sizing</h3><p>Add the branch flow rate and device count to the data center agent’s sizing: SNMP/ST covers up to 500 devices per 2 cores / 8 GB, and Flow Proxy: Forwarding about 20,000 flows per second per core.</p>`,
+<h3>Sizing</h3><p>Enter this branch’s devices and flows under Branch load and they are added to the data center agent’s sizing. SNMP/ST covers up to 500 devices per 2 cores / 8 GB. Flow Proxy Forwarding handles 20,000+ flows per second on 1 core / 2 GB; Edge Processing needs 8 cores / 32 GB per 25,000.</p>`,
 src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['Device Settings','https://kb.kentik.com/docs/device-settings'],['Router Configuration','https://kb.kentik.com/docs/router-configuration'],['NMS Setup','https://kb.kentik.com/docs/nms-setup']]};
 
 function brsInfo(){
@@ -1747,12 +1786,30 @@ function instSeg(kind, i){
   return `<div class="fld"><span>Install the agent</span><div class="seg mini" role="group" aria-label="Install method">${[['linux', 'Linux host'], ['docker', 'Docker']].map(o => `<button type="button" data-inst="${kind}:${i}:${o[0]}" aria-pressed="${v === o[0]}">${o[1]}</button>`).join('')}</div></div>`;
 }
 function capsCard(kind, i, dd){
-  const caps = capsOf(kind, i), n = caps.size;
-  const rows = UACAPS.map(c => `<div class="caprow${caps.has(c.id) ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${caps.has(c.id)}" data-cap="${kind}:${i}:${c.id}" aria-label="${esc(c.ui)}"><span></span></button><div class="capt"><b>${esc(c.ui)}${c.aka ? ' <span class="aka">(AKA ' + c.aka + ')</span>' : ''}</b><span>${esc(dd ? c.sd : c.s)}</span></div></div>`).join('');
-  const z = sizing(kind, i);
-  const size = dd ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${n ? `Host for these capabilities at the KB baseline: ${z.cpu} cores / ${z.ram} GB, about <b>${z.rc} vCPU / ${z.rr} GB</b> with 30% headroom.` : 'Nothing to size yet.'}</p>` : '';
+  const caps = capsOf(kind, i), n = caps.size, fm = fmOf(kind, i);
+  const modeSeg = `<div class="fmseg"><div class="seg mini" role="group" aria-label="Flow Proxy mode">${[['forward', 'Forwarding'], ['edge', 'Edge Processing']].map(o => `<button type="button" data-fm="${kind}:${i}:${o[0]}" aria-pressed="${fm === o[0]}">${o[1]}</button>`).join('')}</div><span>${fm === 'edge' ? 'Decodes on the agent: 8 cores / 32 GB per 25k flows/s' : 'Kentik decodes: 1 core / 2 GB per 20k flows/s'}</span></div>`;
+  const rows = UACAPS.map(c => {
+    const on = caps.has(c.id), ui = capUI(kind, i, c.id), sub = c.id === 'flow' ? FLOW_MODES[fm].s : dd ? c.sd : c.s;
+    return `<div class="caprow${on ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${on}" data-cap="${kind}:${i}:${c.id}" aria-label="${esc(ui)}"><span></span></button><div class="capt"><b>${esc(ui)}${c.aka ? ' <span class="aka">(AKA ' + c.aka + ')</span>' : ''}</b><span>${esc(sub)}</span></div></div>` + (c.id === 'flow' && on ? modeSeg : '');
+  }).join('');
   return `<div class="card caps"><div class="caphead"><div><h4>Installed capabilities</h4><p>Running on this agent. The diagram follows what you turn on.</p></div><span class="capn" aria-label="${n} on">${n}</span></div>${rows}
-<div class="btns" style="margin-top:6px"><button type="button" data-capall="${kind}:${i}:1">Turn all on</button><button type="button" data-capall="${kind}:${i}:0">Turn all off</button></div>${size}</div>`;
+<div class="btns" style="margin-top:6px"><button type="button" data-capall="${kind}:${i}:1">Turn all on</button><button type="button" data-capall="${kind}:${i}:0">Turn all off</button></div></div>` + loadCard(kind, i);
+}
+/* Optional load: devices and flows. Collapsed by default so the panel stays simple. */
+function sizeLine(kind, i){
+  if(!capList(kind, i).length) return 'Turn on a capability to size this agent.';
+  const z = sizing(kind, i), f = kind === 'dc' ? feeders(i).filter(b => { const q = szOf('br', b); return q.d || q.f; }).length : 0;
+  return `Plan <b>${z.rc} vCPU / ${z.rr} GB RAM</b> ` + (z.given ? `for ${[z.d ? fmt(z.d) + ' devices' : '', z.f ? fmt(z.f) + ' flows/s' : ''].filter(Boolean).join(' and ')}${f ? ', branch load included' : ''}` : 'at the KB baseline (up to 500 devices, 20k+ flows/s)')
+    + ', with 30% headroom.' + (z.est ? ' Above the KB flow figure this is an estimate: confirm with your Infoblox team.' : '');
+}
+function loadCard(kind, i){
+  const z = szOf(kind, i), agentless = kind === 'br' && !brUA(i), t = agentless ? brTarget(i) : 0;
+  const inp = (k, label, ph) => `<label class="fld"><span>${label}</span><input type="number" min="0" max="10000000" step="1" inputmode="numeric" data-sz="${kind}:${i}:${k}" value="${z[k] || ''}" placeholder="${ph}"></label>`;
+  const out = agentless ? (t ? `Added to the ${esc(dcName(t))} agent’s sizing.` : 'Add a data center to collect this branch.') : sizeLine(kind, i);
+  return `<details class="card load"${S.szOpen ? ' open' : ''}><summary><h4>${agentless ? 'Branch load' : 'Size this agent'}<span class="tag">Optional</span></h4></summary>
+<p>${agentless ? 'Devices and flows at this branch. They count toward the data center agent it sends to.' : 'Enter what this agent collects to size its host. Leave blank to use the KB baseline.'}</p>
+<div class="ldrow">${inp('d', 'Network devices', 'e.g. 200')}${inp('f', 'Flows per second', 'e.g. 20000')}</div>
+<p class="szout" data-szout="${kind}:${i}">${out}</p></details>`;
 }
 function bgpCard(i, dd){
   const m = bgpMode(i), on = m !== 'off';
@@ -1777,7 +1834,7 @@ function branchCard(i, dd){
 <label class="fld"><span>Branch name</span><input type="text" class="nameIn" data-name="br:${i}" maxlength="32" autocomplete="off" spellcheck="false" value="${esc(brCustom(i))}" placeholder="${esc(brDefault(i))}"></label>
 <div class="caprow solo${ua ? ' on' : ''}"><button type="button" class="sw" role="switch" aria-checked="${ua}" data-brua="${i}" aria-label="Universal Agent at this branch"><span></span></button><div class="capt"><b>Universal Agent at this branch</b><span>${ua ? 'Collects locally and tests from the branch' : 'Off: devices send across the WAN to a data center'}</span></div></div>
 ${ua ? instSeg('br', i) : sel}
-<div class="btns"><button type="button" data-bradd="1"${n < BR_MAX ? '' : ' disabled'}>+ Add a branch</button><button type="button" data-brdel="${i}">Remove this branch</button>${n > 1 ? `<button type="button" data-go="brs">All ${n} branches ›</button>` : ''}</div></div>` + (ua ? capsCard('br', i, dd) : '');
+<div class="btns"><button type="button" data-bradd="1"${n < BR_MAX ? '' : ' disabled'}>+ Add a branch</button><button type="button" data-brdel="${i}">Remove this branch</button>${n > 1 ? `<button type="button" data-go="brs">All ${n} branches ›</button>` : ''}</div></div>` + (ua ? capsCard('br', i, dd) : loadCard('br', i));
 }
 function sitesCard(kind){
   const dc = kind === 'dc', n = dc ? S.dcN : S.brN, max = dc ? DC_MAX : BR_MAX;
@@ -1791,7 +1848,7 @@ const NS = 'http://www.w3.org/2000/svg';
 const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
 const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
-  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[],
+  dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[], dcFm:[], dcSz:[], brFm:[], brSz:[], szOpen:false,
   brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
   meta:{cu:'', pb:'', rg:'US'}};
 const VB = [0, 0, 1000, 620];
@@ -2453,7 +2510,7 @@ function setDCCount(n){
 const stepDC = d => setDCCount((S.sel.has('dc') ? S.dcN : 0) + d);
 function removeDC(i){
   if(S.dcN <= 1){ setDCCount(0); return; }
-  [S.dcNames, S.dcCaps, S.dcInst, S.dcBgp].forEach(a => a.splice(i - 1, 1));
+  [S.dcNames, S.dcCaps, S.dcInst, S.dcBgp, S.dcFm, S.dcSz].forEach(a => a.splice(i - 1, 1));
   S.brTo = S.brTo.map(t => { t = +t || 1; return t === i ? 1 : t > i ? t - 1 : t; });   // branches that pointed at the removed site move to the first one
   S.dcN--;
   dcRefresh('dcs');
@@ -2473,7 +2530,7 @@ const stepBR = d => setBRCount((S.sel.has('branch') ? S.brN : 0) + d);
 function addBR(){ const was = S.sel.has('branch') ? S.brN : 0; setBRCount(was + 1); if(S.view !== 'ov' && S.brN > was) go(brId(S.brN)); }
 function removeBR(i){
   if(S.brN <= 1){ setBRCount(0); return; }
-  [S.brNames, S.brUA, S.brTo, S.brCaps, S.brInst].forEach(a => a.splice(i - 1, 1));
+  [S.brNames, S.brUA, S.brTo, S.brCaps, S.brInst, S.brFm, S.brSz].forEach(a => a.splice(i - 1, 1));
   S.brN--;
   dcRefresh(S.brN > 1 ? 'brs' : 'br1');
 }
@@ -2506,6 +2563,16 @@ function setBgp(i, m){
   S.dcBgp[i - 1] = m === 'direct' ? 'direct' : 'off';
   siteChanged();
 }
+function setFlowMode(kind, i, m){ (kind === 'dc' ? S.dcFm : S.brFm)[i - 1] = m === 'edge' ? 'edge' : 'forward'; siteChanged(); }
+/* Typing a load redraws the diagrams and the sizing line, but leaves the panel (and the cursor) alone */
+function setLoad(kind, i, k, v){
+  const n = Math.max(0, Math.min(10000000, Math.round(+v) || 0));
+  szOf(kind, i)[k] = n;
+  renderOverview();
+  if(siteView(S.view)){ renderDetail(); buildParticles(); applyHighlight(); }
+  saveHash();
+  document.querySelectorAll('#panel [data-szout]').forEach(p => { const [pk, pi] = p.dataset.szout.split(':'); if(pk !== 'br' || brUA(+pi)) p.innerHTML = sizeLine(pk, +pi); });
+}
 function setInst(kind, i, v){ (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
 function toggleBRUA(i){ S.brUA[i - 1] = !brUA(i); siteChanged(); }
 function setBRTarget(i, t){ S.brTo[i - 1] = +t; siteChanged(); }
@@ -2521,6 +2588,12 @@ function stateHash(){
   if(bn.some(x => String(x || '').trim())) h += '&bn=' + enc(bn);
   h += '&dc=' + dcIds().map((id, k) => capCode(capsOf('dc', k + 1))).join('|');
   h += '&bg=' + dcIds().map((id, k) => bgpMode(k + 1)[0]).join('');
+  h += '&df=' + dcIds().map((id, k) => fmOf('dc', k + 1)[0]).join('');
+  h += '&bf=' + brIds().map((id, k) => fmOf('br', k + 1)[0]).join('');
+  const sz = (kind, ids) => ids.map((id, k) => { const z = szOf(kind, k + 1); return (z.d || '') + '.' + (z.f || ''); }).join('|');
+  const dz = sz('dc', dcIds()), bz = sz('br', brIds());
+  if(/\d/.test(dz)) h += '&dz=' + dz;
+  if(/\d/.test(bz)) h += '&bz=' + bz;
   h += '&di=' + dcIds().map((id, k) => instOf('dc', k + 1)[0]).join('');
   h += '&bu=' + brIds().map((id, k) => brUA(k + 1) ? 1 : 0).join('');
   h += '&bt=' + brIds().map((id, k) => +S.brTo[k] || 1).join('.');
@@ -2553,6 +2626,12 @@ function loadHash(){
   if(q.dc !== undefined) S.dcCaps = q.dc.split('|').map(caps);
   if(q.bc !== undefined) S.brCaps = q.bc.split('|').map(caps);
   if(q.bg) S.dcBgp = [...q.bg].map(c => c === 'd' ? 'direct' : 'off');   // 'u' comes back through the bgp capability
+  const fm = s => [...s].map(c => c === 'e' ? 'edge' : 'forward');
+  const sz = s => s.split('|').map(x => { const [d, f] = x.split('.'); return {d:Math.max(0, parseInt(d, 10) || 0), f:Math.max(0, parseInt(f, 10) || 0)}; });
+  if(q.df) S.dcFm = fm(q.df);
+  if(q.bf) S.brFm = fm(q.bf);
+  if(q.dz) S.dcSz = sz(q.dz);
+  if(q.bz) S.brSz = sz(q.bz);
   if(q.di) S.dcInst = [...q.di].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bi) S.brInst = [...q.bi].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bu) S.brUA = [...q.bu].map(c => c === '1');
@@ -2594,6 +2673,8 @@ $('#panel').addEventListener('click', ev => {
   if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, +i, c); return; }
   const ca = t.closest('[data-capall]');
   if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, +i, on === '1'); return; }
+  const fmb = t.closest('[data-fm]');
+  if(fmb){ const [k, i, m] = fmb.dataset.fm.split(':'); setFlowMode(k, +i, m); return; }
   const bo = t.closest('[data-bgpon]');
   if(bo){ const i = +bo.dataset.bgpon; setBgp(i, bgpMode(i) === 'off' ? 'direct' : 'off'); return; }
   const bm = t.closest('[data-bgp]');
@@ -2606,7 +2687,12 @@ $('#panel').addEventListener('click', ev => {
   if(g){ go(g.dataset.go); return; }
   if(t.closest('[data-clear]')) setFocus(null);
 });
-$('#panel').addEventListener('input', ev => { const t = ev.target; if(t && t.classList.contains('nameIn')){ const [k, i] = t.dataset.name.split(':'); renameSite(k, +i, t.value); } });
+$('#panel').addEventListener('input', ev => {
+  const t = ev.target;
+  if(t && t.classList.contains('nameIn')){ const [k, i] = t.dataset.name.split(':'); renameSite(k, +i, t.value); }
+  if(t && t.dataset && t.dataset.sz){ const [k, i, f] = t.dataset.sz.split(':'); setLoad(k, +i, f, t.value); }
+});
+$('#panel').addEventListener('toggle', ev => { if(ev.target.matches && ev.target.matches('details.load')) S.szOpen = ev.target.open; }, true);
 $('#panel').addEventListener('change', ev => { const t = ev.target; if(t && t.classList.contains('toSel')) setBRTarget(+t.dataset.to, t.value); });
 $('#crumbs').addEventListener('click', ev => {
   const b = ev.target.closest('[data-nav]');
@@ -2710,15 +2796,17 @@ function savedHTML(){
   return h.replace('</head>', st + '</head>');
 }
 
+/* Optional load for the guide's sizing; null means not given, so the guide plans for the KB baseline */
+function loadOf(kind, i){ const z = szOf(kind, i); return {flow_mode:fmOf(kind, i), devices:z.d || null, fps:z.f || null, syslog_eps:null, dns_lps:null}; }
 /* The design in the shape the Python app's deployment guide expects */
 function exportCfg(){
   const sites = [];
   if(dcOn()) for(let i = 1; i <= S.dcN; i++){
-    sites.push({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:bgpMode(i) === 'direct'});
+    sites.push(Object.assign({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:bgpMode(i) === 'direct'}, loadOf('dc', i)));
   }
   if(brOn()) for(let i = 1; i <= S.brN; i++){
     const ua = brUA(i), t = brTarget(i);
-    sites.push({name:brName(i), kind:'branch', agent:ua, install:instOf('br', i), capabilities:ua ? capList('br', i) : [], send_to:ua || !t ? '' : dcName(t), bgp:false});
+    sites.push(Object.assign({name:brName(i), kind:'branch', agent:ua, install:instOf('br', i), capabilities:ua ? capList('br', i) : [], send_to:ua || !t ? '' : dcName(t), bgp:false}, loadOf('br', i)));
   }
   const clouds = {};
   ['aws', 'azure', 'gcp', 'oci'].forEach(c => { clouds[c] = {enabled:S.sel.has(c)}; });

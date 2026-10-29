@@ -134,6 +134,15 @@ def remote_branches(cfg, site=None):
     return [s for s in cfg["sites"] if not s["agent"] and (site is None or s["send_to"] == site["name"])]
 
 
+def cap_name(site, cid):
+    """A capability's name as the portal shows it; Flow Proxy names its mode."""
+    return C.FLOW_MODES[site.get("flow_mode", "forward")] if cid == "flow" else C.CAPABILITIES[cid]["name"]
+
+
+def cap_names(site):
+    return ", ".join(cap_name(site, c) for c in site["capabilities"])
+
+
 def site_sizing(site, cfg=None):
     """Sum KB per-capability sizing for one agent host, then add headroom. Includes branches that send to it."""
     rows = []
@@ -150,10 +159,12 @@ def site_sizing(site, cfg=None):
         if s["cpu"] is None:
             rows.append((s["label"], qty_label, "Not published", 0, 0))
             return
-        n = max(1, math.ceil(units / s["per"])) if s["per"] and s.get("scale", True) else 1
-        if s["per"] and not s.get("scale", True) and units > s["per"] * 1.5:
-            qty_label += " (above the KB figure: confirm with Kentik)"
-        rows.append((s["label"], qty_label, f"{s['cpu']} cores / {s['ram']} GB" + (f" x {n}" if n > 1 else ""),
+        if s["per"] and not units:  # no load given: plan for the KB baseline
+            qty_label = f"Not given; KB baseline up to {s['per']:,} {s['unit']}"
+        n = max(1, math.ceil(units / s["per"])) if s["per"] else 1
+        if n > 1 and s.get("estimate"):
+            qty_label += " (scaled from the KB figure: confirm with Kentik)"
+        rows.append((s["label"], qty_label, f"{s['cpu']} core{'s' if s['cpu'] > 1 else ''} / {s['ram']} GB" + (f" x {n}" if n > 1 else ""),
                      s["cpu"] * n, s["ram"] * n))
 
     if "flow" in caps:

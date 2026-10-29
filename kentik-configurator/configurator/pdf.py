@@ -407,7 +407,7 @@ def guide_pdf(cfg, images=None):
         size = M.site_sizing(s, cfg)
         rows.append([s["name"] + (f" ({s['location']})" if s["location"] else ""),
                      "Universal Agent on " + ("Docker" if s["install"] == "docker" else "Linux"),
-                     (", ".join(C.CAPABILITIES[c]["name"] for c in s["capabilities"]) or "None selected")
+                     (M.cap_names(s) or "None selected")
                      + ("; edge routers peer BGP directly with Kentik" if s.get("bgp") else "; no BGP peering" if s["kind"] == "dc" and "bgp" not in s["capabilities"] else ""),
                      f"{size['rec_cpu']} vCPU / {size['rec_ram']} GB"])
     for cid in clouds:
@@ -535,7 +535,7 @@ def guide_pdf(cfg, images=None):
             if feeds:
                 kind += f" that also collects for {len(feeds)} branch(es) without an agent ({', '.join(b['name'] for b in feeds)}); their load is included in the sizing"
             block.append(P(f"{kind}. Install method: <b>{'Docker' if s['install'] == 'docker' else 'Linux package'}</b>. "
-                           f"Capabilities: <b>{esc(', '.join(C.CAPABILITIES[c]['name'] for c in s['capabilities']) or 'none')}</b>.", "body"))
+                           f"Capabilities: <b>{esc(M.cap_names(s) or 'none')}</b>.", "body"))
             if size["rows"]:
                 rows = [[r[0], r[1], r[2]] for r in size["rows"]]
                 rows.append(["Total from KB sizing", "", f"{size['cpu']} cores / {size['ram']} GB"])
@@ -549,7 +549,7 @@ def guide_pdf(cfg, images=None):
             stp = [x.format(method="Docker" if s["install"] == "docker" else "Linux",
                             hostname_note="container ID" if s["install"] == "docker" else "system hostname",
                             site=s["name"],
-                            caps=", ".join(C.CAPABILITIES[c]["name"] for c in s["capabilities"]) or "none")
+                            caps=M.cap_names(s) or "none")
                    for x in C.UA_INSTALL_STEPS]
             story += steps(stp)
             if s.get("proxy"):
@@ -575,8 +575,8 @@ def guide_pdf(cfg, images=None):
                        "across the WAN. Nothing is installed at the branch.", "lead"))
         story.append(table(["Branch", "Sends to", "What reaches Kentik"],
                            [[b["name"], (b["send_to"] + " agent") if b["send_to"] else "Nothing yet: add a data center or an agent",
-                             ", ".join(C.CAPABILITIES[c]["name"] for c in next((d["capabilities"] for d in sites if d["name"] == b["send_to"]), [])
-                                       if c in ("flow", "snmp", "trap", "syslog", "ssh")) or "None"] for b in remote],
+                             (lambda d: ", ".join(M.cap_name(d, c) for c in d["capabilities"] if c in ("flow", "snmp", "trap", "syslog", "ssh")) if d else "")(
+                                 next((d for d in sites if d["name"] == b["send_to"]), None)) or "None"] for b in remote],
                            [1.8 * inch, 1.8 * inch, 3.4 * inch], bold_first=True))
         story.append(P("<b>Steps for each branch</b>", "h3"))
         story += steps([
@@ -597,7 +597,8 @@ def guide_pdf(cfg, images=None):
         story.append(P("How to configure each capability used in this design, on the agent and on the devices that feed it.", "lead"))
         for cid in caps_used:
             cap = C.CAPABILITIES[cid]
-            at = [s["name"] for s in sites if cid in s["capabilities"]]
+            at = [s["name"] + (f" ({'Edge Processing' if s['flow_mode'] == 'edge' else 'Forwarding'})" if cid == "flow" else "")
+                  for s in sites if cid in s["capabilities"]]
             story.append(KeepTogether([P(f"{esc(cap['name'])}", "h2"),
                                        P(esc(cap["purpose"]), "body"),
                                        P(f"<b>Enabled at:</b> {esc(', '.join(at))}  ·  <b>License:</b> {esc(cap['license'])}", "small")]))
