@@ -64,13 +64,15 @@ REGIONS = {
 # Universal Agent capabilities. "cpu"/"ram" are per unit of "per" from the KB sizing table.
 CAPABILITIES = {
     "flow": {
-        "name": "Flow Proxy: Forwarding", "kb_id": "ktraffic (Edge Processing: kproxy)", "color": "flow",
+        "name": "Flow Proxy", "kb_id": "Forwarding: ktraffic · Edge Processing: kproxy", "color": "flow",
         "short": "NetFlow, sFlow, IPFIX", "port_label": "UDP 9995 in",
-        "purpose": "Receives NetFlow, sFlow and IPFIX from routers, switches and firewalls, enriches it and forwards it to Kentik over TLS.",
+        "purpose": "Receives NetFlow, sFlow and IPFIX from routers, switches and firewalls and sends it to Kentik over TLS. "
+                   "Forwarding sends the raw flow to Kentik SaaS, which decodes it, so it needs far less CPU and RAM. "
+                   "Edge Processing decodes and enriches the flow on the agent before sending it, so it needs a much larger host.",
         "inbound": [("Network devices", "UDP 9995", "Flow export (NetFlow, sFlow, IPFIX)")],
         "outbound_local": [],
         "setup": [
-            "Toggle on Flow Proxy: Forwarding on the agent. Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.",
+            "Toggle on Flow Proxy on the agent in the mode chosen for this site (Forwarding or Edge Processing). Settings: Host 0.0.0.0, Port 9995 (UDP), optional sFlow agent address override, and Site.",
             "On each device, export flow to the agent's IP on UDP 9995. Sample ingress on every interface; never ingress and egress on the same interface.",
             "The sample rate on the device must match the rate set for that device in Kentik.",
             "Vendor configuration snippets for flow, SNMP and BGP: github.com/kentik/config-snippets.",
@@ -193,8 +195,8 @@ CAP_ORDER = ["flow", "snmp", "trap", "syslog", "dns", "synth", "ssh", "bgp"]
 
 # Sizing from the KB (Universal Agents page). None = not published.
 SIZING = {
-    "flow_edge": {"label": "Flow Proxy (Edge Processing)", "cpu": 8, "ram": 32, "per": 25000, "unit": "flows/s", "scale": False},
-    "flow_forward": {"label": "Flow Proxy: Forwarding", "cpu": 1, "ram": 2, "per": 20000, "unit": "flows/s", "scale": False},
+    "flow_edge": {"label": "Flow Proxy Edge Processing", "cpu": 8, "ram": 32, "per": 25000, "unit": "flows/s", "estimate": True},
+    "flow_forward": {"label": "Flow Proxy Forwarding", "cpu": 1, "ram": 2, "per": 20000, "unit": "flows/s", "estimate": True},
     "snmp": {"label": "SNMP/ST", "cpu": 2, "ram": 8, "per": 500, "unit": "devices"},
     "syslog": {"label": "Syslog Server", "cpu": 1, "ram": 1, "per": 8000, "unit": "events/s"},
     "dns": {"label": "DNS OTT Tap", "cpu": 1, "ram": 1, "per": 400000, "unit": "lookups/s"},
@@ -203,6 +205,8 @@ SIZING = {
     "ssh": {"label": "Device Configuration Sync", "cpu": None, "ram": None, "per": None, "unit": None},
     "bgp": {"label": "BGP Proxy", "cpu": 2, "ram": 2, "per": None, "unit": None},
 }
+# Flow Proxy runs in one of two modes, chosen per agent
+FLOW_MODES = {"forward": "Flow Proxy Forwarding", "edge": "Flow Proxy Edge Processing"}
 HEADROOM = 0.30  # KB: add 20-30% for bursty flow, syslog and traps; we plan for the top of that range.
 
 SUPPORTED_OS = ["Debian 11, 12, 13", "Ubuntu 20.04, 22.04, 24.04", "Oracle Linux 9", "CentOS Stream 8"]
@@ -413,5 +417,5 @@ OPEN_ITEMS = [
     "Licensing names and entitlements per contract (FlowPak, NMS/DevicePak, CloudPak, Synthetics credits).",
     "Disk sizing for Universal Agent hosts is not published in the KB.",
     "BGP Proxy shows in Installed Capabilities in the portal, but the KB page still lists it as coming soon. Confirm it is available for this account before relying on it.",
-    "Flow Proxy: Forwarding is marked beta in the KB. Confirm the flavor (Forwarding or Edge Processing) per site.",
+    "Flow Proxy Forwarding (ktraffic) is marked beta in the KB. Confirm the mode (Forwarding or Edge Processing) per site. Above the KB flow figures, sizing is scaled linearly and is an estimate.",
 ]

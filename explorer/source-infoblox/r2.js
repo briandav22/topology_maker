@@ -323,7 +323,7 @@ function setDCCount(n){
 const stepDC = d => setDCCount((S.sel.has('dc') ? S.dcN : 0) + d);
 function removeDC(i){
   if(S.dcN <= 1){ setDCCount(0); return; }
-  [S.dcNames, S.dcCaps, S.dcInst, S.dcBgp].forEach(a => a.splice(i - 1, 1));
+  [S.dcNames, S.dcCaps, S.dcInst, S.dcBgp, S.dcFm, S.dcSz].forEach(a => a.splice(i - 1, 1));
   S.brTo = S.brTo.map(t => { t = +t || 1; return t === i ? 1 : t > i ? t - 1 : t; });   // branches that pointed at the removed site move to the first one
   S.dcN--;
   dcRefresh('dcs');
@@ -343,7 +343,7 @@ const stepBR = d => setBRCount((S.sel.has('branch') ? S.brN : 0) + d);
 function addBR(){ const was = S.sel.has('branch') ? S.brN : 0; setBRCount(was + 1); if(S.view !== 'ov' && S.brN > was) go(brId(S.brN)); }
 function removeBR(i){
   if(S.brN <= 1){ setBRCount(0); return; }
-  [S.brNames, S.brUA, S.brTo, S.brCaps, S.brInst].forEach(a => a.splice(i - 1, 1));
+  [S.brNames, S.brUA, S.brTo, S.brCaps, S.brInst, S.brFm, S.brSz].forEach(a => a.splice(i - 1, 1));
   S.brN--;
   dcRefresh(S.brN > 1 ? 'brs' : 'br1');
 }
@@ -376,6 +376,16 @@ function setBgp(i, m){
   S.dcBgp[i - 1] = m === 'direct' ? 'direct' : 'off';
   siteChanged();
 }
+function setFlowMode(kind, i, m){ (kind === 'dc' ? S.dcFm : S.brFm)[i - 1] = m === 'edge' ? 'edge' : 'forward'; siteChanged(); }
+/* Typing a load redraws the diagrams and the sizing line, but leaves the panel (and the cursor) alone */
+function setLoad(kind, i, k, v){
+  const n = Math.max(0, Math.min(10000000, Math.round(+v) || 0));
+  szOf(kind, i)[k] = n;
+  renderOverview();
+  if(siteView(S.view)){ renderDetail(); buildParticles(); applyHighlight(); }
+  saveHash();
+  document.querySelectorAll('#panel [data-szout]').forEach(p => { const [pk, pi] = p.dataset.szout.split(':'); if(pk !== 'br' || brUA(+pi)) p.innerHTML = sizeLine(pk, +pi); });
+}
 function setInst(kind, i, v){ (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
 function toggleBRUA(i){ S.brUA[i - 1] = !brUA(i); siteChanged(); }
 function setBRTarget(i, t){ S.brTo[i - 1] = +t; siteChanged(); }
@@ -391,6 +401,12 @@ function stateHash(){
   if(bn.some(x => String(x || '').trim())) h += '&bn=' + enc(bn);
   h += '&dc=' + dcIds().map((id, k) => capCode(capsOf('dc', k + 1))).join('|');
   h += '&bg=' + dcIds().map((id, k) => bgpMode(k + 1)[0]).join('');
+  h += '&df=' + dcIds().map((id, k) => fmOf('dc', k + 1)[0]).join('');
+  h += '&bf=' + brIds().map((id, k) => fmOf('br', k + 1)[0]).join('');
+  const sz = (kind, ids) => ids.map((id, k) => { const z = szOf(kind, k + 1); return (z.d || '') + '.' + (z.f || ''); }).join('|');
+  const dz = sz('dc', dcIds()), bz = sz('br', brIds());
+  if(/\d/.test(dz)) h += '&dz=' + dz;
+  if(/\d/.test(bz)) h += '&bz=' + bz;
   h += '&di=' + dcIds().map((id, k) => instOf('dc', k + 1)[0]).join('');
   h += '&bu=' + brIds().map((id, k) => brUA(k + 1) ? 1 : 0).join('');
   h += '&bt=' + brIds().map((id, k) => +S.brTo[k] || 1).join('.');
@@ -423,6 +439,12 @@ function loadHash(){
   if(q.dc !== undefined) S.dcCaps = q.dc.split('|').map(caps);
   if(q.bc !== undefined) S.brCaps = q.bc.split('|').map(caps);
   if(q.bg) S.dcBgp = [...q.bg].map(c => c === 'd' ? 'direct' : 'off');   // 'u' comes back through the bgp capability
+  const fm = s => [...s].map(c => c === 'e' ? 'edge' : 'forward');
+  const sz = s => s.split('|').map(x => { const [d, f] = x.split('.'); return {d:Math.max(0, parseInt(d, 10) || 0), f:Math.max(0, parseInt(f, 10) || 0)}; });
+  if(q.df) S.dcFm = fm(q.df);
+  if(q.bf) S.brFm = fm(q.bf);
+  if(q.dz) S.dcSz = sz(q.dz);
+  if(q.bz) S.brSz = sz(q.bz);
   if(q.di) S.dcInst = [...q.di].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bi) S.brInst = [...q.bi].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bu) S.brUA = [...q.bu].map(c => c === '1');
@@ -464,6 +486,8 @@ $('#panel').addEventListener('click', ev => {
   if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, +i, c); return; }
   const ca = t.closest('[data-capall]');
   if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, +i, on === '1'); return; }
+  const fmb = t.closest('[data-fm]');
+  if(fmb){ const [k, i, m] = fmb.dataset.fm.split(':'); setFlowMode(k, +i, m); return; }
   const bo = t.closest('[data-bgpon]');
   if(bo){ const i = +bo.dataset.bgpon; setBgp(i, bgpMode(i) === 'off' ? 'direct' : 'off'); return; }
   const bm = t.closest('[data-bgp]');
@@ -476,7 +500,12 @@ $('#panel').addEventListener('click', ev => {
   if(g){ go(g.dataset.go); return; }
   if(t.closest('[data-clear]')) setFocus(null);
 });
-$('#panel').addEventListener('input', ev => { const t = ev.target; if(t && t.classList.contains('nameIn')){ const [k, i] = t.dataset.name.split(':'); renameSite(k, +i, t.value); } });
+$('#panel').addEventListener('input', ev => {
+  const t = ev.target;
+  if(t && t.classList.contains('nameIn')){ const [k, i] = t.dataset.name.split(':'); renameSite(k, +i, t.value); }
+  if(t && t.dataset && t.dataset.sz){ const [k, i, f] = t.dataset.sz.split(':'); setLoad(k, +i, f, t.value); }
+});
+$('#panel').addEventListener('toggle', ev => { if(ev.target.matches && ev.target.matches('details.load')) S.szOpen = ev.target.open; }, true);
 $('#panel').addEventListener('change', ev => { const t = ev.target; if(t && t.classList.contains('toSel')) setBRTarget(+t.dataset.to, t.value); });
 $('#crumbs').addEventListener('click', ev => {
   const b = ev.target.closest('[data-nav]');

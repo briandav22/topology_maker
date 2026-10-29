@@ -253,6 +253,17 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 .panel .fld .seg{align-self:flex-start}
 .panel .fld select{font:inherit;font-size:13.5px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 8px;width:100%}
 .card-ov.warn rect.bg{stroke:var(--l-trap);stroke-dasharray:4 3}
+.fmseg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:-2px 0 8px 10px;font-size:11.5px;color:var(--muted)}
+details.load summary{list-style:none;cursor:pointer}
+details.load summary::-webkit-details-marker{display:none}
+details.load summary h4{margin:0}
+details.load summary h4::before{content:'▸';display:inline-block;width:14px;color:var(--muted);transition:transform .15s}
+details.load[open] summary h4::before{transform:rotate(90deg)}
+details.load[open] summary{margin-bottom:6px}
+.ldrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ldrow .fld{margin:0 0 4px}
+.panel .fld input[type=number]{-moz-appearance:textfield}
+.szout{font-size:12.5px;margin:6px 0 0}
 /* Save and export */
 dialog.xdlg{border:1px solid var(--border);border-radius:14px;padding:0;background:var(--surface);color:var(--text);width:min(460px,calc(100vw - 32px));box-shadow:0 12px 40px rgba(0,0,0,.25)}
 dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
