@@ -112,13 +112,13 @@ CAPABILITIES = {
     },
     "syslog": {
         "name": "Syslog Server", "kb_id": "ksyslog", "color": "syslog",
-        "short": "Device and server logs", "port_label": "UDP/TCP 514 in",
-        "purpose": "Collects log messages from devices and servers so they can be searched, alerted on and lined up with traffic.",
-        "inbound": [("Network devices and servers", "UDP and TCP 514", "Syslog")],
+        "short": "Network device logs", "port_label": "UDP/TCP 514 in",
+        "purpose": "Collects log messages from network devices (routers, switches, firewalls, load balancers) so they can be searched, alerted on and lined up with traffic.",
+        "inbound": [("Network devices: routers, switches, firewalls, load balancers", "UDP and TCP 514", "Syslog")],
         "outbound_local": [],
         "setup": [
             "Enable Syslog Server on the agent.",
-            "Point device and server syslog at the agent's IP on UDP or TCP 514.",
+            "Point network device syslog at the agent's IP on UDP or TCP 514.",
             "If a syslog forwarder sits in between, it must keep the original device IP. Changing the port currently needs Kentik support.",
             "Query in Data Explorer with the metric \"Syslog: Events\".",
         ],
