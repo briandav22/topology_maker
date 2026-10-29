@@ -179,10 +179,12 @@ function renderChrome(){
   if(S.view === 'ov') c.innerHTML = '<span class="cur">All deployments</span>';
   else {
     let h = '<button type="button" data-nav="ov">All deployments</button><span class="sep">›</span>';
-    h += S.focus ? `<button type="button" data-nav="${S.view}">${esc(viewName(S.view))}</button><span class="sep">›</span><span class="cur">${esc(focusName())}</span>` : `<span class="cur">${esc(viewName(S.view))}</span>`;
-    c.innerHTML = h;
+    const cur = S.focus ? focusName() : viewName(S.view);
+    if(S.focus) h += `<button type="button" data-nav="${S.view}">${esc(viewName(S.view))}</button><span class="sep">›</span>`;
+    c.innerHTML = h + `<span class="cur" title="${esc(cur)}">${esc(cur)}</span>`;
   }
-  $('#hint').textContent = S.view === 'ov' ? 'Click a deployment to drill in, or Kentik SaaS to see inside' : 'Click any box or line for details · Esc goes back';
+  const hint = $('#hint');
+  hint.textContent = hint.title = S.view === 'ov' ? 'Click a deployment to drill in, or Kentik SaaS to see inside' : 'Click any box or line for details · Esc goes back';
   $('#backBtn').hidden = S.view === 'ov';
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === S.mode ? 'true' : 'false'));
   $('#motionBtn').setAttribute('aria-pressed', S.anim ? 'true' : 'false');
@@ -231,13 +233,16 @@ function aspectBox(r){
   return [cx - W / 2, cy - H / 2, W, H];
 }
 function setVB(svg, b){ svg.setAttribute('viewBox', b.map(v => Math.round(v * 100) / 100).join(' ')); }
+let zoomEnd = 0;   // when the running zoom is done; the overview waits for it before it re-lays out
 function animVB(svg, from, to, ms){
   const tok = svg._tok = (svg._tok || 0) + 1;
   if(REDUCED || !ms){ setVB(svg, to); return; }
   setVB(svg, from);
-  const t0 = performance.now();
+  zoomEnd = Math.max(zoomEnd, performance.now() + ms + 150);
+  let t0 = 0;   // the clock starts on the first frame, so the click's own work never eats the opening of the zoom
   const step = now => {
     if(svg._tok !== tok) return;
+    if(!t0) t0 = now;
     let k = Math.min(1, (now - t0) / ms);
     k = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
     setVB(svg, from.map((v, i) => v + (to[i] - v) * k));
@@ -265,6 +270,7 @@ function go(view, instant){
   const prev = S.view, ov = $('#ov'), dt = $('#dt'), ms = instant ? 0 : 420;
   if(prev === view){ if(S.focus || S.hl){ S.focus = null; S.hl = null; refresh(); } return; }
   S.view = view; S.focus = null; S.hl = null;
+  document.querySelectorAll('#svgwrap .ovfade').forEach(n => n.remove());
   if(view === 'ov'){
     show(dt, false); animVB(dt, DVB.slice(), WIDE, ms);
     show(ov, true); animVB(ov, OVR[prev] ? aspectBox(OVR[prev]) : wideOf(VB), VB.slice(), ms);
@@ -542,26 +548,40 @@ $('#backBtn').addEventListener('click', () => go('ov'));
 /* ===== Collapsible details panel: the diagram takes the space back ===== */
 function setPanel(open, save){
   S.panelOpen = open;
-  $('.main').classList.toggle('nopanel', !open);
+  const m = $('.main');
+  if(save && !REDUCED){ m.classList.add('sliding'); clearTimeout(m._slide); m._slide = setTimeout(() => m.classList.remove('sliding'), 320); }
+  m.classList.toggle('nopanel', !open);
   const b = $('#panelBtn');
   b.setAttribute('aria-expanded', open ? 'true' : 'false');
   b.title = open ? 'Hide the details panel (\\)' : 'Show the details panel (\\)';
   b.querySelector('span').textContent = open ? 'Hide details' : 'Details';
   if(save) try { localStorage.setItem('ibk-panel', open ? '1' : '0'); } catch(e){}
 }
-/* The overview canvas widens to fill a wide stage (up to 1.5x), so cards spread out instead of floating in white space */
+/* The overview canvas widens to fill a wide stage (up to 1.5x), so cards spread out instead of floating in white space.
+   It never re-lays out in the middle of a zoom, and on screen the new layout fades in over the old one. */
+let fitT = 0;
 function fitOverview(){
+  clearTimeout(fitT);
+  const wait = zoomEnd - performance.now();
+  if(wait > 0){ fitT = setTimeout(fitOverview, wait); return; }
   const r = $('#svgwrap').getBoundingClientRect();
   if(!r.width || !r.height) return;
   const w = Math.round(Math.min(1500, Math.max(1000, VB[3] * r.width / r.height)) / 10) * 10;
   if(w === VB[2]) return;
+  const ov = $('#ov'), live = S.view === 'ov';
+  const old = live && !REDUCED ? ov.cloneNode(true) : null;
   VB[2] = w;
   renderOverview();
-  setVB($('#ov'), S.view === 'ov' || !OVR[S.view] ? VB : aspectBox(OVR[S.view]));
-  if(S.view === 'ov'){ buildParticles(); applyHighlight(); }
+  setVB(ov, live || !OVR[S.view] ? VB : aspectBox(OVR[S.view]));
+  if(live){ buildParticles(); applyHighlight(); }
+  if(old){
+    old.removeAttribute('id'); old.setAttribute('aria-hidden', 'true'); old.classList.add('ovfade'); old.style.pointerEvents = 'none';
+    ov.after(old); void old.getBoundingClientRect();
+    old.style.opacity = 0;
+    setTimeout(() => old.remove(), 320);
+  }
 }
 $('#panelBtn').addEventListener('click', () => setPanel(!S.panelOpen, true));
-let fitT = 0;
 if(window.ResizeObserver) new ResizeObserver(() => { clearTimeout(fitT); fitT = setTimeout(fitOverview, 60); }).observe($('#svgwrap'));
 (() => { let open = true; try { open = localStorage.getItem('ibk-panel') !== '0'; } catch(e){} setPanel(open, false); })();
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));

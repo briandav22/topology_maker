@@ -83,19 +83,22 @@ a{color:var(--link)}
 .step button:hover:not(:disabled){background:var(--pill)}
 .step button:disabled{color:var(--faint);cursor:default;opacity:.55}
 .step .num{min-width:16px;text-align:center;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
-.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px;transition:grid-template-columns .25s ease,gap .25s ease}
+.main{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,410px);gap:10px}
+.main.sliding{transition:grid-template-columns .25s ease,gap .25s ease}
 .main.nopanel{grid-template-columns:minmax(0,1fr) 0;gap:0}
 .main.nopanel .panel{visibility:hidden;padding:0;border-width:0}
-.pbtn{margin-left:auto;padding:4px 9px;font-size:12.5px}
-.back:not([hidden])+.pbtn{margin-left:8px}
 .stage{position:relative;background:var(--canvas);border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
-.shead{display:flex;align-items:center;gap:8px;padding:7px 10px 0 10px;min-height:34px;flex-wrap:wrap}
-.crumbs{display:flex;align-items:center;gap:6px;font-size:13px;flex-wrap:wrap}
+/* One fixed line, so a click or drill-in never resizes the diagram; a long trail or hint is cut short instead */
+.shead{display:flex;align-items:center;gap:8px;padding:7px 10px 0 10px;height:35px;flex:none;white-space:nowrap}
+.shead .tbtn{height:28px;padding:0 10px;font-size:12.5px;flex:none}
+.crumbs{display:flex;align-items:center;gap:6px;font-size:13px;min-width:0;overflow:hidden}
+.crumbs>*{flex:none}
 .crumbs button{border:0;background:none;padding:2px 4px;border-radius:6px;cursor:pointer;color:var(--link);font-weight:500}
 .crumbs .sep{color:var(--faint)}
-.crumbs .cur{font-weight:600}
-.back{margin-left:auto}
-.hint{font-size:12px;color:var(--muted)}
+.crumbs .cur{font-weight:600;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.back,.panelbtn{margin-left:auto}
+.back:not([hidden])+.panelbtn{margin-left:0}
+.hint{font-size:12px;color:var(--muted);flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .svgwrap{position:relative;flex:1;min-height:0}
 .svgwrap>svg{position:absolute;inset:0;width:100%;height:100%;display:block;transition:opacity .28s ease}
 .legend{display:flex;flex-wrap:wrap;gap:4px 12px;padding:4px 12px 8px;font-size:12px;color:var(--muted);align-items:center}
@@ -297,10 +300,12 @@ dialog.xdlg::backdrop{background:rgba(0,0,0,.45)}
   .brand{flex-wrap:wrap;gap:4px 10px}
   .brand h1{font-size:15px}
   .shead .hint{display:none}
+  .shead{height:auto;min-height:35px;flex-wrap:wrap;white-space:normal}
+  .crumbs{flex-wrap:wrap}
   .panel{padding:12px}
 }
 @media (prefers-reduced-motion: reduce){
-  .main{transition:none}
+  .main.sliding{transition:none}
   .svgwrap>svg{transition:none}
 }
 </style>
