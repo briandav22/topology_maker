@@ -71,7 +71,7 @@ Colors, the product line and the footer text live in `configurator/brand.py`. Th
 All Kentik facts (ports, sizing, permissions, cloud steps, credit rules) are in `configurator/catalog.py`, each tied to its Kentik KB page, checked against kb.kentik.com in October 2026. Update that one file when Kentik changes something. Sizing math and firewall rules are derived in `configurator/model.py`.
 
 Planning assumptions worth knowing:
-- Host sizing sums the KB per-capability figures and adds 30% headroom (the KB says 20 to 30%). Flow Proxy sizing is not scaled past the KB's "25k+ flows/s" figure; very high rates are flagged to confirm with Kentik. Disk sizing is not published.
+- Host sizing sums the KB per-capability figures and adds 30% headroom (the KB says 20 to 30%). Above the KB's flow figures (20,000 flows/s for Forwarding, 25,000 for Edge Processing), Flow Proxy sizing is scaled linearly and flagged as an estimate to confirm with Kentik. Disk sizing is not published.
 - Synthetic credit estimates count each direction of a mesh as one subtest (this matches the KB's 4-agent mesh example) and are planning estimates only.
 
 ## Files
