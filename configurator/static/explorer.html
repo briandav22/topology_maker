@@ -2827,7 +2827,7 @@ function loadHash(){
 /* ===== Events ===== */
 $('#ov').addEventListener('click', ev => {
   const g = ev.target.closest('[data-go]');
-  if(g) nav(g.dataset.go);
+  if(g) nav(g.dataset.go); else back();   // on All deployments, back() only closes what is open
 });
 $('#dt').addEventListener('click', ev => {
   const n = ev.target.closest('[data-id]');
@@ -2906,7 +2906,8 @@ $('#backBtn').addEventListener('click', () => nav('ov'));
    only changes what it says. Clearing the selection, moving to another deployment or zooming back out
    hides it again. The Details button (or \) still opens and closes it by hand.
    A click on the background (or Esc) steps back one level: first it closes what is open (the panel,
-   a selection or a line highlight) and stays in the view; with nothing open, it zooms out to All deployments. */
+   a selection or a line highlight) and stays in the view; with nothing open, it zooms out to All deployments.
+   On All deployments there is no level above, so it only closes what is open. */
 function pick(f){ setFocus(f); if(!S.panelOpen) setPanel(true, true); }
 function unpick(){ if(S.focus || S.hl) setFocus(null); if(S.panelOpen) setPanel(false, true); }
 function nav(view){ go(view); if(S.panelOpen) setPanel(false, true); }
