@@ -96,7 +96,7 @@ const OV_HL = `
 <div class="card"><h4>Internet and SaaS: synthetic tests</h4><p>Kentik’s global agents and your own agents test SaaS apps, websites, DNS and paths between your sites and clouds.</p></div>
 <h3 id="ov-sel-h">What you are looking at</h3>
 <div id="ov-sel"></div>
-<p class="muted" style="font-size:12.5px">Tip: click a box or press 1 to 7 to drill in. The + and − buttons next to Data center and Branches add and remove sites. Open a site to toggle its agent’s capabilities. Esc goes back. D and H switch modes.</p>`;
+<p class="muted" style="font-size:12.5px">Tip: click a box or press 1 to 7 to drill in. The + and − buttons next to Data center and Branches add and remove sites. Open a site to toggle its agent’s capabilities. A click on the background (or Esc) goes back one level. D and H switch modes.</p>`;
 
 const OV_DD = `
 <p class="kick">Infoblox + Kentik · Deep dive</p>

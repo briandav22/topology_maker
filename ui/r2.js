@@ -184,7 +184,7 @@ function renderChrome(){
     c.innerHTML = h + `<span class="cur" title="${esc(cur)}">${esc(cur)}</span>`;
   }
   const hint = $('#hint');
-  hint.textContent = hint.title = S.view === 'ov' ? 'Click a deployment to drill in, or Kentik SaaS to see inside' : 'Click any box or line for details · Esc goes back';
+  hint.textContent = hint.title = S.view === 'ov' ? 'Click a deployment to drill in, or Kentik SaaS to see inside' : 'Click any box or line for details · Click the background to go back';
   $('#backBtn').hidden = S.view === 'ov';
   document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === S.mode ? 'true' : 'false'));
   $('#motionBtn').setAttribute('aria-pressed', S.anim ? 'true' : 'false');
@@ -532,7 +532,7 @@ $('#dt').addEventListener('click', ev => {
   if(n){ pick({k:'node', id:n.dataset.id}); return; }
   const e = ev.target.closest('g.edge');
   if(e){ pick({k:'edge', i:+e.dataset.edge}); return; }
-  unpick();
+  back();
 });
 $('#panel').addEventListener('click', ev => {
   const t = ev.target;
@@ -602,10 +602,13 @@ $('#backBtn').addEventListener('click', () => nav('ov'));
 /* ===== Collapsible details panel: the diagram takes the space back ===== */
 /* The panel follows the selection. Picking a box or line in a drill-in opens it, and picking another one
    only changes what it says. Clearing the selection, moving to another deployment or zooming back out
-   hides it again. The Details button (or \) still opens and closes it by hand. */
+   hides it again. The Details button (or \) still opens and closes it by hand.
+   A click on the background (or Esc) steps back one level: first it closes what is open (the panel,
+   a selection or a line highlight) and stays in the view; with nothing open, it zooms out to All deployments. */
 function pick(f){ setFocus(f); if(!S.panelOpen) setPanel(true, true); }
 function unpick(){ if(S.focus || S.hl) setFocus(null); if(S.panelOpen) setPanel(false, true); }
 function nav(view){ go(view); if(S.panelOpen) setPanel(false, true); }
+function back(){ if(S.panelOpen || S.focus || S.hl) unpick(); else if(S.view !== 'ov') nav('ov'); }
 function setPanel(open, anim){
   S.panelOpen = open;
   const m = $('.main'), wrap = $('#svgwrap');
@@ -660,7 +663,7 @@ document.addEventListener('keydown', ev => {
   if((k === 'Enter' || k === ' ') && tg instanceof SVGElement && tg.getAttribute('role') === 'button'){
     ev.preventDefault(); tg.dispatchEvent(new MouseEvent('click', {bubbles:true})); return;
   }
-  if(k === 'Escape'){ if(S.focus || S.hl) unpick(); else if(S.view !== 'ov') nav('ov'); return; }
+  if(k === 'Escape'){ back(); return; }
   if(k === '\\'){ setPanel(!S.panelOpen, true); return; }
   if(/^[1-7]$/.test(k)){ nav(CHIP_ORDER[+k - 1]); return; }
   if(k === '+' || k === '='){ stepDC(1); return; }
