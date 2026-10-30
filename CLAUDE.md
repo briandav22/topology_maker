@@ -12,7 +12,7 @@ Infoblox Kentik Deployment Configurator: a small local web app for designing how
 
 - Python 3.9+ with the standard library HTTP server. reportlab is the only dependency (PDFs).
 - The page is one self-contained HTML file: inline SVG and plain JavaScript, no framework, no npm, no bundler. `ui/build.sh` concatenates the parts.
-- No database. The design lives in the page's URL hash. localStorage keeps only the theme and whether the details panel is open.
+- No database. The design lives in the page's URL hash. localStorage keeps only the theme.
 
 ## Layout
 
@@ -76,7 +76,8 @@ python3 run.py export setup.json --out out --only guide            # or topology
 - **AWS data paths.** Kentik's collector in Kentik's own AWS account reads VPC flow logs from S3 inside AWS, so the customer pays no egress. Metadata API calls go from Kentik SaaS through the IAM role. Nested accounts: Kentik assumes the primary role in account A, which assumes secondary roles in B and C.
 - **Sites are added from the top menu** (steppers) or the side panel only. No dashed "add" boxes in the diagram: they cluttered it and couldn't be removed.
 - **Facts come from the Kentik KB.** BGP Proxy is shown as available because the portal lists it, and the PDF adds a "confirm" note because the KB still says "coming soon".
-- **A steady, smooth diagram.** The details panel collapses (button or `\`) and the overview canvas takes the shape of the free space, so cards grow. Cards glide on re-layout and drill-ins zoom. Exports always use the standard 1000×620 canvas, whatever the screen.
+- **The details panel follows the selection.** It starts hidden. Picking a box or line in a drill-in opens it, and picking another one only changes its content. A click on the background (or on the middle crumb), a move to another deployment, or zooming back out to All deployments hides it. Clicking a deployment card on the overview only drills in. The Details button (or `\`) still opens and closes it by hand, and panel actions (add or remove a site) leave it open.
+- **A steady, smooth diagram.** When the panel hides, the overview canvas takes the shape of the free space, so cards grow. Cards glide on re-layout and drill-ins zoom. Exports always use the standard 1000×620 canvas, whatever the screen.
 
 ## Conventions
 
@@ -91,7 +92,7 @@ python3 run.py export setup.json --out out --only guide            # or topology
   - Older hashes and setup JSON must still load.
 - Keep dependencies to the Python standard library plus reportlab, and keep the page free of frameworks and build tools. Use the CSS variables in p1.html for colors so both themes work.
 - UI stability rules (learned in PRs #8 and #10):
-  - The diagram header (`.shead`) stays one fixed 35px line (it may wrap only at phone widths), and nothing that changes per click may resize `#svgwrap`.
+  - The diagram header (`.shead`) stays one fixed 35px line (it may wrap only at phone widths). Apart from the details panel, which opens and closes with the selection, nothing that changes per click may resize `#svgwrap`.
   - Re-layouts wait for a running zoom to end (`zoomEnd`).
   - Honor prefers-reduced-motion.
   - `.panelbtn` is the details button; `.pbtn` is the preset pills.
