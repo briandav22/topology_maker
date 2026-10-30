@@ -4,7 +4,7 @@ const $ = s => document.querySelector(s);
 const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
 const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:null, hl:null, anim:!REDUCED,
   dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[], dcFm:[], dcSz:[], brFm:[], brSz:[], szOpen:false, awsNested:false, panelOpen:false,
-  brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
+  brN:2, brNames:[], brUA:[], brRole:[], brTo:[], brCaps:[], brInst:[], cl:{},
   meta:{cu:'', pb:'', rg:'US'}};
 const VB = [0, 0, 1000, 620];    // the overview canvas; its shape follows the diagram area (see ovSize)
 const DVB = [0, 0, 1000, 620];   // drill-in scenes always draw on 1000 x 620
@@ -182,9 +182,11 @@ function drawHub(gN, h, dd){
 
 /* A branch office tile in the row along the bottom of the overview */
 function drawBranchTile(gN, r, i, dd){
-  const ua = brUA(i), t = brTarget(i), caps = ua ? capList('br', i) : [];
-  const status = ua ? (dd ? 'Own agent · TCP 443 out' : 'Own Universal Agent') : t ? (dd ? 'UDP 9995/162/514 → ' : 'Sends to ') + dcName(t) : 'Nothing collects it yet';
-  const g = el('g', {class:'card-ov' + (!ua && !t ? ' warn' : ''), role:'button', tabindex:0, 'data-go':brId(i), 'aria-label':brName(i) + '. ' + status + '. Press Enter to drill in.'}, gN);
+  const role = brRole(i), ua = role !== 'none', t = brTarget(i), caps = ua ? capList('br', i) : [];
+  const status = role === 'full' ? (dd ? 'Own agent · TCP 443 out' : 'Own Universal Agent')
+    : role === 'test' ? (t ? (dd ? 'Tests here · devices → ' : 'Tests only · sends to ') + dcName(t) : 'Tests only · nothing collects')
+    : t ? (dd ? 'UDP 9995/162/514 → ' : 'Sends to ') + dcName(t) : 'Nothing collects it yet';
+  const g = el('g', {class:'card-ov' + (role !== 'full' && !t ? ' warn' : ''), role:'button', tabindex:0, 'data-go':brId(i), 'aria-label':brName(i) + '. ' + status + '. Press Enter to drill in.'}, gN);
   el('rect', {class:'bg', x:r.x, y:r.y, width:r.w, height:r.h, rx:10}, g);
   icon(g, ua ? 'agent' : 'store', r.x + 9, r.y + 9, 17, 'ico ' + (ua ? 'ico-ktk' : 'ico-left'));
   fit(txt(g, r.x + 31, r.y + 22, brName(i), 't-label', {style:'font-size:12.5px'}), r.w - 40);
@@ -192,7 +194,7 @@ function drawBranchTile(gN, r, i, dd){
   if(r.h >= 70){
     const dots = ua ? caps : t ? ['flow', 'snmp', 'trap', 'syslog'].filter(c => capsOf('dc', t).has(c)) : [];
     dots.forEach((c, k) => el('circle', {class:'dot-' + c, cx:r.x + 14 + k * 11, cy:r.y + 58, r:3.6}, g));
-    const lab = ua ? (caps.length ? '' : 'No capabilities on') : t ? 'over the WAN' : 'Add a data center';
+    const lab = role === 'full' ? (caps.length ? '' : 'No capabilities on') : role === 'test' ? (t ? 'tests; devices over the WAN' : 'Add a data center') : t ? 'over the WAN' : 'Add a data center';
     if(lab) fit(txt(g, r.x + 14 + dots.length * 11 + (dots.length ? 2 : -4), r.y + 62, lab, 'chiptxt'), r.w - 24 - dots.length * 11);
   }
   return g;
@@ -215,7 +217,7 @@ function branchBand(rightCol, W, H){
   return {top, bus:top - 13, tiles};
 }
 
-const ovMod = id => isDC(id) ? dcMod(id) : MOD[id];
+const ovMod = id => isDC(id) ? dcMod(id) : CLOUD_IDS.includes(id) ? cloudMod(id) : MOD[id];
 
 /* Where the cards, the branch row and the hub go on a W x H overview canvas */
 function ovLayout(W, H){
@@ -226,7 +228,7 @@ function ovLayout(W, H){
   const T = side('top');
   if(!L.length && R.length > 1){ L = R.slice(0, R.length >> 1); R = R.slice(R.length >> 1); }   // no data centers: share the clouds between both sides
   const band = brOn() ? branchBand(R.length > 0, W, H) : null;
-  const remote = band ? band.tiles.filter(t => t.i && !brUA(t.i) && brTarget(t.i)) : [];
+  const remote = band ? band.tiles.filter(t => t.i && brRemote(t.i) && brTarget(t.i)) : [];   // their devices send across the WAN
   const lx = remote.length ? 46 : M;
   const column = (list, x, y0, y1) => {
     if(!list.length) return [];

@@ -342,7 +342,11 @@ def guide_pdf(cfg, images=None):
     clouds = M.enabled_clouds(cfg)
     all_sites = cfg["sites"]
     sites = M.agent_sites(cfg)            # sites with a Universal Agent
-    remote = M.remote_branches(cfg)       # branches that send to a data center agent
+    remote = M.remote_branches(cfg)       # sites whose devices send to a data center agent
+    remote_title = ("Branches without an agent" if all(s["kind"] == "branch" and not s["agent"] for s in remote)
+                    else "Sites that send to a data center agent")
+    who = lambda s: "Appliances" if s["kind"] == "cloud" else "Devices"
+    no_agent = sum(1 for s in all_sites if s["kind"] == "branch" and not s["agent"])
     caps_used = [c for c in C.CAP_ORDER if any(c in s["capabilities"] for s in sites)]
     kb_used = []
 
@@ -358,7 +362,7 @@ def guide_pdf(cfg, images=None):
         ["Date", cfg["date"]], ["Kentik region", region["label"]],
         ["Scope", ", ".join(filter(None, [
             f"{sum(1 for s in sites if s['kind'] == 'dc')} data center(s)" if any(s['kind'] == 'dc' for s in sites) else "",
-            f"{sum(1 for s in all_sites if s['kind'] == 'branch')} branch(es)" + (f", {len(remote)} without an agent" if remote else "") if any(s['kind'] == 'branch' for s in all_sites) else "",
+            f"{sum(1 for s in all_sites if s['kind'] == 'branch')} branch(es)" + (f", {no_agent} without an agent" if no_agent else "") if any(s['kind'] == 'branch' for s in all_sites) else "",
             ", ".join(C.CLOUDS[c]["name"] for c in clouds),
             "Synthetic monitoring" if cfg["synthetics"]["enabled"] else ""]))],
     ]
@@ -380,7 +384,7 @@ def guide_pdf(cfg, images=None):
     if sites:
         sec.append("Universal Agent deployment")
     if remote:
-        sec.append("Branches without an agent")
+        sec.append(remote_title)
     if sites:
         sec.append("Capability configuration")
     if clouds:
@@ -399,22 +403,23 @@ def guide_pdf(cfg, images=None):
                    f"Kentik account in the {esc(region['label'])} region over encrypted, outbound connections.", "lead"))
     rows = []
     for s in all_sites:
+        sends = f"{who(s)} send flow, traps and syslog across {M.path_name(s)} to the {s['send_to']} agent" if s["send_to"] else "Nothing collects the devices yet"
         if not s["agent"]:
-            rows.append([s["name"] + (f" ({s['location']})" if s["location"] else ""), "No agent",
-                         f"Devices send flow, traps and syslog across the WAN to the {s['send_to']} agent" if s["send_to"] else "Nothing collects it yet",
-                         "None"])
+            rows.append([s["name"] + (f" ({s['location']})" if s["location"] else ""), "No agent", sends, "None"])
             continue
         size = M.site_sizing(s, cfg)
+        test = s["agent_role"] == "test"
         rows.append([s["name"] + (f" ({s['location']})" if s["location"] else ""),
-                     "Universal Agent on " + ("Docker" if s["install"] == "docker" else "Linux"),
+                     "Universal Agent on " + ("Docker" if s["install"] == "docker" else "a VM" if s["kind"] == "cloud" else "Linux") + (", tests only" if test else ""),
                      (M.cap_names(s) or "None selected")
-                     + ("; edge routers peer BGP directly with Kentik" if s.get("bgp") else "; no BGP peering" if s["kind"] == "dc" and "bgp" not in s["capabilities"] else ""),
+                     + ("; edge routers peer BGP directly with Kentik" if s.get("bgp") else "; no BGP peering" if s["kind"] == "dc" and "bgp" not in s["capabilities"] else "")
+                     + (f"; {sends[0].lower() + sends[1:]}" if test and (s["kind"] == "branch" or s["devices"]) else ""),
                      f"{size['rec_cpu']} vCPU / {size['rec_ram']} GB"])
     for cid in clouds:
         cl = cfg["clouds"][cid]
-        rows.append([C.CLOUDS[cid]["full"], "Agentless (read-only access)",
+        rows.append([C.CLOUDS[cid]["full"], "Flow logs: agentless (read-only access)",
                      ", ".join(C.CLOUDS[cid]["features"][f] for f in cl["features"]),
-                     "Test agent VM" if cl.get("test_agent") else "No compute"])
+                     "No compute" if cl["agent"] == "none" else "Agent VM (row above)"])
     if rows:
         story.append(table(["Where", "Deployment", "What Kentik collects", "Footprint"], rows,
                            [1.6 * inch, 1.45 * inch, 2.8 * inch, 1.15 * inch], bold_first=True))
@@ -426,8 +431,13 @@ def guide_pdf(cfg, images=None):
                     "Devices point at it, and it talks to Kentik over outbound HTTPS. The standalone kproxy agent is not used; "
                     "the Universal Agent Flow Proxy replaces it.")
     if remote:
-        pats.append(f"<b>Branches without an agent ({len(remote)}).</b> Their routers, switches and Wi-Fi send flow, traps and syslog across the WAN "
-                    "to a data center agent, which also polls them. Branches that need local tests or collection get their own agent.")
+        pats.append(f"<b>{esc(remote_title)} ({len(remote)}).</b> Their routers, switches, Wi-Fi or cloud appliances send flow, traps and syslog "
+                    "to a data center agent, which also polls them. A branch or a cloud that needs local tests gets a tests-only agent; "
+                    "one that should keep its telemetry local gets an agent that collects.")
+    if any(s["kind"] == "cloud" for s in all_sites):
+        pats.append("<b>Agents and appliances in the cloud.</b> A Universal Agent on a VM tests from inside a cloud network, and can collect "
+                    "from network appliances such as Palo Alto VM-Series. Without one, the appliances send to a data center agent across the "
+                    "private link (for example Direct Connect or ExpressRoute). Flow logs keep coming through the cloud export either way.")
     if clouds:
         pats.append("<b>Public cloud: agentless.</b> Flow logs go to storage in the customer's own account, and Kentik gets read-only "
                     "access to the logs, topology metadata and metrics.")
@@ -497,14 +507,16 @@ def guide_pdf(cfg, images=None):
         if not rules:
             continue
         story.append(CondPageBreak(1.6 * inch))
-        story.append(P(f"<b>{esc(s['name'])}</b>" + (f"  ·  {esc(s['location'])}" if s["location"] else "")
-                       + ("" if s["agent"] else f"  ·  no agent, across the WAN to {esc(s['send_to'])}"), "h3"))
+        note = "" if s["agent"] and s["agent_role"] == "full" else (
+            f"  ·  no agent, across {esc(M.path_name(s))} to {esc(s['send_to'])}" if not s["agent"] else
+            "  ·  tests-only agent" + (f"; {who(s).lower()} send across {esc(M.path_name(s))} to {esc(s['send_to'])}" if s["send_to"] and (s["kind"] == "branch" or s["devices"]) else ""))
+        story.append(P(f"<b>{esc(s['name'])}</b>" + (f"  ·  {esc(s['location'])}" if s["location"] else "") + note, "h3"))
         story.append(table(["From", "To", "Port", "Purpose"], rules,
                            [1.5 * inch, 2.0 * inch, 1.3 * inch, 2.2 * inch]))
-    if any(cfg["clouds"][c].get("test_agent") for c in clouds):
-        story.append(P("<b>Cloud test agents</b>", "h3"))
-        story.append(P("A Universal Agent on a VM in a cloud network uses the same outbound TCP 443 rules. Allow TCP 8877 and UDP 9977 "
-                       "between it and the other agents in security groups or NSGs.", "body"))
+    if any(s["kind"] == "cloud" and s["agent"] for s in all_sites):
+        story.append(P("<b>Agents in clouds</b>", "h3"))
+        story.append(P("A Universal Agent on a VM in a cloud network uses the same outbound TCP 443 rules, through a NAT gateway or a proxy. "
+                       + esc(C.CLOUD_AGENT_STEPS[1]), "body"))
     if "azure" in clouds:
         story.append(P("<b>Azure storage firewall</b>", "h3"))
         story.append(P("Only if the log storage account firewall is restricted: allow 20.69.189.228 and 20.69.185.115 "
@@ -530,10 +542,14 @@ def guide_pdf(cfg, images=None):
             size = M.site_sizing(s, cfg)
             block = [CondPageBreak(2.5 * inch),
                      P(f"{num['Universal Agent deployment']}.{i}&nbsp;&nbsp;{esc(s['name'])}" + (f"  ·  {esc(s['location'])}" if s["location"] else ""), "h2")]
-            kind = "Data center" if s["kind"] == "dc" else "Branch office"
+            kind = ("Data center" if s["kind"] == "dc" else f"Cloud network in {C.CLOUDS[s['cloud']]['full']}, on {C.CLOUD_SITE[s['cloud']]['vm']}"
+                    if s["kind"] == "cloud" else "Branch office")
             feeds = M.remote_branches(cfg, s)
             if feeds:
-                kind += f" that also collects for {len(feeds)} branch(es) without an agent ({', '.join(b['name'] for b in feeds)}); their load is included in the sizing"
+                kind += f" that also collects for {len(feeds)} site(s) that send to it ({', '.join(b['name'] for b in feeds)}); their load is included in the sizing"
+            if s["agent_role"] == "test":
+                kind += ". A tests-only agent: Connectivity Test only" + (
+                    f"; the {who(s).lower()} send to the {s['send_to']} agent" if s["send_to"] and (s["kind"] == "branch" or s["devices"]) else "")
             block.append(P(f"{kind}. Install method: <b>{'Docker' if s['install'] == 'docker' else 'Linux package'}</b>. "
                            f"Capabilities: <b>{esc(M.cap_names(s) or 'none')}</b>.", "body"))
             if size["rows"]:
@@ -565,15 +581,20 @@ def guide_pdf(cfg, images=None):
             if s.get("bgp"):
                 story.append(P("<b>BGP peering from the edge routers</b>", "h3"))
                 story += bullets(C.BGP["steps"])
+            if s["kind"] == "cloud":
+                story.append(P("<b>In the cloud</b>", "h3"))
+                story += bullets(C.CLOUD_AGENT_STEPS if s["devices"] and s["agent_role"] == "full" else C.CLOUD_AGENT_STEPS[:2])
         story.append(src(["ua-deployment", "ua-portal-management", "device-settings"]))
 
     # ---- branches with no agent
     if remote:
         story.append(PageBreak())
-        story += H1("Branches without an agent", num["Branches without an agent"])
-        story.append(P("These branches get no agent. Their devices are configured to use a data center Universal Agent as their collector, "
+        story += H1(remote_title, num[remote_title])
+        story.append(P("These sites use a data center Universal Agent as the collector for their devices: branches with no agent or a "
+                       "tests-only agent, and cloud appliances with no collecting agent in the cloud." if remote_title != "Branches without an agent" else
+                       "These branches get no agent. Their devices are configured to use a data center Universal Agent as their collector, "
                        "across the WAN. Nothing is installed at the branch.", "lead"))
-        story.append(table(["Branch", "Sends to", "What reaches Kentik"],
+        story.append(table(["Site" if remote_title != "Branches without an agent" else "Branch", "Sends to", "What reaches Kentik"],
                            [[b["name"], (b["send_to"] + " agent") if b["send_to"] else "Nothing yet: add a data center or an agent",
                              (lambda d: ", ".join(M.cap_name(d, c) for c in d["capabilities"] if c in ("flow", "snmp", "trap", "syslog", "ssh")) if d else "")(
                                  next((d for d in sites if d["name"] == b["send_to"]), None)) or "None"] for b in remote],
@@ -586,8 +607,11 @@ def guide_pdf(cfg, images=None):
             "In Kentik, add the branch devices with the data center agent as their collection agent, and assign them to the branch Site so they still group by location.",
             "Optional: create Server IP or agent-to-agent tests from the data center agent to the branch router to watch the WAN path.",
         ])
-        story.append(callout("A branch gets its own agent when it needs tests from where users are, is large or far from a data center, "
-                             "or should keep its telemetry off the WAN.", W))
+        for cid in sorted({s["cloud"] for s in remote if s["kind"] == "cloud"}):
+            story.append(P(f"<b>Steps for the appliances in {esc(C.CLOUDS[cid]['full'])}</b>", "h3"))
+            story += steps([x.format(link=C.CLOUD_SITE[cid]["link_alt"]) for x in C.CLOUD_APPLIANCE_STEPS])
+        story.append(callout("A branch or a cloud gets a tests-only agent when it needs tests from where users or workloads are, and an agent "
+                             "that collects when it is large, far from a data center, or should keep its telemetry off the WAN.", W))
         story.append(src(["universal-agents", "device-settings", "router-configuration"]))
 
     if sites:
@@ -609,9 +633,9 @@ def guide_pdf(cfg, images=None):
     if clouds:
         story.append(PageBreak())
         story += H1("Public cloud setup", num["Public cloud setup"])
-        story.append(P("No agents are needed in public clouds. Each cloud writes flow logs to storage in the customer's own account, and "
-                       "Kentik reads them with read-only access. Kentik recommends a metadata-only export first to prove access before "
-                       "turning on high-volume logs.", "lead"))
+        story.append(P("Flow logs need no agent. Each cloud writes flow logs to storage in the customer's own account, and Kentik reads them "
+                       "with read-only access. Kentik recommends a metadata-only export first to prove access before turning on high-volume "
+                       "logs. A Universal Agent in a cloud is optional: for tests from inside it, or to collect from network appliances.", "lead"))
         for cid in clouds:
             cl = cfg["clouds"][cid]
             info = C.CLOUDS[cid]
@@ -669,10 +693,18 @@ def guide_pdf(cfg, images=None):
                 story.append(P("<b>Values to collect for the Kentik export</b>", "h3"))
                 story.append(table(["Value", "Where to find it"], C.OCI_VALUES, [2.4 * inch, 4.6 * inch], bold_first=True))
                 story.append(P("The Traffic Trends and Overviews dashboards are not available for OCI.", "small"))
-            if cl.get("test_agent"):
-                story.append(callout(f"<b>Test agent in {esc(info['name'])}:</b> install a Universal Agent on a small VM with the Synthetics "
-                                     "capability, using the same steps as on-prem. It needs outbound TCP 443 only, plus TCP 8877 and UDP 9977 "
-                                     "to the other agents.", W, B.FLOW_COLORS["synth"]))
+            cs = next((s for s in all_sites if s["kind"] == "cloud" and s["cloud"] == cid), None)
+            if cs:
+                txt = ""
+                if cs["agent"]:
+                    txt = (f"<b>Universal Agent in {esc(info['name'])}</b> on {esc(C.CLOUD_SITE[cid]['vm'])}: "
+                           + ("Connectivity Test only. " if cs["agent_role"] == "test" else
+                              f"collects {cs['devices']} network appliance(s) and runs {esc(M.cap_names(cs))}. " if cs["devices"] else f"runs {esc(M.cap_names(cs))}. ")
+                           + "Its host size and install steps are in the Universal Agent deployment section.")
+                if cs["devices"] and (not cs["agent"] or cs["agent_role"] == "test"):
+                    txt += (f" <b>{cs['devices']} network appliance(s)</b> send to the {esc(cs['send_to'] or '(no data center yet)')} agent across "
+                            f"{esc(C.CLOUD_SITE[cid]['link_alt'])}.")
+                story.append(callout(txt.strip(), W, B.FLOW_COLORS["synth"]))
             story.append(src(info["kb"]))
 
     # ---- 8. synthetics
@@ -717,7 +749,7 @@ def guide_pdf(cfg, images=None):
     chk = []
     for s in remote:
         if s["send_to"]:
-            chk.append(f"{s['name']}: devices show {s['send_to']} as their collection agent; flow, traps and syslog arrive across the WAN")
+            chk.append(f"{s['name']}: {who(s).lower()} show {s['send_to']} as their collection agent; flow, traps and syslog arrive across {M.path_name(s)}")
     for s in sites:
         chk.append(f"{s['name']}: agent shows Up in Settings > Universal Agents, capabilities show enabled")
         if "flow" in s["capabilities"]:

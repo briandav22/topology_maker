@@ -291,6 +291,29 @@ CLOUDS = {
 }
 CLOUD_ORDER = ["aws", "azure", "gcp", "oci"]
 
+# A cloud network in this tool: an optional Universal Agent on a VM, and network appliances (for example Palo Alto
+# VM-Series) that export flow, SNMP, traps and syslog. With no collecting agent in the cloud, the appliances send to a
+# data center agent across the private link. These notes are general practice built on the Universal Agent facts above.
+CLOUD_SITE = {
+    "aws": {"net": "VPC", "vm": "an EC2 instance", "link": "Direct Connect", "link_alt": "Direct Connect or Site-to-Site VPN"},
+    "azure": {"net": "VNet", "vm": "an Azure VM", "link": "ExpressRoute", "link_alt": "ExpressRoute or VPN Gateway"},
+    "gcp": {"net": "VPC", "vm": "a Compute Engine VM", "link": "Cloud Interconnect", "link_alt": "Cloud Interconnect or Cloud VPN"},
+    "oci": {"net": "VCN", "vm": "an OCI compute instance", "link": "FastConnect", "link_alt": "FastConnect or Site-to-Site VPN"},
+}
+CLOUD_AGENT_STEPS = [
+    "Launch a small Linux VM (or a Docker host) in a subnet that reaches the Internet on TCP 443, through a NAT gateway or a proxy, "
+    "and install the Universal Agent with the same command as on-prem.",
+    "Security group or NSG: allow UDP 9995 (flow), UDP 162 (traps) and UDP or TCP 514 (syslog) in from the appliances, UDP 161 and "
+    "ICMP out to them, and TCP 8877 and UDP 9977 with the agents it tests with.",
+    "On each appliance, export NetFlow or IPFIX, traps and syslog to the agent's private IP, and allow SNMP from it.",
+]
+CLOUD_APPLIANCE_STEPS = [
+    "Export NetFlow or IPFIX from each appliance to the data center agent's IP on UDP 9995, traps on UDP 162 and syslog on UDP or TCP 514.",
+    "Route these flows over the private link ({link}), not the Internet. Allow them in the cloud security groups and the data center "
+    "firewall, plus UDP 161 and ICMP from the agent back to the appliances.",
+    "In Kentik, add each appliance as a device with the data center agent as its collection agent, and assign it to a Site for the cloud.",
+]
+
 AWS_TRUST_POLICY = """{
   "Version": "2012-10-17",
   "Statement": [{

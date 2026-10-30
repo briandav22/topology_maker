@@ -69,6 +69,7 @@ function viewName(v){
   if(v === 'brs') return S.brN > 1 ? 'All branches' : 'Your branch';
   if(isDC(v)) return dcName(dcIndex(v));
   if(isBR(v)) return brName(brIndex(v));
+  if(isCU(v)) return clRole(cuOf(v)) === 'none' ? MOD[cuOf(v)].name + ' appliances' : 'Agent in ' + MOD[cuOf(v)].name;
   return MOD[v] ? MOD[v].name : v;
 }
 function findItem(id){ const sc = SCN; if(!sc || S.view === 'ov') return null; return sc.nodes.find(n => n.id === id) || sc.frames.find(f => f.id === id) || null; }
@@ -164,13 +165,14 @@ function renderPanel(){
     P.innerHTML = typeBlock() + (dd ? OV_DD : OV_HL);
     const box = P.querySelector('#ov-sel'), ids = CHIP_ORDER.filter(id => S.sel.has(id));
     box.innerHTML = ids.length
-      ? ids.map(id => { if(id === 'dc') return dcOverviewCard(dd); if(id === 'branch') return brOverviewCard(dd); const m = MOD[id]; return `<div class="card"><h4><svg class="ico ico-${m.side}" aria-hidden="true"><use href="#i-${m.icon}"/></svg>${esc(m.name)}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><button type="button" data-go="${id}">Drill in ›</button></div>`; }).join('')
+      ? ids.map(id => { if(id === 'dc') return dcOverviewCard(dd); if(id === 'branch') return brOverviewCard(dd); const m = ovMod(id); return `<div class="card"><h4><svg class="ico ico-${m.side}" aria-hidden="true"><use href="#i-${m.icon}"/></svg>${esc(m.name)}<span class="tag">${esc(m.tag)}</span></h4><p>${esc(dd ? m.oned : m.one)}</p><button type="button" data-go="${id}">Drill in ›</button></div>`; }).join('')
         + `<div class="card"><h4><svg class="ico ico-ktk" aria-hidden="true"><use href="#i-ib"/></svg>Kentik SaaS<span class="tag">Platform</span></h4><p>${dd ? 'Hosting, encryption, retention, the Kentik Data Engine and Firehose.' : 'What happens to your data once it reaches Kentik.'}</p><button type="button" data-go="kentik">See inside ›</button></div>`
       : '<p class="muted">Nothing selected yet. Pick a starting point or a deployment above.</p>';
     return;
   }
   const inf = getInfo(S.view);
-  const site = inf.site ? (inf.site[0] === 'dc' ? siteCard(inf.site[1], dd) : branchCard(inf.site[1], dd)) : inf.sites ? sitesCard(inf.sites) : S.view === 'aws' ? awsCard() : '';
+  const site = inf.site ? (inf.site[0] === 'dc' ? siteCard(inf.site[1], dd) : inf.site[0] === 'cl' ? cloudCard(inf.site[1], dd) : branchCard(inf.site[1], dd))
+    : inf.sites ? sitesCard(inf.sites) : S.view === 'aws' ? awsCard() + cloudCard('aws', dd) : CLOUD_IDS.includes(S.view) ? cloudCard(S.view, dd) : '';
   P.innerHTML = typeBlock() + focusBlock(dd) + `<p class="kick">${esc(inf.kick)}</p><h2 class="ttl">${esc(inf.title)}</h2>` + site + (dd ? inf.dd : inf.hl) + srcList(inf.src);
 }
 
@@ -422,11 +424,14 @@ function siteChanged(){
 }
 function toggleCap(kind, i, c){
   const s = capsOf(kind, i);
+  if(s === TEST_ONLY) return;   // a tests-only agent runs Connectivity Test and nothing else
   if(s.has(c)) s.delete(c); else s.add(c);
   if(kind === 'dc' && c === 'bgp') S.dcBgp[i - 1] = 'off';   // BGP Proxy on: routers peer with the agent; off: no BGP at all
   siteChanged();
 }
 function setAllCaps(kind, i, on){
+  if(kind === 'cl'){ if(clRole(i) === 'full') clOf(i).caps = new Set(on ? DRAW_ORDER : []); siteChanged(); return; }
+  if(kind === 'br' && brRole(i) === 'test'){ siteChanged(); return; }
   if(kind === 'dc' && (on || capsOf('dc', i).has('bgp'))) S.dcBgp[i - 1] = 'off';   // same rule; direct peering survives "all off" only when the agent was not the peer
   (kind === 'dc' ? S.dcCaps : S.brCaps)[i - 1] = new Set(on ? DRAW_ORDER : []);
   siteChanged();
@@ -437,7 +442,7 @@ function setBgp(i, m){
   S.dcBgp[i - 1] = m === 'direct' ? 'direct' : 'off';
   siteChanged();
 }
-function setFlowMode(kind, i, m){ (kind === 'dc' ? S.dcFm : S.brFm)[i - 1] = m === 'edge' ? 'edge' : 'forward'; siteChanged(); }
+function setFlowMode(kind, i, m){ const v = m === 'edge' ? 'edge' : 'forward'; if(kind === 'cl') clOf(i).fm = v; else (kind === 'dc' ? S.dcFm : S.brFm)[i - 1] = v; siteChanged(); }
 /* Typing a load redraws the diagrams and the sizing line, but leaves the panel (and the cursor) alone */
 function setLoad(kind, i, k, v){
   const n = Math.max(0, Math.min(10000000, Math.round(+v) || 0));
@@ -445,11 +450,25 @@ function setLoad(kind, i, k, v){
   renderOverview();
   if(siteView(S.view)){ renderDetail(); buildParticles(); applyHighlight(); }
   saveHash();
-  document.querySelectorAll('#panel [data-szout]').forEach(p => { const [pk, pi] = p.dataset.szout.split(':'); if(pk !== 'br' || brUA(+pi)) p.innerHTML = sizeLine(pk, +pi); });
+  document.querySelectorAll('#panel [data-szout]').forEach(p => { const [pk, pi] = p.dataset.szout.split(':'), k = ix(pk, pi); if(!sendsAway(pk, k)) p.innerHTML = sizeLine(pk, k); });
 }
 function setAwsNested(on){ S.awsNested = !!on; siteChanged(); }
-function setInst(kind, i, v){ (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
-function toggleBRUA(i){ S.brUA[i - 1] = !brUA(i); siteChanged(); }
+function setInst(kind, i, v){ if(kind === 'cl') clOf(i).inst = v; else (kind === 'dc' ? S.dcInst : S.brInst)[i - 1] = v; siteChanged(); }
+/* No agent, tests only, or collects here: a branch's agent, or the agent in a cloud */
+function setRole(kind, i, r){
+  if(kind === 'cl') clOf(i).ua = r === 'test' || r === 'full' ? r : 'none';
+  else { S.brUA[i - 1] = r === 'test' || r === 'full'; S.brRole[i - 1] = r === 'test' ? 'test' : ''; }
+  siteChanged();
+}
+function setCLTarget(c, t){ clOf(c).to = +t; siteChanged(); }
+/* Typing the appliance count redraws the diagrams; leaving the field redraws the panel too */
+function setAppliances(c, v, done){
+  clOf(c).ap = Math.max(0, Math.min(AP_MAX, Math.round(+v) || 0));
+  if(done){ siteChanged(); return; }
+  renderOverview();
+  if(S.view !== 'ov'){ renderDetail(); buildParticles(); applyHighlight(); }
+  saveHash();
+}
 function setBRTarget(i, t){ S.brTo[i - 1] = +t; siteChanged(); }
 
 /* ===== URL hash keeps the current view shareable ===== */
@@ -470,11 +489,17 @@ function stateHash(){
   if(/\d/.test(dz)) h += '&dz=' + dz;
   if(/\d/.test(bz)) h += '&bz=' + bz;
   h += '&di=' + dcIds().map((id, k) => instOf('dc', k + 1)[0]).join('');
-  h += '&bu=' + brIds().map((id, k) => brUA(k + 1) ? 1 : 0).join('');
+  h += '&bu=' + brIds().map((id, k) => ({none:0, full:1, test:2})[brRole(k + 1)]).join('');
   h += '&bt=' + brIds().map((id, k) => +S.brTo[k] || 1).join('.');
   h += '&bc=' + brIds().map((id, k) => capCode(capsOf('br', k + 1))).join('|');
   h += '&bi=' + brIds().map((id, k) => instOf('br', k + 1)[0]).join('');
   if(S.awsNested) h += '&an=1';
+  if(CLOUD_IDS.some(clUsed)){   // agents and appliances in the clouds, in the order aws, azure, gcp, oci
+    h += '&ua=' + CLOUD_IDS.map(c => clRole(c)[0]).join('') + '&ap=' + CLOUD_IDS.map(c => clOf(c).ap).join('.');
+    h += '&ui=' + CLOUD_IDS.map(c => instOf('cl', c)[0]).join('') + '&uf=' + CLOUD_IDS.map(c => fmOf('cl', c)[0]).join('');
+    h += '&uc=' + CLOUD_IDS.map(c => capCode(clOf(c).caps || new Set(CL_DEF))).join('|') + '&ut=' + CLOUD_IDS.map(c => +clOf(c).to || 1).join('.');
+    if(CLOUD_IDS.some(c => clOf(c).sz.f)) h += '&uz=' + CLOUD_IDS.map(c => clOf(c).sz.f || '').join('.');
+  }
   if(S.meta.cu) h += '&cu=' + encodeURIComponent(S.meta.cu);
   if(S.meta.pb) h += '&pb=' + encodeURIComponent(S.meta.pb);
   if(S.meta.rg !== 'US') h += '&rg=' + S.meta.rg;
@@ -510,14 +535,22 @@ function loadHash(){
   if(q.bz) S.brSz = sz(q.bz);
   if(q.di) S.dcInst = [...q.di].map(c => c === 'd' ? 'docker' : 'linux');
   if(q.bi) S.brInst = [...q.bi].map(c => c === 'd' ? 'docker' : 'linux');
-  if(q.bu) S.brUA = [...q.bu].map(c => c === '1');
+  if(q.bu){ S.brUA = [...q.bu].map(c => c === '1' || c === '2'); S.brRole = [...q.bu].map(c => c === '2' ? 'test' : ''); }
   if(q.bt) S.brTo = q.bt.split('.').map(x => parseInt(x, 10) || 1);
   if(q.an === '1') S.awsNested = true;
+  const per = (str, sep, f) => (str || '').split(sep).forEach((x, k) => { if(k < CLOUD_IDS.length) f(clOf(CLOUD_IDS[k]), x); });
+  if(q.ua) [...q.ua].forEach((x, k) => { if(k < CLOUD_IDS.length) clOf(CLOUD_IDS[k]).ua = x === 't' ? 'test' : x === 'f' ? 'full' : 'none'; });
+  per(q.ap, '.', (o, x) => { o.ap = Math.max(0, Math.min(AP_MAX, parseInt(x, 10) || 0)); });
+  if(q.ui) [...q.ui].forEach((x, k) => { if(k < CLOUD_IDS.length) clOf(CLOUD_IDS[k]).inst = x === 'd' ? 'docker' : 'linux'; });
+  if(q.uf) [...q.uf].forEach((x, k) => { if(k < CLOUD_IDS.length) clOf(CLOUD_IDS[k]).fm = x === 'e' ? 'edge' : 'forward'; });
+  if(q.uc !== undefined) per(q.uc, '|', (o, x) => { o.caps = new Set(x.split('.').filter(c => UAC[c])); });
+  per(q.ut, '.', (o, x) => { o.to = Math.max(1, parseInt(x, 10) || 1); });
+  per(q.uz, '.', (o, x) => { o.sz.f = Math.max(0, parseInt(x, 10) || 0); });
   if(q.cu) S.meta.cu = q.cu.slice(0, 80);
   if(q.pb) S.meta.pb = q.pb.slice(0, 80);
   if(q.rg === 'EU') S.meta.rg = 'EU';
   const v = q.v;
-  if(v === 'ov' || v === 'kentik' || v === 'dcs' || v === 'brs' || (isDC(v) ? dcIndex(v) <= S.dcN : isBR(v) ? brIndex(v) <= S.brN : !!SC[v])) S.view = v;
+  if(v === 'ov' || v === 'kentik' || v === 'dcs' || v === 'brs' || isCU(v) || (isDC(v) ? dcIndex(v) <= S.dcN : isBR(v) ? brIndex(v) <= S.brN : !!SC[v])) S.view = v;
   const mod = modOf(S.view);
   if(mod) S.sel.add(mod);
 }
@@ -534,6 +567,7 @@ $('#dt').addEventListener('click', ev => {
   if(e){ pick({k:'edge', i:+e.dataset.edge}); return; }
   back();
 });
+const ix = (kind, i) => kind === 'cl' ? i : +i;   // panel controls carry kind:index; a cloud's index is its id
 $('#panel').addEventListener('click', ev => {
   const t = ev.target;
   if(t.closest('[data-dcadd]')){ stepDC(1); return; }
@@ -547,21 +581,21 @@ $('#panel').addEventListener('click', ev => {
   const bs = t.closest('[data-brstep]');
   if(bs){ stepBR(+bs.dataset.brstep); return; }
   const cp = t.closest('[data-cap]');
-  if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, +i, c); return; }
+  if(cp){ const [k, i, c] = cp.dataset.cap.split(':'); toggleCap(k, ix(k, i), c); return; }
   const ca = t.closest('[data-capall]');
-  if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, +i, on === '1'); return; }
+  if(ca){ const [k, i, on] = ca.dataset.capall.split(':'); setAllCaps(k, ix(k, i), on === '1'); return; }
   const an = t.closest('[data-awsn]');
   if(an){ setAwsNested(an.dataset.awsn === '1'); return; }
   const fmb = t.closest('[data-fm]');
-  if(fmb){ const [k, i, m] = fmb.dataset.fm.split(':'); setFlowMode(k, +i, m); return; }
+  if(fmb){ const [k, i, m] = fmb.dataset.fm.split(':'); setFlowMode(k, ix(k, i), m); return; }
   const bo = t.closest('[data-bgpon]');
   if(bo){ const i = +bo.dataset.bgpon; setBgp(i, bgpMode(i) === 'off' ? 'direct' : 'off'); return; }
   const bm = t.closest('[data-bgp]');
   if(bm){ const [i, m] = bm.dataset.bgp.split(':'); setBgp(+i, m); return; }
   const ins = t.closest('[data-inst]');
-  if(ins){ const [k, i, v] = ins.dataset.inst.split(':'); setInst(k, +i, v); return; }
-  const bu = t.closest('[data-brua]');
-  if(bu){ toggleBRUA(+bu.dataset.brua); return; }
+  if(ins){ const [k, i, v] = ins.dataset.inst.split(':'); setInst(k, ix(k, i), v); return; }
+  const ro = t.closest('[data-role]');
+  if(ro){ const [k, i, r] = ro.dataset.role.split(':'); setRole(k, ix(k, i), r); return; }
   const g = t.closest('[data-go]');
   if(g){ go(g.dataset.go); return; }
   if(t.closest('[data-clear]')) setFocus(null);
@@ -569,10 +603,16 @@ $('#panel').addEventListener('click', ev => {
 $('#panel').addEventListener('input', ev => {
   const t = ev.target;
   if(t && t.classList.contains('nameIn')){ const [k, i] = t.dataset.name.split(':'); renameSite(k, +i, t.value); }
-  if(t && t.dataset && t.dataset.sz){ const [k, i, f] = t.dataset.sz.split(':'); setLoad(k, +i, f, t.value); }
+  if(t && t.dataset && t.dataset.sz){ const [k, i, f] = t.dataset.sz.split(':'); setLoad(k, ix(k, i), f, t.value); }
+  if(t && t.dataset && t.dataset.clap) setAppliances(t.dataset.clap, t.value, false);
 });
 $('#panel').addEventListener('toggle', ev => { if(ev.target.matches && ev.target.matches('details.load')) S.szOpen = ev.target.open; }, true);
-$('#panel').addEventListener('change', ev => { const t = ev.target; if(t && t.classList.contains('toSel')) setBRTarget(+t.dataset.to, t.value); });
+$('#panel').addEventListener('change', ev => {
+  const t = ev.target;
+  if(t && t.classList.contains('toSel')) setBRTarget(+t.dataset.to, t.value);
+  if(t && t.dataset && t.dataset.clto) setCLTarget(t.dataset.clto, t.value);
+  if(t && t.dataset && t.dataset.clap) setAppliances(t.dataset.clap, t.value, true);
+});
 $('#crumbs').addEventListener('click', ev => {
   const b = ev.target.closest('[data-nav]');
   if(!b) return;
@@ -609,7 +649,7 @@ $('#backBtn').addEventListener('click', () => nav('ov'));
 function pick(f){ setFocus(f); if(!S.panelOpen) setPanel(true, true); }
 function unpick(){ if(S.focus || S.hl) setFocus(null); if(S.panelOpen) setPanel(false, true); }
 function nav(view){ go(view); if(S.panelOpen) setPanel(false, true); }
-function back(){ if(S.panelOpen || S.focus || S.hl) unpick(); else if(S.view !== 'ov') nav('ov'); }
+function back(){ if(S.panelOpen || S.focus || S.hl) unpick(); else if(S.view !== 'ov') nav(isCU(S.view) ? cuOf(S.view) : 'ov'); }
 function setPanel(open, anim){
   S.panelOpen = open;
   const m = $('.main'), wrap = $('#svgwrap');

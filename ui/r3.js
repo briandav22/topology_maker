@@ -33,11 +33,16 @@ function exportCfg(){
     sites.push(Object.assign({name:dcName(i), kind:'dc', agent:true, install:instOf('dc', i), capabilities:capList('dc', i), bgp:bgpMode(i) === 'direct'}, loadOf('dc', i)));
   }
   if(brOn()) for(let i = 1; i <= S.brN; i++){
-    const ua = brUA(i), t = brTarget(i);
-    sites.push(Object.assign({name:brName(i), kind:'branch', agent:ua, install:instOf('br', i), capabilities:ua ? capList('br', i) : [], send_to:ua || !t ? '' : dcName(t), bgp:false}, loadOf('br', i)));
+    const role = brRole(i), t = brTarget(i);
+    sites.push(Object.assign({name:brName(i), kind:'branch', agent:role !== 'none', agent_role:role === 'test' ? 'test' : 'full', install:instOf('br', i),
+      capabilities:role === 'none' ? [] : capList('br', i), send_to:role !== 'full' && t ? dcName(t) : '', bgp:false}, loadOf('br', i)));
   }
   const clouds = {};
-  ['aws', 'azure', 'gcp', 'oci'].forEach(c => { clouds[c] = {enabled:S.sel.has(c)}; });
+  CLOUD_IDS.forEach(c => {
+    const o = clOf(c), t = clTarget(c);
+    clouds[c] = {enabled:S.sel.has(c), agent:o.ua, appliances:o.ap, install:instOf('cl', c), capabilities:o.ua === 'none' ? [] : capList('cl', c),
+      flow_mode:fmOf('cl', c), fps:o.sz.f || null, send_to:clRemote(c) && t ? dcName(t) : ''};
+  });
   clouds.aws.multi_account = !!S.awsNested;
   return {customer:S.meta.cu || 'Example Customer', prepared_by:S.meta.pb, region:S.meta.rg, detail:S.mode, sites, clouds,
     synthetics:{enabled:S.sel.has('saas') || testAgents().length > 0, site_mesh:true, bgp_monitor:S.sel.has('saas')},
@@ -94,7 +99,10 @@ function exportViews(){
   const v = [['ov', 'All deployments']];
   if(dcOn()){ dcIds().forEach((id, k) => v.push([id, dcName(k + 1)])); if(S.dcN > 1) v.push(['dcs', 'All data centers']); }
   if(brOn()){ brIds().forEach((id, k) => v.push([id, brName(k + 1)])); if(S.brN > 1) v.push(['brs', 'All branch offices']); }
-  ['aws', 'azure', 'gcp', 'oci', 'saas'].filter(id => S.sel.has(id)).forEach(id => v.push([id, MOD[id].name]));
+  ['aws', 'azure', 'gcp', 'oci', 'saas'].filter(id => S.sel.has(id)).forEach(id => {
+    v.push([id, MOD[id].name]);
+    if(CLOUD_IDS.includes(id) && clUsed(id)) v.push([cuId(id), viewName(cuId(id))]);   // the agent or appliances in that cloud
+  });
   return v;
 }
 async function viewImages(onStep){
