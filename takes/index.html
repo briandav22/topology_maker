@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Takes</title>
+<meta name="description" content="Two new takes on the Infoblox + Kentik deployment tool, beside the current app.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 15.924 15.924%22%3E%3Cpath fill=%22%2300bd4d%22 d=%22M7.962 0L11.348 3.386L7.962 6.773L4.576 3.386ZM3.387 4.576L6.773 7.962L3.387 11.349L0 7.962ZM12.538 4.576L15.924 7.962L12.538 11.349L9.152 7.962ZM7.962 9.152L11.348 12.538L7.962 15.924L4.576 12.538Z%22/%3E%3C/svg%3E">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+:root{--ib:#00bd4d;--bg:#f3f4f3;--surface:#fff;--border:#dcdfdc;--text:#0d0f0e;--muted:#525a55;color-scheme:light}
+@media (prefers-color-scheme: dark){:root{--bg:#0a0b0a;--surface:#141615;--border:#2a2e2b;--text:#eceeed;--muted:#a4aba6;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+header{background:#000;color:#fff;border-bottom:2px solid var(--ib);padding:12px 20px;display:flex;align-items:center;gap:12px}
+header svg{width:24px;height:24px;color:var(--ib)}
+header b{font-size:21px;letter-spacing:-.025em}
+header span{color:#b4b4b4;font-size:15px;border-left:1px solid #3c3c3c;padding-left:12px}
+main{max-width:1120px;margin:0 auto;padding:28px 20px 48px}
+h1{font-size:28px;letter-spacing:-.02em;margin:0 0 6px}
+.lead{color:var(--muted);max-width:760px;margin:0 0 26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;display:flex;flex-direction:column}
+.card .k{font-size:12px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:#00a443}
+.card h2{margin:4px 0 4px;font-size:21px;letter-spacing:-.01em}
+.card .q{font-weight:600;margin:0 0 10px}
+.card p{color:var(--muted);margin:0 0 10px;font-size:14px}
+.card ul{margin:0 0 14px;padding-left:18px;color:var(--muted);font-size:14px}
+.card li{margin:3px 0}
+.card a.go{margin-top:auto;display:inline-flex;align-items:center;gap:8px;background:var(--ib);color:#000;font-weight:600;text-decoration:none;border-radius:10px;padding:9px 14px;align-self:flex-start}
+.card.cur a.go{background:transparent;color:var(--text);border:1px solid var(--border)}
+.cmp{margin-top:28px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:6px 20px 14px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+th,td{text-align:left;padding:10px 10px 10px 0;border-bottom:1px solid var(--border);vertical-align:top}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;white-space:nowrap}
+.foot{color:var(--muted);font-size:13px;margin-top:18px}
+code{font:13px ui-monospace,Menlo,monospace;background:rgba(127,127,127,.14);padding:1px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+<header><svg viewBox="0 0 15.924 15.924" aria-hidden="true"><path fill="currentColor" d="M7.962 0L11.348 3.386L7.962 6.773L4.576 3.386ZM3.387 4.576L6.773 7.962L3.387 11.349L0 7.962ZM12.538 4.576L15.924 7.962L12.538 11.349L9.152 7.962ZM7.962 9.152L11.348 12.538L7.962 15.924L4.576 12.538Z"/></svg><b>infoblox</b><span>Kentik deployment tool: two new takes</span></header>
+<main>
+<h1>Three ways to answer "how is Kentik deployed for us?"</h1>
+<p class="lead">The current app starts from Kentik's reference design, and the SE fits it to the customer. These two takes start somewhere else. Take A starts from the customer's own network. Take B starts from the work that the customer's teams must do. Both keep the interactive diagram, and both use the same Kentik facts as the current app (from <code>configurator/catalog.py</code>).</p>
+<div class="grid">
+  <section class="card">
+    <div class="k">Take A</div>
+    <h2>Network Canvas</h2>
+    <p class="q">Draw their network. Kentik plans itself on top.</p>
+    <p>The SE draws the customer's real sites, devices, WAN links and clouds on a free canvas. The tool works out the rest, and it updates as you draw.</p>
+    <ul>
+      <li>Agent placement, and the path that each kind of data takes</li>
+      <li>Lenses with moving data: flow, metrics, events, BGP, DNS, tests, cloud</li>
+      <li>Firewall rules for each firewall, and the telemetry load on each WAN link</li>
+      <li>Checks with one-click fixes, groups of similar sites (×120 stores)</li>
+      <li>Customer pack: interactive HTML, firewall CSV, agent build sheet, printed brief</li>
+    </ul>
+    <a class="go" href="/canvas/">Open the Network Canvas →</a>
+  </section>
+  <section class="card">
+    <div class="k">Take B</div>
+    <h2>Rollout Map</h2>
+    <p class="q">The deployment is a project. Show the customer how it goes live.</p>
+    <p>The design becomes a plan in waves. A transit map shows what is live after each wave, and each customer team gets its own list of tasks.</p>
+    <ul>
+      <li>Transit map: each kind of data is a line into Kentik, each site a station</li>
+      <li>Timeline: play the rollout wave by wave, and see the coverage grow</li>
+      <li>Tasks for each team (network, security, server, cloud, DNS, Infoblox), made from the design</li>
+      <li>Proof of value or full rollout, with dates</li>
+      <li>Customer workbook: one HTML file in which the customer marks tasks as done</li>
+    </ul>
+    <a class="go" href="/rollout/">Open the Rollout Map →</a>
+  </section>
+  <section class="card cur">
+    <div class="k">Today</div>
+    <h2>Deployment Explorer</h2>
+    <p class="q">Kentik's reference design, fitted to the customer.</p>
+    <p>The current app: pick the deployments in scope, set the counts and switches, drill into each scene, and export the HTML page or the deployment guide PDF.</p>
+    <ul>
+      <li>Runs with <code>python3 run.py</code> on port 8765</li>
+      <li>Unchanged on this branch</li>
+    </ul>
+    <a class="go" href="http://127.0.0.1:8765/">Open the current app (if it runs) →</a>
+  </section>
+</div>
+<div class="cmp">
+<table>
+<thead><tr><th></th><th>Current app</th><th>Take A: Network Canvas</th><th>Take B: Rollout Map</th></tr></thead>
+<tbody>
+<tr><td>Starts from</td><td>Kentik's reference design</td><td>The customer's network</td><td>The customer's teams and dates</td></tr>
+<tr><td>The SE does</td><td>Sets counts and switches</td><td>Draws sites and links</td><td>Lists sites, then moves them between waves</td></tr>
+<tr><td>The diagram</td><td>Fixed scenes, drill-ins</td><td>Free canvas with lenses</td><td>Transit map with a timeline</td></tr>
+<tr><td>Scale</td><td>Up to 6 DCs, 10 branches</td><td>Any number, plus groups (×N)</td><td>Any number, plus groups (×N)</td></tr>
+<tr><td>The customer gets</td><td>HTML page, guide PDF</td><td>Interactive view, firewall CSV, build sheet, brief</td><td>A workbook to track the rollout</td></tr>
+<tr><td>Best for</td><td>"How does Kentik work?"</td><td>"What does it look like in our network?"</td><td>"How do we get live, and who does what?"</td></tr>
+</tbody>
+</table>
+</div>
+<p class="foot">Start this page with <code>python3 takes/serve.py</code>. Each take is one page with no build step. The current app does not change.</p>
+</main>
+</body>
+</html>
