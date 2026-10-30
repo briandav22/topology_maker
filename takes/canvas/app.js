@@ -498,7 +498,7 @@ function nodeHTML(s) {
     body += `<div class="devs">${devs || '<span class="dv">No devices yet</span>'}</div>`;
     if (x.agent) {
       const dots = CAP_T.concat(['bgp']).filter(c => x.caps[c]).map(c => `<i style="background:var(--t-${c})" title="${esc(capName(c, s.flowMode))}"></i>`).join('');
-      body += `<div class="kf agent" title="Universal Agent on ${s.install === 'docker' ? 'Docker' : 'a Linux host'}: ${x.size.recCpu} vCPU, ${x.size.recRam} GB"><svg class="hex" aria-hidden="true"><use href="#i-agent"/></svg><span class="txt"><b>Agent</b> · ${s.install === 'docker' ? 'Docker' : 'Linux'} · ${x.size.recCpu} vCPU</span><span class="capdots">${dots}</span></div>`;
+      body += `<div class="kf agent" title="Universal Agent on ${s.install === 'docker' ? 'Docker' : 'a Linux host'}: ${x.size.recCpu} vCPU, ${x.size.recRam} GB"><svg class="hex" aria-hidden="true"><use href="#i-agent"/></svg><span class="txt"><b>Agent</b> · ${x.size.recCpu} vCPU</span><span class="capdots">${dots}</span></div>`;
     } else if (x.target) {
       const T = byId(x.target);
       body += x.noPath ? `<div class="kf"><span class="txt err">No link to ${esc(T.name)}</span></div>`

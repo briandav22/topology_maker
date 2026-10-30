@@ -196,7 +196,7 @@ function derive() {
     const c = capsOf(a); const w = a.wave; const n = a.count; const z = st[a.id].size; const many = n > 1;
     const where = many ? `${a.name} (${n} sites)` : a.name;
     add({ id: `host:${a.id}`, team: 'server', wave: w, site: a.id, title: `Build ${many ? n + ' agent hosts' : 'the agent host'} at ${where}`, sub: `${z.recCpu} vCPU, ${z.recRam} GB RAM, ${a.install === 'docker' ? 'Docker' : 'Linux'}${many ? ' each' : ''}`, effort: many ? 3 : 1, deps: ['kickoff'], kind: 'host' });
-    add({ id: `egress:${a.id}`, team: 'security', wave: w, site: a.id, title: `Allow HTTPS 443 out from ${where} to Kentik`, sub: reg.hosts.slice(0, 3).join(', ') + '…', effort: 3, deps: ['kickoff'], kind: 'egress' });
+    add({ id: `egress:${a.id}`, team: 'security', wave: w, site: a.id, title: `Allow HTTPS 443 out from ${where} to Kentik`, sub: reg.hosts.slice(0, 3).join(', ') + '…', effort: 2, deps: ['kickoff'], kind: 'egress' });
     add({ id: `install:${a.id}`, team: 'se', wave: w, site: a.id, title: `Install and authorize ${many ? n + ' agents' : 'the agent'} at ${where}`, sub: CAPS.concat(['bgp']).filter(k => c[k]).map(k => capName(k, a.flowMode)).join(', '), effort: many ? 2 : 0.5, deps: [`host:${a.id}`, `egress:${a.id}`, 'portal'], kind: 'install' });
     const dep = [`install:${a.id}`];
     if (c.flow) add({ id: `flow:${a.id}`, team: 'network', wave: w, site: a.id, title: `Send flow from ${where} devices to the agent`, sub: 'NetFlow, sFlow or IPFIX to UDP 9995', effort: clamp(1 + a.devices * n / 150, 1, 8), deps: dep, kind: 'flow' });
@@ -210,7 +210,7 @@ function derive() {
   feeds.forEach(f => {
     const a = agentOf(f); const where = f.count > 1 ? `${f.name} (${f.count} sites)` : f.name;
     if (!a) return;
-    add({ id: `wan:${f.id}`, team: 'security', wave: f.wave, site: f.id, title: `Allow ${where} devices to reach the ${a.name} agent across the WAN`, sub: 'Flow, traps and syslog in; SNMP polling out', effort: 3, deps: ['kickoff'], kind: 'wan' });
+    add({ id: `wan:${f.id}`, team: 'security', wave: f.wave, site: f.id, title: `Allow ${where} devices to reach the ${a.name} agent across the WAN`, sub: 'Flow, traps and syslog in; SNMP polling out', effort: 2, deps: ['kickoff'], kind: 'wan' });
     add({ id: `feed:${f.id}`, team: 'network', wave: f.wave, site: f.id, title: `Point ${where} devices at the ${a.name} agent`, sub: `${plural(f.devices * f.count, 'device')}: flow, traps, syslog and SNMP`, effort: clamp(1 + f.count * f.devices / 120, 1, 15), deps: [`wan:${f.id}`, `install:${a.id}`], kind: 'feed' });
   });
   R.clouds.forEach(c => {
@@ -225,7 +225,7 @@ function derive() {
   const synthAgents = agents.filter(a => capsOf(a).synth);
   if (R.tests.on) {
     const tw = R.tests.wave; const nA = synthAgents.reduce((t, a) => t + a.count, 0);
-    if (nA >= 2) add({ id: 't-ports', team: 'security', wave: tw, title: 'Open TCP 8877 and UDP 9977 between the test agents', sub: synthAgents.map(a => a.name).join(', '), effort: 3, deps: ['kickoff'], kind: 't-ports' });
+    if (nA >= 2) add({ id: 't-ports', team: 'security', wave: tw, title: 'Open TCP 8877 and UDP 9977 between the test agents', sub: synthAgents.map(a => a.name).join(', '), effort: 2, deps: ['kickoff'], kind: 't-ports' });
     add({ id: 't-tests', team: 'se', wave: tw, title: `Create the synthetic tests${R.tests.saas.length ? ': ' + R.tests.saas.join(', ') : ''}`, sub: nA >= 2 ? `Agent mesh between ${nA} agents, plus app tests` : 'App tests from Kentik global agents' + (nA ? ' and one site agent' : ''), effort: 1, deps: synthAgents.map(a => `install:${a.id}`).concat(nA >= 2 ? ['t-ports'] : []), kind: 't-tests' });
   }
   add({ id: 'validate', team: 'se', wave: WL, title: 'Validate the data with the customer', sub: 'Flow within about 20% of SNMP interface traffic', effort: 2, deps: T.filter(t => ['flow', 'feed', 'c-export'].includes(t.kind)).map(t => t.id), kind: 'validate' });

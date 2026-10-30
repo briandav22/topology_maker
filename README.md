@@ -40,6 +40,19 @@ The design is kept in the page address, so a bookmark or a reload brings it back
 
 The app page is `configurator/static/explorer.html`, built from the parts in `ui/` by `sh ui/build.sh`. Edit the parts, rebuild, and commit both; do not edit the built page by hand.
 
+## Two new takes (for review)
+
+The `takes/` folder holds two new versions of the tool, which run beside this app and do not change it:
+
+- **Take A, Network Canvas:** draw the customer's own network; agent placement, data paths, firewall rules per firewall, WAN load and sizing follow from the drawing.
+- **Take B, Rollout Map:** the deployment as waves of work, with a transit map and timeline, tasks for each customer team, and a workbook the customer ticks off.
+
+```bash
+python3 takes/serve.py        # http://127.0.0.1:8770
+```
+
+See `takes/README.md` for the thinking, a short test script for each take, and the known limits.
+
 ## Export from the command line
 
 ```bash

@@ -326,6 +326,8 @@ body.book-only .main{grid-template-columns:minmax(0,1fr) 364px}
 @media (max-width: 920px){
   body{overflow:auto} .app{height:auto} .main{grid-template-columns:1fr} .estate,.panel{border:0;border-top:1px solid var(--border);max-height:none}
   .mapwrap{min-height:460px} .views button{padding:5px 8px}
+  .tools{margin-left:0;flex-wrap:wrap} .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .timeline{flex-direction:column} .play{width:100%;height:36px} .waves{overflow-x:auto}
 }
 @media (prefers-reduced-motion: reduce){ .trk.now,.stn.now .halo{animation:none} .trk,.stn .dot,.kpi .bar i{transition:none} }
 @media print{
