@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The Infoblox + Kentik deployment as a rollout in waves: a transit map of what goes live when, and the tasks each customer team must do.">
+<title>Kentik Rollout Map</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 15.924 15.924%22%3E%3Cpath fill=%22%2300bd4d%22 d=%22M7.962 0L11.348 3.386L7.962 6.773L4.576 3.386ZM3.387 4.576L6.773 7.962L3.387 11.349L0 7.962ZM12.538 4.576L15.924 7.962L12.538 11.349L9.152 7.962ZM7.962 9.152L11.348 12.538L7.962 15.924L4.576 12.538Z%22/%3E%3C/svg%3E">
+<style>/*@CSS*/</style>
+<!--@DATA-->
+</head>
+<body>
+<!--@ICONS-->
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <span class="lockup" role="img" aria-label="Infoblox"><svg class="ibmark" viewBox="0 0 15.924 15.924" aria-hidden="true"><use href="#i-ib"/></svg><span class="wordmark" aria-hidden="true">infoblox</span></span>
+      <span class="bdiv" aria-hidden="true"></span>
+      <h1>Rollout Map <span class="tag">Take B</span></h1>
+    </div>
+    <label class="cust"><span class="sr">Customer</span><input id="custName" type="text" spellcheck="false" placeholder="Customer name" aria-label="Customer name"></label>
+    <nav class="views" role="tablist" aria-label="View">
+      <button type="button" role="tab" data-view="map" aria-selected="true" title="Transit map and timeline (key 1)"><svg class="ic"><use href="#i-map"/></svg>Map</button>
+      <button type="button" role="tab" data-view="plan" aria-selected="false" title="Tasks by team and wave (key 2)"><svg class="ic"><use href="#i-grid"/></svg>Plan</button>
+      <button type="button" role="tab" data-view="book" aria-selected="false" title="The customer's workbook (key 3)"><svg class="ic"><use href="#i-book"/></svg>Workbook</button>
+    </nav>
+    <div class="tools">
+      <div class="menu edit-only" id="startMenu">
+        <button type="button" class="tbtn" data-menu="start" aria-haspopup="true" aria-expanded="false" title="Open a starting plan"><svg class="ic"><use href="#i-sparkle"/></svg>Starters</button>
+        <div class="pop right" role="menu" id="startPop"></div>
+      </div>
+      <button type="button" class="tbtn icon-only edit-only" id="undoBtn" title="Undo (Ctrl+Z or Cmd+Z)" aria-label="Undo"><svg class="ic"><use href="#i-undo"/></svg></button>
+      <button type="button" class="tbtn icon-only edit-only" id="redoBtn" title="Redo (Shift+Ctrl+Z or Shift+Cmd+Z)" aria-label="Redo"><svg class="ic"><use href="#i-redo"/></svg></button>
+      <div class="menu" id="exportMenu">
+        <button type="button" class="tbtn primary" data-menu="export" aria-haspopup="true" aria-expanded="false" title="Send the plan to the customer (key E)"><svg class="ic"><use href="#i-download"/></svg>Send to customer</button>
+        <div class="pop right" role="menu" id="exportPop"></div>
+      </div>
+      <button type="button" class="tbtn icon-only" id="themeBtn" title="Switch between light and dark" aria-label="Switch between light and dark"><svg class="ic"><use href="#i-moon"/></svg></button>
+      <button type="button" class="tbtn icon-only" id="helpBtn" title="How it works (key ?)" aria-label="Help"><svg class="ic"><use href="#i-help"/></svg></button>
+    </div>
+  </header>
+  <div class="viewbar" id="viewbar" hidden>
+    <svg class="ic"><use href="#i-book"/></svg><span id="viewbarText">Rollout workbook. Mark tasks as done as your teams finish them. Your progress stays in this browser; use "Send progress back" to share it with your Infoblox team.</span>
+  </div>
+  <main class="main">
+    <aside class="estate" id="estate" aria-label="Estate"></aside>
+    <section class="center">
+      <div class="view" id="mapView">
+        <div class="kpis" id="kpis"></div>
+        <div class="legend" id="legend" aria-label="Lines"></div>
+        <div class="mapwrap" id="mapwrap"></div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+      <div class="view" id="planView" hidden></div>
+      <div class="view" id="bookView" hidden></div>
+    </section>
+    <aside class="panel" id="panel" aria-label="Details"><div class="pane" id="pane"></div></aside>
+  </main>
+</div>
+<div class="modal" id="modal" hidden><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="mh"><h2 id="modalTitle"></h2><button type="button" class="tbtn icon-only" data-close aria-label="Close"><svg class="ic"><use href="#i-x"/></svg></button></div><div class="mb" id="modalBody"></div></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
+<script>/*@JS*/</script>
+</body>
+</html>
