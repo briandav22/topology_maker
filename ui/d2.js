@@ -23,12 +23,15 @@ const CAP = {
        'Branches without their own agent can export flow across the WAN to this agent on UDP 9995.',
        'Sends to flow.kentik.com on TCP 443, with an optional UDP 40010 base port.',
        'Replaces the standalone kproxy agent, which reaches end of life on May 1, 2027.']},
-  snmp:{h:'SNMP/ST discovers devices and collects health, interface and hardware metrics by SNMP polling or gNMI streaming telemetry. The same capability enriches flow with interface names and speeds.',
+  snmp:{h:'SNMP discovers devices and collects health, interface and hardware metrics by polling them. It also enriches flow with interface names and speeds.',
     d:['Per device, pick “Flow Enrichment via Universal Agent” or “Full Monitoring via Universal Agent” on the SNMP tab.',
        'NMS Setup Wizard: deploy or pick an agent, enter IP ranges and SNMP v1, v2c or v3 credentials, discover, then add devices.',
        'Needs UDP 161 and ICMP to devices. Default polling: 1 minute for status, CPU, memory and interfaces, 5 minutes for everything else.',
-       'Streaming telemetry: gNMI dial-in over gRPC (JSON or Protobuf), 30 second default, CPU every 2 seconds. Enable “Dial-In from Universal Agent” on the device.',
-       'Sizing: 2 cores / 8 GB RAM for up to 500 devices.']},
+       'In the portal, SNMP is part of the SNMP/ST capability. Sizing: 2 cores / 8 GB RAM for up to 500 devices.']},
+  st:{h:'Streaming Telemetry collects device metrics with gNMI instead of polling: the agent dials in to each device over gRPC. Many customers use SNMP only.',
+    d:['On each device that streams, enable “Dial-In from Universal Agent” (gNMI over gRPC, JSON or Protobuf, 30 second default).',
+       'Allow the agent to reach each device’s gNMI port.',
+       'In the portal, Streaming Telemetry is part of the SNMP/ST capability, and it shares its sizing: 2 cores / 8 GB RAM for up to 500 devices.']},
   trap:{h:'The Trap Receiver captures SNMP traps the moment a device sends them, for example an interface or BGP session going down.',
     d:['Listens on UDP 162. Filter and alert by trap name and OID. Event alerts need manual clearing.',
        'Query in Data Explorer with the metric “SNMP Traps: Events”.',
@@ -65,24 +68,24 @@ function chips(x, y0, w, list, step){
 
 /* ===== Data center pieces: the scene is built per site from its capabilities (see d5) ===== */
 const DC_NETGRP = {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network devices', cls:'sframe',
-  i:{h:'Routers, switches and firewalls export flow to the agent, send it traps and syslog, and answer its SNMP or streaming telemetry requests.',
+  i:{h:'Routers, switches and firewalls export flow to the agent, send it traps and syslog, and answer its SNMP polls.',
      d:['Flow: sample ingress on every interface, never ingress and egress on the same interface. The device sample rate must match the rate set for the device in Kentik.',
         'Recommended standard rates: data center and core 1:400–800 at 1 Gbps up to 1:25k–50k at 1 Tbps; Internet edge 1:3k–7k at 10 Gbps up to 1:11k–15k at 1 Tbps.',
         'SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.',
         'Vendor config snippets for flow, SNMP and BGP live in github.com/kentik/config-snippets.']}};
 const DC_DEVICES = [
-  {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge', sd:'Flow · SNMP · traps · BGP',
+  {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge',
    i:{h:'Edge routers carry Internet and WAN traffic. Besides flow and device telemetry, they peer BGP so every flow gets AS path, community and next-hop context.',
       d:['With BGP Proxy on, routers peer with the Universal Agent on TCP 179 and the agent relays routes to Kentik over HTTPS.',
          'BGP peering is optional; many enterprises skip it. Without BGP Proxy, routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
          'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
          'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
          'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.']}},
-  {id:'core', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Core and leaf switches', s:'Data center fabric', sd:'sFlow/IPFIX · SNMP or gNMI',
+  {id:'core', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Core and leaf switches', s:'Data center fabric',
    i:{h:'Data center switches export sFlow or IPFIX and are polled for interface counters, so Kentik sees east-west traffic and link health together.',
       d:['sFlow is the only common flow protocol that carries a packet sample. IPFIX and NetFlow v9 add MAC and VLAN through option templates.',
          'Sanity check: flow volume should land within about 20% of SNMP interface traffic.']}},
-  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls and load balancers', s:'Perimeter, internal, ADCs', sd:'Flow · syslog · traps',
+  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls and load balancers', s:'Perimeter, internal, ADCs',
    i:{h:'Firewalls and load balancers export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
       d:['Syslog to the agent on UDP or TCP 514; traps to UDP 162.','Trap and syslog ingestion require the device to be licensed for NMS.']}}
 ];
@@ -100,7 +103,7 @@ INFO.dc = {kick:'Drill-in · On-prem', title:'Data center with a Universal Agent
 hl:`<p class="lead">One Universal Agent per data center collects everything. Devices send to it, it polls them, and it forwards it all to Kentik over outbound HTTPS.</p>
 <h3>What you deploy</h3><ul>
 <li>The Universal Agent on a Linux host (VM or bare metal) or in Docker</li>
-<li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy (Forwarding or Edge Processing), SNMP Trap Receiver, SNMP/ST and Syslog Server</li>
+<li>Only the capabilities this site needs, toggled on per agent: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy (Forwarding or Edge Processing), SNMP, SNMP Trap Receiver, Streaming Telemetry and Syslog Server</li>
 <li>Devices pointed at the agent for flow, traps and syslog, including branches that have no agent of their own</li>
 <li>Optionally, BGP from the edge routers, to the agent (BGP Proxy) or directly to Kentik</li></ul>
 <h3>What Kentik collects</h3><ul>
@@ -115,8 +118,8 @@ dd:`<p class="lead">Universal Agent on a Linux host or in Docker, managed from S
 <tr><td>Devices → agent</td><td>UDP 9995</td><td>Flow Proxy</td></tr>
 <tr><td>Devices → agent</td><td>UDP 162</td><td>SNMP Trap Receiver</td></tr>
 <tr><td>Devices → agent</td><td>UDP and TCP 514</td><td>Syslog Server</td></tr>
-<tr><td>Agent → devices</td><td>UDP 161, ICMP</td><td>SNMP/ST polling</td></tr>
-<tr><td>Agent → devices</td><td>Device gNMI port</td><td>Streaming telemetry dial-in</td></tr>
+<tr><td>Agent → devices</td><td>UDP 161, ICMP</td><td>SNMP polling</td></tr>
+<tr><td>Agent → devices</td><td>Device gNMI port</td><td>Streaming telemetry dial-in, only if it is on</td></tr>
 <tr><td>Agent → devices</td><td>TCP 22</td><td>Device Configuration Sync (SSH)</td></tr>
 <tr><td>Agent ↔ agent</td><td>TCP 8877, UDP 9977</td><td>Connectivity Test</td></tr>
 <tr><td>DNS → agent</td><td>DNSTAP port you set</td><td>DNS OTT Tap</td></tr>
@@ -139,7 +142,7 @@ export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
 <table><thead><tr><th style="width:50%">Capability</th><th>CPU / RAM</th></tr></thead><tbody>
 <tr><td>Flow Proxy Forwarding</td><td>1 core / 2 GB, 20k+ FPS</td></tr>
 <tr><td>Flow Proxy Edge Processing</td><td>8 cores / 32 GB, 25k+ FPS</td></tr>
-<tr><td>SNMP/ST</td><td>2 cores / 8 GB, up to 500 devices</td></tr>
+<tr><td>SNMP, Streaming Telemetry</td><td>2 cores / 8 GB, up to 500 devices, counted once</td></tr>
 <tr><td>Syslog Server</td><td>1 core / 1 GB per 8k events/s</td></tr>
 <tr><td>Connectivity Test</td><td>2 cores / 2 GB</td></tr>
 <tr><td>DNS OTT Tap</td><td>1 core / 1 GB per 400k lookups/s</td></tr>
@@ -148,7 +151,7 @@ export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
 <p class="muted" style="font-size:12.5px">Add 20–30% headroom for bursty flow, syslog and traps.</p>
 <h3>Device settings in Kentik</h3><ul>
 <li><b>SNMP</b>: Flow Enrichment via Universal Agent, or Full Monitoring via Universal Agent. Pick a credential and a collection agent.</li>
-<li><b>Streaming Telemetry</b>: Dial-In from Universal Agent (gNMI, optional SSL).</li>
+<li><b>Streaming Telemetry</b>, only if you use it: Dial-In from Universal Agent (gNMI, optional SSL).</li>
 <li><b>BGP</b>: Peer with device, with the router’s peering address, ASN and optional MD5 password.</li>
 <li><b>SSH</b>: credential, collection agent, platform autodetect, config sync and fetch interval.</li></ul>
 <h3>Licensing</h3><ul>
@@ -163,11 +166,11 @@ const BR_NETGRP = {id:'netgrp', x:32, y:58, w:240, h:222, label:'Branch network 
      d:['Use the same device settings as the data center: SNMP tab “Flow Enrichment via Universal Agent” or “Full Monitoring via Universal Agent”, then pick the collection agent.',
         'At a small site, flow from the WAN router alone often answers most questions.']}};
 const BR_DEVICES = [
-  {id:'wan', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Branch / SD-WAN router', s:'WAN edge', sd:'Flow, SNMP, syslog, traps',
+  {id:'wan', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Branch / SD-WAN router', s:'WAN edge',
    i:{h:'The WAN or SD-WAN edge sees everything entering and leaving the site, so its flow is the most valuable single source at a branch.', d:['Export flow on UDP 9995 to the agent that collects for this branch, and set the same sample rate in Kentik.']}},
-  {id:'sw', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Access switches', s:'Wired users and devices', sd:'sFlow · SNMP',
+  {id:'sw', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Access switches', s:'Wired users and devices',
    i:{h:'Access switches add interface health and, with sFlow, local traffic.', d:[]}},
-  {id:'wifi', x:44, y:214, w:216, h:52, k:'net', icon:'wifi', t:'Wi-Fi controller, APs', s:'Wireless users', sd:'Syslog · traps · SNMP',
+  {id:'wifi', x:44, y:214, w:216, h:52, k:'net', icon:'wifi', t:'Wi-Fi controller, APs', s:'Wireless users',
    i:{h:'Wireless controllers mostly contribute events and health: syslog, traps and SNMP.', d:[]}}
 ];
 const BR_USERS = {id:'users', k:'ext', icon:'users', t:'Users at the site', s:'Experience you test for', sd:'Tests run from here',
@@ -175,7 +178,7 @@ const BR_USERS = {id:'users', k:'ext', icon:'users', t:'Users at the site', s:'E
 const BR_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'Local DNS resolver', s:'Branch or SD-WAN DNS', sd:'DNSTAP or mirrored DNS',
   i:{h:'A local resolver streams DNS to the branch agent, so lookups from this site line up with its traffic.', d:CAP.dns.d}};
 const UA_BR_I = {h:'The same Universal Agent as the data center, sized for a small site. Install it once, then toggle on only what the site needs.',
-  d:['Footprint: Connectivity Test 2 cores / 2 GB, Syslog 1 core / 1 GB, SNMP/ST 2 cores / 8 GB for up to 500 devices.',
+  d:['Footprint: Connectivity Test 2 cores / 2 GB, Syslog 1 core / 1 GB, SNMP 2 cores / 8 GB for up to 500 devices.',
      'Linux or Docker install command from Settings › Universal Agents › Deploy Agent.',
      'Assign the agent to a Site so devices and tests group by location.']};
 function BR_TARGETS(dcGo){ return {
@@ -195,7 +198,7 @@ INFO.branch = {kick:'Drill-in · On-prem', title:'Branch or campus with a Univer
 hl:`<p class="lead">The same Universal Agent, sized for a small site. It adds local flow and device health, and it tests the paths your users depend on.</p>
 <h3>What you deploy</h3><ul>
 <li>The Universal Agent on a small Linux host (a VM or a small PC) or in Docker</li>
-<li>Only the capabilities this site needs, for example Flow Proxy (Forwarding or Edge Processing), SNMP/ST and Connectivity Test</li>
+<li>Only the capabilities this site needs, for example Flow Proxy (Forwarding or Edge Processing), SNMP and Connectivity Test</li>
 <li>Tests from the branch to the data center, cloud regions, SaaS apps and DNS</li></ul>
 <h3>Why it matters</h3><ul>
 <li>Site-to-site tests show latency, loss and jitter between locations</li>

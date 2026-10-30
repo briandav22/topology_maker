@@ -190,6 +190,21 @@ def cap_names(site):
     return ", ".join(cap_name(site, c) for c in site["capabilities"])
 
 
+def portal_cap_names(site):
+    """The switches to turn on in the portal: SNMP and Streaming Telemetry are one SNMP/ST capability there."""
+    caps, out = site["capabilities"], []
+    for c in caps:
+        if c == "flow":
+            out.append("Flow Proxy in " + ("Edge Processing" if site.get("flow_mode") == "edge" else "Forwarding") + " mode")
+        elif c in ("snmp", "st"):
+            n = "SNMP/ST" if {"snmp", "st"} <= set(caps) else "SNMP/ST for SNMP polling" if c == "snmp" else "SNMP/ST for Streaming Telemetry"
+            if n not in out:
+                out.append(n)
+        else:
+            out.append(C.CAPABILITIES[c]["name"])
+    return ", ".join(out)
+
+
 def site_sizing(site, cfg=None):
     """Sum KB per-capability sizing for one agent host, then add headroom. Includes branches that send to it."""
     rows = []
@@ -201,24 +216,26 @@ def site_sizing(site, cfg=None):
         site = dict(site, fps=site["fps"] + sum(b["fps"] for b in feeds), devices=site["devices"] + sum(b["devices"] for b in feeds),
                     syslog_eps=site["syslog_eps"] + sum(b["syslog_eps"] for b in feeds))
 
-    def add(key, units, qty_label):
+    def add(key, units, qty_label, label=None):
         s = C.SIZING[key]
+        label = label or s["label"]
         if s["cpu"] is None:
-            rows.append((s["label"], qty_label, "Not published", 0, 0))
+            rows.append((label, qty_label, "Not published", 0, 0))
             return
         if s["per"] and not units:  # no load given: plan for the KB baseline
             qty_label = f"Not given; KB baseline up to {s['per']:,} {s['unit']}"
         n = max(1, math.ceil(units / s["per"])) if s["per"] else 1
         if n > 1 and s.get("estimate"):
             qty_label += " (scaled from the KB figure: confirm with Kentik)"
-        rows.append((s["label"], qty_label, f"{s['cpu']} core{'s' if s['cpu'] > 1 else ''} / {s['ram']} GB" + (f" x {n}" if n > 1 else ""),
+        rows.append((label, qty_label, f"{s['cpu']} core{'s' if s['cpu'] > 1 else ''} / {s['ram']} GB" + (f" x {n}" if n > 1 else ""),
                      s["cpu"] * n, s["ram"] * n))
 
     if "flow" in caps:
         key = "flow_edge" if site["flow_mode"] == "edge" else "flow_forward"
         add(key, site["fps"], f"{site['fps']:,} flows/s")
-    if "snmp" in caps:
-        add("snmp", site["devices"], f"{site['devices']:,} devices")
+    if "snmp" in caps or "st" in caps:   # one SNMP/ST capability on the agent: counted once
+        add("snmp", site["devices"], f"{site['devices']:,} device{'' if site['devices'] == 1 else 's'}",
+            "SNMP and Streaming Telemetry" if {"snmp", "st"} <= set(caps) else "SNMP" if "snmp" in caps else "Streaming Telemetry")
     if "syslog" in caps:
         add("syslog", site["syslog_eps"], f"{site['syslog_eps']:,} events/s")
     if "dns" in caps:
@@ -265,7 +282,9 @@ def _remote_rules(site, cfg):
     if "syslog" in caps:
         rules.append((src, to, "UDP and TCP 514", "Syslog"))
     if "snmp" in caps:
-        rules.append((agent, src, "UDP 161, ICMP", f"SNMP/ST polling across {path_name(site)}"))
+        rules.append((agent, src, "UDP 161, ICMP", f"SNMP polling across {path_name(site)}"))
+    if "st" in caps:
+        rules.append((agent, src, "Device gNMI port", f"Streaming telemetry dial-in across {path_name(site)}"))
     if "ssh" in caps and site["kind"] == "branch":
         rules.append((agent, "Branch device management IPs", "TCP 22", "Device Configuration Sync across the WAN"))
     return rules

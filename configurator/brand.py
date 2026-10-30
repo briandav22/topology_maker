@@ -27,6 +27,7 @@ FLOW_COLORS = {
     "pull": "#00A3AD",    # Kentik reads from the cloud
     "flow": "#2DB24A",
     "snmp": "#7A4CC2",
+    "st": "#65A30D",
     "trap": "#E0861A",
     "syslog": "#C2417A",
     "dns": "#0B8F86",

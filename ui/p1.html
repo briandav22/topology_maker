@@ -8,7 +8,7 @@
   --accent:#00a443; --accent-soft:#e6f7ec; --accent-text:#00803a; --on-accent:#ffffff; --link:#00803a;
   --net:#0e7490; --net-fill:#e3f2f7; --srv:#1d4ed8; --srv-fill:#e8effd; --ext:#6b7280; --ext-fill:#f1f2f4;
   --ktk:#00a443; --ktk-fill:#e8f8ee; --iam:#a16207; --iam-fill:#fdf5d3; --store:#0369a1; --store-fill:#e3f2fb;
-  --l-https:#2563eb; --l-pull:#0284c7; --l-flow:#7c3aed; --l-snmp:#16a34a; --l-trap:#dc2626; --l-syslog:#db2777;
+  --l-https:#2563eb; --l-pull:#0284c7; --l-flow:#7c3aed; --l-snmp:#16a34a; --l-st:#65a30d; --l-trap:#dc2626; --l-syslog:#db2777;
   --l-dns:#0d9488; --l-synth:#ea580c; --l-ssh:#64748b; --l-bgp:#334155; --l-perm:#b45309; --l-int:#9aa3af;
   --shadow:0 1px 2px rgba(16,24,20,.06),0 1px 3px rgba(16,24,20,.08);
   --pill:#eef0ee;
@@ -20,7 +20,7 @@
     --accent:#00bd4d; --accent-soft:#0c2617; --accent-text:#3ed47f; --on-accent:#000000; --link:#3ed47f;
     --net:#22d3ee; --net-fill:#08242b; --srv:#7ea8ff; --srv-fill:#0f1c34; --ext:#a3aab5; --ext-fill:#1a1d21;
     --ktk:#00bd4d; --ktk-fill:#0b2215; --iam:#facc15; --iam-fill:#272006; --store:#38bdf8; --store-fill:#08202f;
-    --l-https:#60a5fa; --l-pull:#38bdf8; --l-flow:#a78bfa; --l-snmp:#4ade80; --l-trap:#f87171; --l-syslog:#f472b6;
+    --l-https:#60a5fa; --l-pull:#38bdf8; --l-flow:#a78bfa; --l-snmp:#4ade80; --l-st:#a3e635; --l-trap:#f87171; --l-syslog:#f472b6;
     --l-dns:#2dd4bf; --l-synth:#fb923c; --l-ssh:#94a3b8; --l-bgp:#cbd5e1; --l-perm:#fbbf24; --l-int:#5b6676;
     --shadow:none; --pill:#1d201e;
   }
@@ -31,7 +31,7 @@
   --accent:#00bd4d; --accent-soft:#0c2617; --accent-text:#3ed47f; --on-accent:#000000; --link:#3ed47f;
   --net:#22d3ee; --net-fill:#08242b; --srv:#7ea8ff; --srv-fill:#0f1c34; --ext:#a3aab5; --ext-fill:#1a1d21;
   --ktk:#00bd4d; --ktk-fill:#0b2215; --iam:#facc15; --iam-fill:#272006; --store:#38bdf8; --store-fill:#08202f;
-  --l-https:#60a5fa; --l-pull:#38bdf8; --l-flow:#a78bfa; --l-snmp:#4ade80; --l-trap:#f87171; --l-syslog:#f472b6;
+  --l-https:#60a5fa; --l-pull:#38bdf8; --l-flow:#a78bfa; --l-snmp:#4ade80; --l-st:#a3e635; --l-trap:#f87171; --l-syslog:#f472b6;
   --l-dns:#2dd4bf; --l-synth:#fb923c; --l-ssh:#94a3b8; --l-bgp:#cbd5e1; --l-perm:#fbbf24; --l-int:#5b6676;
   --shadow:none; --pill:#1d201e;
 }
@@ -186,6 +186,7 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 .e-pull path.ln{stroke:var(--l-pull);stroke-dasharray:2 4;stroke-width:2.1}
 .e-flow path.ln{stroke:var(--l-flow);stroke-dasharray:6 4}
 .e-snmp path.ln{stroke:var(--l-snmp);stroke-dasharray:6 4}
+.e-st path.ln{stroke:var(--l-st);stroke-dasharray:2 4}
 .e-trap path.ln{stroke:var(--l-trap);stroke-dasharray:6 4}
 .e-syslog path.ln{stroke:var(--l-syslog);stroke-dasharray:6 4}
 .e-dns path.ln{stroke:var(--l-dns);stroke-dasharray:6 4}
@@ -194,21 +195,21 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 .e-bgp path.ln{stroke:var(--l-bgp);stroke-dasharray:10 3 2 3}
 .e-perm path.ln{stroke:var(--l-perm);stroke-dasharray:1.5 3.5;stroke-width:1.8}
 .e-int path.ln{stroke:var(--l-int);stroke-width:1.6}
-.ah-https{fill:var(--l-https)} .ah-pull{fill:var(--l-pull)} .ah-flow{fill:var(--l-flow)} .ah-snmp{fill:var(--l-snmp)}
+.ah-https{fill:var(--l-https)} .ah-pull{fill:var(--l-pull)} .ah-flow{fill:var(--l-flow)} .ah-snmp{fill:var(--l-snmp)} .ah-st{fill:var(--l-st)}
 .ah-trap{fill:var(--l-trap)} .ah-syslog{fill:var(--l-syslog)} .ah-dns{fill:var(--l-dns)} .ah-synth{fill:var(--l-synth)}
 .ah-ssh{fill:var(--l-ssh)} .ah-bgp{fill:var(--l-bgp)} .ah-perm{fill:var(--l-perm)} .ah-int{fill:var(--l-int)}
 .elab rect{fill:var(--canvas);opacity:.92}
 .elab text{font-size:11px;font-weight:500}
 .e-https .elab text{fill:var(--l-https)} .e-pull .elab text{fill:var(--l-pull)} .e-flow .elab text{fill:var(--l-flow)}
-.e-snmp .elab text{fill:var(--l-snmp)} .e-trap .elab text{fill:var(--l-trap)} .e-syslog .elab text{fill:var(--l-syslog)}
+.e-snmp .elab text{fill:var(--l-snmp)} .e-st .elab text{fill:var(--l-st)} .e-trap .elab text{fill:var(--l-trap)} .e-syslog .elab text{fill:var(--l-syslog)}
 .e-dns .elab text{fill:var(--l-dns)} .e-synth .elab text{fill:var(--l-synth)} .e-ssh .elab text{fill:var(--l-ssh)}
 .e-bgp .elab text{fill:var(--l-bgp)} .e-perm .elab text{fill:var(--l-perm)} .e-int .elab text{fill:var(--muted)}
 .dimmed{opacity:.16;transition:opacity .2s}
 .lit{opacity:1;transition:opacity .2s}
-.pt-https{fill:var(--l-https)} .pt-pull{fill:var(--l-pull)} .pt-flow{fill:var(--l-flow)} .pt-snmp{fill:none;stroke:var(--l-snmp);stroke-width:1.6}
+.pt-https{fill:var(--l-https)} .pt-pull{fill:var(--l-pull)} .pt-flow{fill:var(--l-flow)} .pt-snmp{fill:none;stroke:var(--l-snmp);stroke-width:1.6} .pt-st{fill:none;stroke:var(--l-st);stroke-width:1.6}
 .pt-trap{fill:var(--l-trap)} .pt-syslog{fill:var(--l-syslog)} .pt-dns{fill:var(--l-dns)} .pt-synth{fill:none;stroke:var(--l-synth);stroke-width:1.8}
 .pt-ssh{fill:var(--l-ssh)} .pt-bgp{fill:var(--l-bgp)} .pt-int{fill:var(--l-int)}
-.dot-flow{fill:var(--l-flow)} .dot-snmp{fill:var(--l-snmp)} .dot-trap{fill:var(--l-trap)} .dot-syslog{fill:var(--l-syslog)}
+.dot-flow{fill:var(--l-flow)} .dot-snmp{fill:var(--l-snmp)} .dot-st{fill:var(--l-st)} .dot-trap{fill:var(--l-trap)} .dot-syslog{fill:var(--l-syslog)}
 .dot-dns{fill:var(--l-dns)} .dot-synth{fill:var(--l-synth)} .dot-ssh{fill:var(--l-ssh)} .dot-bgp{fill:var(--l-bgp)}
 .dot-https{fill:var(--l-https)} .dot-pull{fill:var(--l-pull)} .dot-perm{fill:var(--l-perm)} .dot-more{fill:var(--faint)}
 .chiptxt{font-size:11px;fill:var(--muted)}
