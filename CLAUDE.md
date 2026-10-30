@@ -38,6 +38,7 @@ ui/                        page source, joined in this order by build.sh
 examples/                  three setup JSONs for the CLI
 samples/                   PDFs built from examples/, plus one exported from the app
 assets/                    put the official logo here as infoblox-logo.png
+takes/                     two new takes for review (Network Canvas, Rollout Map); see takes/README.md
 ```
 
 How the pieces connect:
@@ -128,6 +129,13 @@ python3 run.py export setup.json --out out --only guide            # or topology
   - Whether BGP Proxy is available.
   - Licensing names, entitlements and credit pricing per contract.
   - Whether UA sizing matches the UA resource docs referenced when sizing was added in PR #4. They never arrived, so the KB sizing table is used.
+
+## The two takes (takes/)
+
+- Two new versions of the tool, built for review: `canvas/` (Take A, draw the customer's network) and `rollout/` (Take B, the deployment as waves of team tasks). They do not touch the current app.
+- `python3 takes/serve.py` serves both on port 8770 (stdlib only). It joins each take's index.html, app.css and app.js with `common/icons.svg` and the facts bundle at every request.
+- `common/facts.py` builds the facts bundle from `configurator/catalog.py`, so the takes have no second copy of the facts.
+- Each page reads link options from the URL hash (`#starter=...&lens=...` or `#view=...&pos=...`), which also helps headless screenshots.
 
 ## Discussed but not built yet
 
