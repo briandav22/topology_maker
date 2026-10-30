@@ -8,20 +8,25 @@ from . import catalog as C
 # Defaults match the explorer: not everything on, the user toggles what each agent needs
 DC_CAPS = ["flow", "snmp", "trap", "syslog"]
 BRANCH_CAPS = ["flow", "snmp", "synth"]
+CLOUD_CAPS = ["flow", "snmp", "trap", "syslog", "synth"]   # a Universal Agent that collects in a cloud network
 
 
 def new_site(kind="dc", n=1):
     if kind == "dc":
         return {"name": f"Data Center {n}", "kind": "dc", "location": "", "install": "linux",
                 "capabilities": list(DC_CAPS), "flow_mode": "forward", "fps": 20000, "devices": 200,
-                "syslog_eps": 2000, "dns_lps": 0, "bgp": False, "proxy": False, "agent": True, "send_to": ""}
+                "syslog_eps": 2000, "dns_lps": 0, "bgp": False, "proxy": False, "agent": True, "agent_role": "full", "send_to": ""}
     return {"name": f"Branch {n}", "kind": "branch", "location": "", "install": "docker",
             "capabilities": list(BRANCH_CAPS), "flow_mode": "forward", "fps": 2000, "devices": 20,
-            "syslog_eps": 200, "dns_lps": 0, "bgp": False, "proxy": False, "agent": False, "send_to": ""}
+            "syslog_eps": 200, "dns_lps": 0, "bgp": False, "proxy": False, "agent": False, "agent_role": "full", "send_to": ""}
 
 
 def new_cloud(cid):
-    base = {"enabled": False, "features": ["metadata", "flow"], "accounts": 1, "regions": "", "test_agent": False}
+    base = {"enabled": False, "features": ["metadata", "flow"], "accounts": 1, "regions": "", "test_agent": False,
+            # Optional Universal Agent in the cloud ("none", "test" for Connectivity Test only, or "full"), and network appliances
+            # (for example Palo Alto VM-Series) that send to it, or to the data center agent named in send_to
+            "agent": "none", "appliances": 0, "install": "linux", "capabilities": list(CLOUD_CAPS), "flow_mode": "forward",
+            "fps": 0, "send_to": ""}
     if cid == "aws":
         base.update(features=["metadata", "flow", "firewall"], multi_account=False)
     elif cid == "azure":
@@ -61,6 +66,8 @@ def normalize(cfg):
     sites = []
     counters = {"dc": 0, "branch": 0}
     for s in cfg.get("sites", base["sites"]) or []:
+        if s.get("kind") == "cloud":
+            continue  # cloud sites are rebuilt from the clouds below, so normalize() can run twice
         kind = s.get("kind", "dc") if s.get("kind") in ("dc", "branch") else "dc"
         counters[kind] += 1
         site = new_site(kind, counters[kind])
@@ -84,13 +91,18 @@ def normalize(cfg):
         if not site["agent"]:
             site["capabilities"] = []
             site["bgp"] = False
+        # A tests-only branch agent runs Connectivity Test only; the branch devices still send to a data center agent
+        site["agent_role"] = "test" if kind == "branch" and site["agent"] and site.get("agent_role") == "test" else "full"
+        if site["agent_role"] == "test":
+            site["capabilities"] = ["synth"]
+            site["bgp"] = False
         if "bgp" in site["capabilities"]:
             site["bgp"] = False  # routers peer with the agent, not directly with Kentik
         sites.append(site)
-    # A branch with no agent sends to a data center agent; default to the first one
+    # A branch with no agent, or a tests-only agent, sends its devices to a data center agent; default to the first one
     dc_names = [s["name"] for s in sites if s["kind"] == "dc"]
     for s in sites:
-        if not s["agent"]:
+        if not s["agent"] or s["agent_role"] == "test":
             s["send_to"] = s["send_to"] if s["send_to"] in dc_names else (dc_names[0] if dc_names else "")
     out["sites"] = sites
     for cid in C.CLOUD_ORDER:
@@ -107,6 +119,23 @@ def normalize(cfg):
             cl["accounts"] = max(1, int(cl["accounts"] or 1))
         except (TypeError, ValueError):
             cl["accounts"] = 1
+        if cl["agent"] not in ("none", "test", "full"):
+            cl["agent"] = "none"
+        if cl["agent"] == "none" and src.get("test_agent") and "agent" not in src:
+            cl["agent"] = "test"  # setups saved before cloud agents had roles
+        cl["install"] = cl["install"] if cl["install"] in ("linux", "docker") else "linux"
+        cl["flow_mode"] = cl["flow_mode"] if cl["flow_mode"] in ("edge", "forward") else "forward"
+        cl["capabilities"] = [c for c in C.CAP_ORDER if c in (cl["capabilities"] or [])]
+        for k in ("appliances", "fps"):
+            try:
+                cl[k] = max(0, int(float(cl[k] or 0)))
+            except (TypeError, ValueError):
+                cl[k] = 0
+        remote = cl["appliances"] > 0 and cl["agent"] != "full"
+        cl["send_to"] = (cl["send_to"] if cl["send_to"] in dc_names else (dc_names[0] if dc_names else "")) if remote else ""
+        cl["test_agent"] = cl["agent"] == "test" or (cl["agent"] == "full" and "synth" in cl["capabilities"])
+        if cl["enabled"] and (cl["agent"] != "none" or cl["appliances"]):
+            sites.append(cloud_site(cid, cl))
     syn = out["synthetics"]
     for k, v in (cfg.get("synthetics") or {}).items():
         if k in syn:
@@ -121,6 +150,22 @@ def normalize(cfg):
     return out
 
 
+def cloud_site(cid, cl):
+    """A cloud network as a site: its Universal Agent (tests only, or collecting) and its network appliances."""
+    agent = cl["agent"] != "none"
+    role = "test" if cl["agent"] == "test" else "full"
+    caps = (["synth"] if role == "test" else list(cl["capabilities"])) if agent else []
+    return {"name": f"{C.CLOUDS[cid]['name']} {C.CLOUD_SITE[cid]['net']}", "kind": "cloud", "cloud": cid,
+            "location": cl.get("regions") or "", "install": cl["install"], "capabilities": caps, "flow_mode": cl["flow_mode"],
+            "fps": cl["fps"], "devices": cl["appliances"], "syslog_eps": 0, "dns_lps": 0, "bgp": False, "proxy": False,
+            "agent": agent, "agent_role": role, "send_to": cl["send_to"]}
+
+
+def path_name(site):
+    """How a site's devices reach their data center agent: the WAN, or the cloud's private link."""
+    return C.CLOUD_SITE[site["cloud"]]["link"] if site.get("kind") == "cloud" else "the WAN"
+
+
 def enabled_clouds(cfg):
     return [cid for cid in C.CLOUD_ORDER if cfg["clouds"][cid]["enabled"]]
 
@@ -130,8 +175,10 @@ def agent_sites(cfg):
 
 
 def remote_branches(cfg, site=None):
-    """Branches with no agent, optionally only those that send to one data center."""
-    return [s for s in cfg["sites"] if not s["agent"] and (site is None or s["send_to"] == site["name"])]
+    """Sites whose devices send to a data center agent: branches with no agent or a tests-only agent, and cloud
+    appliances with no collecting agent in the cloud. Optionally only those that send to one data center."""
+    return [s for s in cfg["sites"] if s["kind"] != "dc" and (not s["agent"] or s["agent_role"] == "test")
+            and (s["kind"] == "branch" or s["devices"]) and (site is None or s["send_to"] == site["name"])]
 
 
 def cap_name(site, cid):
@@ -192,25 +239,40 @@ def site_sizing(site, cfg=None):
 
 
 def site_firewall(site, cfg):
+    """A site's rules: its own agent's, plus those for devices that send to a data center agent."""
+    rules = _agent_rules(site, cfg) if site["agent"] else []
+    if not site["agent"] or site["agent_role"] == "test":
+        rules += _remote_rules(site, cfg)
+    return rules
+
+
+def _remote_rules(site, cfg):
+    """Branch devices or cloud appliances that send to a data center agent, across the WAN or a private link."""
+    if site["kind"] == "cloud" and not site["devices"]:
+        return []
+    dc = next((s for s in cfg["sites"] if s["name"] == site["send_to"] and s["kind"] == "dc"), None)
+    if not dc:
+        return []
+    src = f"{site['name']} appliances" if site["kind"] == "cloud" else "Branch devices"
+    agent = f"{dc['name']} Universal Agent"
+    to = f"{agent} (across {path_name(site)})"
+    rules = []
+    caps = dc["capabilities"]
+    if "flow" in caps:
+        rules.append((src, to, "UDP 9995", "Flow export"))
+    if "trap" in caps:
+        rules.append((src, to, "UDP 162", "SNMP traps"))
+    if "syslog" in caps:
+        rules.append((src, to, "UDP and TCP 514", "Syslog"))
+    if "snmp" in caps:
+        rules.append((agent, src, "UDP 161, ICMP", f"SNMP/ST polling across {path_name(site)}"))
+    if "ssh" in caps and site["kind"] == "branch":
+        rules.append((agent, "Branch device management IPs", "TCP 22", "Device Configuration Sync across the WAN"))
+    return rules
+
+
+def _agent_rules(site, cfg):
     region = C.REGIONS[cfg["region"]]
-    if not site["agent"]:
-        dc = next((s for s in cfg["sites"] if s["name"] == site["send_to"]), None)
-        if not dc:
-            return []
-        to = f"{dc['name']} Universal Agent (across the WAN)"
-        rules = []
-        caps = dc["capabilities"]
-        if "flow" in caps:
-            rules.append(("Branch devices", to, "UDP 9995", "Flow export"))
-        if "trap" in caps:
-            rules.append(("Branch devices", to, "UDP 162", "SNMP traps"))
-        if "syslog" in caps:
-            rules.append(("Branch devices", to, "UDP and TCP 514", "Syslog"))
-        if "snmp" in caps:
-            rules.append((to.replace(" (across the WAN)", ""), "Branch devices", "UDP 161, ICMP", "SNMP/ST polling across the WAN"))
-        if "ssh" in caps:
-            rules.append((to.replace(" (across the WAN)", ""), "Branch device management IPs", "TCP 22", "Device Configuration Sync across the WAN"))
-        return rules
     rules = [("Universal Agent", "Kentik SaaS (" + ", ".join(region["hosts"]) + ")", "TCP 443, TLS 1.2+", "All telemetry, control and updates (outbound only)")]
     if "flow" in site["capabilities"]:
         rules.append(("Universal Agent", "Kentik SaaS", "UDP 40010 (optional)", "Flow Proxy base port"))
@@ -228,12 +290,8 @@ def site_firewall(site, cfg):
 
 
 def synth_agents(cfg):
-    """Private test points: sites with Synthetics on, plus cloud test agents."""
-    agents = [s["name"] for s in cfg["sites"] if s["agent"] and "synth" in s["capabilities"]]
-    for cid in enabled_clouds(cfg):
-        if cfg["clouds"][cid].get("test_agent"):
-            agents.append(f"{C.CLOUDS[cid]['name']} test agent")
-    return agents
+    """Private test points: every agent with Connectivity Test on, including tests-only agents and agents in clouds."""
+    return [s["name"] for s in cfg["sites"] if s["agent"] and "synth" in s["capabilities"]]
 
 
 def synth_estimate(cfg):

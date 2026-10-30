@@ -101,19 +101,22 @@ def build(cfg):
     site_boxes = []
     y = TOP
     for s in cfg["sites"]:
-        if not s["agent"]:
-            continue
+        if not s["agent"] or s["kind"] == "cloud" or s["agent_role"] == "test":
+            continue  # cloud agents show in their cloud's box; tests-only branches show below
         h = draw_site(sc, s, SITE_X, y, deep, compact, cfg)
         site_boxes.append((s, SITE_X, y, SITE_W, h))
         y += h + 16
-    # Branches with no agent: a small box each, with a line to the data center agent they send to
+    # Branches with no agent or a tests-only agent: a small box each, with a line to the data center agent they send to
     for s in M.remote_branches(cfg):
+        if s["kind"] == "cloud":
+            continue  # cloud appliances show in their cloud's box
         h = 40
         sc.rect(SITE_X, y, SITE_W, h, fill=B.WHITE, stroke=B.LINE, sw=1)
         sc.rect(SITE_X, y, 5, h, fill=B.TEAL, r=2)
-        sc.text(SITE_X + 14, y + 17, fit(s["name"], 11, SITE_W - 140, True), 11, B.NAVY, True)
-        sc.text(SITE_X + SITE_W - 12, y + 17, "BRANCH · NO AGENT", 7.5, B.TEAL, True, "end")
-        note = (f"Devices send flow, traps and syslog across the WAN to the {s['send_to']} agent" if s["send_to"] else "Nothing collects this branch yet")
+        sc.text(SITE_X + 14, y + 17, fit(s["name"], 11, SITE_W - 160, True), 11, B.NAVY, True)
+        sc.text(SITE_X + SITE_W - 12, y + 17, "BRANCH · TESTS-ONLY AGENT" if s["agent"] else "BRANCH · NO AGENT", 7.5, B.TEAL, True, "end")
+        note = ((f"Agent runs tests only; devices send flow, traps and syslog across the WAN to the {s['send_to']} agent" if s["agent"] else
+                 f"Devices send flow, traps and syslog across the WAN to the {s['send_to']} agent") if s["send_to"] else "Nothing collects this branch yet")
         sc.text(SITE_X + 14, y + 31, fit(note + (" (UDP 9995, 162, 514)" if deep and s["send_to"] else ""), 7.5, SITE_W - 28), 7.5, B.MUTED)
         dc = next((b for b in site_boxes if b[0]["name"] == s["send_to"]), None)
         if dc:
@@ -308,18 +311,29 @@ def draw_site(sc, s, x, y, deep, compact, cfg=None):
     return h
 
 
+def cloud_agent_line(cid, cl):
+    """One line for a cloud's Universal Agent and network appliances; empty when it has neither."""
+    ap, link = cl.get("appliances") or 0, C.CLOUD_SITE[cid]["link"]
+    if cl.get("agent") == "full":
+        return f"Universal Agent on a VM: collects {ap} appliance(s)" if ap else "Universal Agent on a VM"
+    if cl.get("agent") == "test":
+        return "Universal Agent on a VM: tests only" + (f"; {ap} appliance(s) to {cl.get('send_to') or 'no agent yet'}" if ap else "")
+    return f"{ap} appliance(s) send to {cl.get('send_to') or 'no agent yet'} over {link}" if ap else ""
+
+
 def draw_cloud(sc, cid, cl, x, y, deep):
     info = C.CLOUDS[cid]
     feats = [info["features"][f] for f in cl["features"]]
     rows_feat = math.ceil(len(feats) / 2)
-    h = 30 + 46 + 8 + rows_feat * 13 + (16 if cl.get("test_agent") else 0) + (12 if deep else 0) + 8
+    agent_line = cloud_agent_line(cid, cl)
+    h = 30 + 46 + 8 + rows_feat * 13 + (16 if agent_line else 0) + (12 if deep else 0) + 8
     sc.rect(x, y, CLOUD_W, h, fill=B.WHITE, stroke=B.LINE, sw=1)
     sc.rect(x + CLOUD_W - 5, y, 5, h, fill=B.TEAL, r=2)
     extra = ""
     if cl.get("accounts", 1) > 1:
         extra = f"  ·  {cl['accounts']} {'accounts' if cid == 'aws' else 'subscriptions' if cid == 'azure' else 'projects' if cid == 'gcp' else 'tenancies'}"
     sc.text(x + 12, y + 19, info["name"] + extra, 11, B.NAVY, True)
-    sc.text(x + CLOUD_W - 14, y + 19, "AGENTLESS", 7.5, B.TEAL, True, "end")
+    sc.text(x + CLOUD_W - 14, y + 19, "LOGS + AGENT" if cl.get("agent") != "none" else "AGENTLESS", 7.5, B.TEAL, True, "end")
     # pipeline
     n = len(info["pipeline"])
     gap = 16
@@ -353,9 +367,9 @@ def draw_cloud(sc, cid, cl, x, y, deep):
              "oci": "Cross-tenancy policy (READ)" if cl.get("access") != "user" else "API key user + group (READ)"}[cid]
         sc.text(x + 12, yy + 2, fit(g, 7.3, CLOUD_W - 30), 7.3, B.MUTED)
         yy += 12
-    if cl.get("test_agent"):
-        sc.rect(x + 12, yy + 2, 196, 13, fill="#FBF3DA", stroke=B.FLOW_COLORS["synth"], sw=0.8, r=3)
-        sc.text(x + 18, yy + 11.5, "Universal Agent on a VM (test point)", 7.3, "#7A5D05", True)
+    if agent_line:
+        sc.rect(x + 12, yy + 2, CLOUD_W - 24, 13, fill="#FBF3DA", stroke=B.FLOW_COLORS["synth"], sw=0.8, r=3)
+        sc.text(x + 18, yy + 11.5, fit(agent_line, 7.3, CLOUD_W - 36, True), 7.3, "#7A5D05", True)
     return h
 
 

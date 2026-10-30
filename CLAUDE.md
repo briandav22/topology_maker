@@ -31,7 +31,8 @@ ui/                        page source, joined in this order by build.sh
   p2.html                  body markup and icons
   d1.js                    line types, deployments, presets, limits; PRISTINE copy used by Save as HTML
   d2.js d3.js d4.js        scene data: on-prem and SaaS; AWS and Azure; GCP, OCI and the Kentik platform
-  d5.js                    sites: UA capabilities (UACAPS), Flow Proxy modes and sizing, agent and branch scenes
+  d5.js                    sites: UA capabilities (UACAPS), Flow Proxy modes and sizing, agent scenes (dc, branch, cloud),
+                           remoteScene (devices that send to a DC agent), cloud agents and appliances (CL, cloudScene)
   r1.js                    helpers, state object S, overview layout (ovLayout, ovSize)
   r2.js                    drill-ins, side panel, zoom and glide, URL hash state, keyboard, startup
   r3.js                    exports: Save as HTML, guide PDF, setup JSON
@@ -67,7 +68,8 @@ python3 run.py export setup.json --out out --only guide            # or topology
 - **Infoblox branding throughout.** Kentik is part of Infoblox. Say "Infoblox + Kentik" and "your Infoblox account team".
 - **One page for everything.** The app serves the same page that Save as HTML writes, so the customer sees exactly what was designed, and the guide PDF uses pictures of the same views.
 - **The design lives in the URL hash.** Bookmarks, reloads and shared links reopen it, with no server state.
-- **Branches have no agent by default.** Many customers don't put a UA at every site. A branch's devices send flow, SNMP, traps and syslog across the WAN to a chosen data center agent, and that load counts toward the agent's sizing. Any branch can get its own agent.
+- **Branches have no agent by default.** Many customers don't put a UA at every site. A branch's devices send flow, SNMP, traps and syslog across the WAN to a chosen data center agent, and that load counts toward the agent's sizing. A branch agent has three choices: No agent, Tests only (Connectivity Test only; the devices still send to the data center) or Collects here.
+- **Agents and appliances in each cloud.** A cloud has the same three agent choices, plus a count of network appliances (for example Palo Alto VM-Series). With no collecting agent, the appliances send to a data center agent across the cloud's private link (Direct Connect, ExpressRoute, Cloud Interconnect, FastConnect). In the cloud scene the agent sits in a fixed slot (`CL_SLOT`, which has its own spot in the nested AWS scene); its drill-in is the view `<cloud>-ua`. In Python, `model.normalize()` turns each cloud with an agent or appliances into a site of kind `cloud`, so sizing, firewall rules and the guide treat it like any other site; old setups with `test_agent` become a tests-only agent.
 - **Capability switches per agent** mirror the eight Installed Capabilities in the Kentik portal. Only what is on gets drawn, sized and given firewall rules. Defaults: data center = Flow Proxy, SNMP/ST, SNMP Trap Receiver, Syslog Server; branch agent = Flow Proxy, SNMP/ST, Connectivity Test.
 - **BGP is optional and starts off**, because many enterprises never use it. A data center's BGP peering switch picks routers peering directly with Kentik or with the agent (BGP Proxy). Turning BGP Proxy off leaves the site with no BGP; it never falls back to direct peering.
 - **Syslog, traps and metrics come only from network devices** (routers, switches, firewalls, load balancers), never servers or hypervisors. That is what Kentik customers send.
@@ -109,7 +111,7 @@ python3 run.py export setup.json --out out --only guide            # or topology
   - To share it, put it behind something like a Cloudflare Tunnel with Cloudflare Access.
 - **Some guide inputs can't be set in the page.** These use `model.py` defaults; to change them, edit a setup JSON and use the CLI export:
   - Synthetic test settings: SaaS targets default to Microsoft 365 and Salesforce.
-  - Cloud options: AWS account count and regions, Azure auth, OCI access, cloud test agents.
+  - Cloud options: AWS account count and regions, Azure auth, OCI access.
   - Syslog events/s and DNS lookups/s.
 - **Topology PDF and CLI diagrams.**
   - The topology-only PDF is CLI only: `/api/topology` exists, but the page has no button for it.
