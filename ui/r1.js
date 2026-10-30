@@ -6,8 +6,9 @@ const S = {mode:'high', sel:new Set(['dc','branch','aws']), view:'ov', focus:nul
   dcN:1, dcNames:[], dcCaps:[], dcInst:[], dcBgp:[], dcFm:[], dcSz:[], brFm:[], brSz:[], szOpen:false, awsNested:false, panelOpen:true,
   brN:2, brNames:[], brUA:[], brTo:[], brCaps:[], brInst:[],
   meta:{cu:'', pb:'', rg:'US'}};
-const VB = [0, 0, 1000, 620];    // the overview canvas; its width follows the free space (see fitOverview)
+const VB = [0, 0, 1000, 620];    // the overview canvas; its shape follows the diagram area (see ovSize)
 const DVB = [0, 0, 1000, 620];   // drill-in scenes always draw on 1000 x 620
+let EXPORTING = false;           // exports draw the overview on the standard 1000 x 620 canvas
 const FIT = [];       // texts that had to shrink to fit; empty means every label fits at its design size
 let OVR = {};         // overview card rectangles, used by the zoom transition
 
@@ -25,7 +26,13 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;', '<':'&lt;', '>
 const MS = el('svg', {width:0, height:0, 'aria-hidden':'true', style:'position:absolute;left:-9999px;top:0;visibility:hidden'});
 document.body.appendChild(MS);
 const MT = el('text', {x:0, y:20}, MS);
-function measure(s, cls){ MT.setAttribute('class', cls); MT.textContent = s; return MT.getComputedTextLength(); }
+const MCACHE = new Map();   // text widths, so the overview can try several canvas sizes cheaply; cleared when fonts load
+function measure(s, cls){
+  const k = cls + '|' + s;
+  let w = MCACHE.get(k);
+  if(w === undefined){ MT.setAttribute('class', cls); MT.textContent = s; w = MT.getComputedTextLength(); MCACHE.set(k, w); }
+  return w;
+}
 
 /* Never truncate: if a label is too wide, shrink it a little and log it */
 function fit(t, maxW, min){
@@ -192,14 +199,14 @@ function drawBranchTile(gN, r, i, dd){
 }
 
 /* Branch row geometry: one row, or two staggered rows so lines from the back row pass between the tiles in front */
-function branchBand(rightCol){
+function branchBand(rightCol, W, H){
   const brs = brIds().map(brIndex);   // branches are added from the menu at the top, not from the diagram
-  const x0 = M, x1 = rightCol ? VB[2] - M - SW - 26 : VB[2] - M, rowW = x1 - x0, g = 10;
+  const x0 = M, x1 = rightCol ? W - M - SW - 26 : W - M, rowW = x1 - x0, g = 10;
   const per = Math.max(2, Math.floor((rowW + g) / (100 + g)));
   let slots = brs.length, rows = 1, k1 = slots;
   if(slots > per){ rows = 2; k1 = Math.ceil((slots + 1) / 2); if(k1 > per){ k1 = per; slots = Math.min(slots, 2 * per - 1); } }
   const tw = Math.min(rows === 1 ? 188 : 160, (rowW - (k1 - 1) * g) / k1), th = rows === 1 ? 74 : 52;
-  const top = VB[3] - M - (rows * th + (rows - 1) * 10), ox = x0 + (rowW - (k1 * tw + (k1 - 1) * g)) / 2;
+  const top = H - M - (rows * th + (rows - 1) * 10), ox = x0 + (rowW - (k1 * tw + (k1 - 1) * g)) / 2;
   const tiles = [];
   for(let j = 0; j < slots; j++){
     const row = j < k1 ? 0 : 1, col = row ? j - k1 : j;
@@ -208,38 +215,74 @@ function branchBand(rightCol){
   return {top, bus:top - 13, tiles};
 }
 
-function renderOverview(){
-  const svg = $('#ov');
-  svg.innerHTML = '';
-  OVR = {};
-  const dd = S.mode === 'deep';
+const ovMod = id => isDC(id) ? dcMod(id) : MOD[id];
+
+/* Where the cards, the branch row and the hub go on a W x H overview canvas */
+function ovLayout(W, H){
   const ids = CHIP_ORDER.filter(id => S.sel.has(id) && id !== 'branch').flatMap(id => id === 'dc' ? dcIds() : [id]);
   const sideOf = id => isDC(id) ? 'left' : MOD[id].side;
-  const modFor = id => isDC(id) ? dcMod(id) : MOD[id];
   const side = s => ids.filter(id => sideOf(id) === s);
-  const L = side('left'), R = side('right'), T = side('top');
-  const gE = el('g', {class:'edges'}, svg), gP = el('g', {class:'pts'}, svg), gN = el('g', {class:'nodes'}, svg), gL = el('g', {class:'labels'}, svg);
-
-  const band = brOn() ? branchBand(R.length > 0) : null;
+  let L = side('left'), R = side('right');
+  const T = side('top');
+  if(!L.length && R.length > 1){ L = R.slice(0, R.length >> 1); R = R.slice(R.length >> 1); }   // no data centers: share the clouds between both sides
+  const band = brOn() ? branchBand(R.length > 0, W, H) : null;
   const remote = band ? band.tiles.filter(t => t.i && !brUA(t.i) && brTarget(t.i)) : [];
   const lx = remote.length ? 46 : M;
   const column = (list, x, y0, y1) => {
     if(!list.length) return [];
-    const H = y1 - y0, each = (H - (list.length - 1) * GAP) / list.length;
+    const ch = y1 - y0, each = (ch - (list.length - 1) * GAP) / list.length;
     const lays = list.map(id => {
-      const m = modFor(id);
+      const m = ovMod(id);
       for(const v of ['full', 'compact', 'one']){ const f = cardLayout(m, SW, v); if(f.h <= each) return f; }
       return cardLayout(m, SW, 'mini');
     });
-    const sum = lays.reduce((a, l) => a + l.h, 0), gp = list.length > 1 ? Math.max(4, Math.min(GAP, (H - sum) / (list.length - 1))) : 0;
-    let y = y0 + Math.max(0, (H - sum - (list.length - 1) * gp) / 2);
+    const sum = lays.reduce((a, l) => a + l.h, 0), gp = list.length > 1 ? Math.max(4, Math.min(GAP, (ch - sum) / (list.length - 1))) : 0;
+    let y = y0 + Math.max(0, (ch - sum - (list.length - 1) * gp) / 2);
     return list.map((id, i) => { const r = {id, x, y, w:SW, h:lays[i].h, lay:lays[i]}; y += r.h + gp; return r; });
   };
-  const leftBottom = band ? band.bus - 12 : VB[3] - M;
-  const left = column(L, lx, M, leftBottom), right = column(R, VB[2] - M - SW, M, VB[3] - M);
-  const top = T.length ? (() => { const lay = cardLayout(modFor(T[0]), CW, band ? 'compact' : 'full'); return {id:T[0], x:(VB[2] - CW) / 2, y:M, w:CW, h:lay.h, lay}; })() : null;
-  const y1 = top ? top.y + top.h : 0, y2 = band ? band.bus - 4 : VB[3];
-  const hub = {x:(VB[2] - HW) / 2, w:HW, h:HH, y:Math.round((y1 + y2) / 2 - HH / 2)};
+  const leftBottom = band ? band.bus - 12 : H - M;
+  const left = column(L, lx, M, leftBottom), right = column(R, W - M - SW, M, H - M);
+  const top = T.length ? (() => { const lay = cardLayout(ovMod(T[0]), CW, band ? 'compact' : 'full'); return {id:T[0], x:(W - CW) / 2, y:M, w:CW, h:lay.h, lay}; })() : null;
+  const y1 = top ? top.y + top.h : 0, y2 = band ? band.bus - 4 : H;
+  const hub = {x:(W - HW) / 2, w:HW, h:HH, y:Math.round((y1 + y2) / 2 - HH / 2)};
+  return {ids, band, remote, lx, left, right, top, hub, leftBottom};
+}
+
+/* The overview canvas takes the shape of the diagram area, and is only as tall as the cards need, so the
+   whole picture scales up to fill the space. Cards never show less than on the standard 1000 x 620 canvas. */
+const RANK = {mini:0, one:1, compact:2, full:3};
+function ovFits(o, H, need){
+  if([...o.left, ...o.right].some(r => RANK[r.lay.variant] < need[r.id])) return false;
+  const last = c => c.length ? c[c.length - 1].y + c[c.length - 1].h : 0;
+  if(last(o.left) > o.leftBottom + .5 || last(o.right) > H - M + .5) return false;
+  const above = o.hub.y - (o.top ? o.top.y + o.top.h : 0), below = (o.band ? o.band.bus : H) - o.hub.y - o.hub.h;
+  return above >= (o.top ? 40 : M) && below >= (o.band ? 36 : o.ids.length ? M : 56);   // room for the lines and labels into the hub
+}
+function ovSize(cw, ch){
+  const A = cw / ch, base = ovLayout(1000, 620), need = {};
+  [...base.left, ...base.right].forEach(r => { need[r.id] = RANK[r.lay.variant]; });
+  const wide = h => Math.min(1800, Math.max(1000, Math.round(h * A / 10) * 10));
+  let H = 620;
+  for(let h = 610; h >= 380; h -= 10){ if(ovFits(ovLayout(wide(h), h), h, need)) H = h; else break; }
+  H = Math.max(H, Math.round(1000 / A / 10) * 10);   // a tall area keeps the standard width and gives the cards more room
+  return [wide(H), H];
+}
+
+/* smooth: cards glide to their new places (a deployment added or removed, the panel shown or hidden).
+   size, area: the canvas to use and the diagram area's final rectangle, when the area is still on its way there. */
+function renderOverview(smooth, size, area){
+  const svg = $('#ov'), live = S.view === 'ov' && !EXPORTING;
+  const before = smooth && live && !REDUCED ? cardBoxes(svg) : null;
+  if(!EXPORTING){
+    const r = $('#svgwrap').getBoundingClientRect();
+    const [w, h] = size || (r.width && r.height ? ovSize(r.width, r.height) : [VB[2], VB[3]]);
+    VB[2] = w; VB[3] = h;
+  }
+  svg.innerHTML = '';
+  OVR = {};
+  const dd = S.mode === 'deep';
+  const gE = el('g', {class:'edges'}, svg), gP = el('g', {class:'pts'}, svg), gN = el('g', {class:'nodes'}, svg), gL = el('g', {class:'labels'}, svg);
+  const {ids, band, remote, lx, left, right, top, hub} = ovLayout(VB[2], VB[3]);
   OVR.kentik = [hub.x, hub.y, hub.w, hub.h];
 
   const edges = [];
@@ -290,7 +333,7 @@ function renderOverview(){
   }
   edges.forEach((e, i) => drawEdge(gE, gL, e, i, dd, false));
 
-  [...left, ...right, top].filter(Boolean).forEach(r => { drawCard(gN, r, modFor(r.id), dd); OVR[r.id] = [r.x, r.y, r.w, r.h]; });
+  [...left, ...right, top].filter(Boolean).forEach(r => { drawCard(gN, r, ovMod(r.id), dd); OVR[r.id] = [r.x, r.y, r.w, r.h]; });
   if(band){
     band.tiles.forEach(t => {
       drawBranchTile(gN, t, t.i, dd); OVR[brId(t.i)] = [t.x, t.y, t.w, t.h];
@@ -306,6 +349,9 @@ function renderOverview(){
   drawHub(gN, hub, dd);
   if(!ids.length && !band) txt(gN, cx, hub.y + hub.h + 42, 'Pick a starting point or deployments above', 'empty-t', {'text-anchor':'middle'});
   svg._edges = edges;
+  if(!EXPORTING){ const bb = svg.getBBox(); VB[0] = bb.width < VB[2] - 2 * M ? Math.round(bb.x + bb.width / 2 - VB[2] / 2) : 0; }   // a lopsided picture sits in the middle
+  if(live) setVB(svg, VB);
+  if(before) glide(svg, before, area);
 }
 
 /* ===== Legend and picker ===== */

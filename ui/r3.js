@@ -98,8 +98,8 @@ function exportViews(){
   return v;
 }
 async function viewImages(onStep){
-  const dd = S.mode === 'deep', out = [], liveW = VB[2];
-  VB[2] = 1000;   // exports use the standard canvas, whatever the screen width
+  const dd = S.mode === 'deep', out = [], live = VB.slice();
+  VB[0] = 0; VB[2] = 1000; VB[3] = 620; EXPORTING = true;   // exports use the standard canvas, whatever the screen
   const host = document.createElement('div');
   host.style.cssText = 'position:absolute;left:-20000px;top:0;width:1000px;height:620px;visibility:hidden';
   const svg = el('svg', {viewBox:VB.join(' '), width:1000, height:620}, host);
@@ -120,7 +120,7 @@ async function viewImages(onStep){
   } finally {
     if(theme) document.documentElement.setAttribute('data-theme', theme); else document.documentElement.removeAttribute('data-theme');
     host.remove();
-    VB[2] = liveW;
+    VB.splice(0, 4, ...live); EXPORTING = false;
     renderOverview(); if(S.view !== 'ov') renderDetail(); refresh();
   }
   return out;

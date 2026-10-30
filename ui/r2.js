@@ -257,6 +257,57 @@ function show(svg, on){
   if(on){ svg.style.visibility = 'visible'; svg.style.opacity = 1; }
   else { svg.style.opacity = 0; svg._hide = setTimeout(() => { svg.style.visibility = 'hidden'; }, REDUCED ? 0 : 320); }
 }
+/* Overview re-layouts: each card glides from where it was on screen to its new place, then the lines fade back in */
+function cardBoxes(svg){
+  const cards = {};
+  svg.querySelectorAll('.card-ov[data-go]').forEach(g => { cards[g.dataset.go] = g.getBoundingClientRect(); });
+  return cards;
+}
+const inOut = k => k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+const cssEase = x => {   // CSS "ease", the curve the panel slides with, so cards and panel move in step
+  const bz = (a, b, t) => 3 * a * t * (1 - t) * (1 - t) + 3 * b * t * t * (1 - t) + t * t * t;
+  let lo = 0, hi = 1, t = x;
+  for(let i = 0; i < 18; i++){ t = (lo + hi) / 2; if(bz(.25, .25, t) < x) lo = t; else hi = t; }
+  return bz(.1, 1, t);
+};
+/* area: the diagram area's final rectangle while the panel slides; the glide then runs in step with the slide,
+   so each card's straight path stays inside the area the whole way */
+function glide(svg, before, area){
+  const tok = svg._glide = (svg._glide || 0) + 1;
+  const a = area || $('#svgwrap').getBoundingClientRect(), sf = Math.min(a.width / VB[2], a.height / VB[3]);
+  const ox = a.left + (a.width - VB[2] * sf) / 2 - VB[0] * sf, oy = a.top + (a.height - VB[3] * sf) / 2 - VB[1] * sf;
+  const moves = [];
+  svg.querySelectorAll('.card-ov[data-go]').forEach(g => {
+    const b = before[g.dataset.go], r = OVR[g.dataset.go];
+    if(!b || !r || !b.width) return;
+    const f = {l:ox + r[0] * sf, t:oy + r[1] * sf, w:r[2] * sf};
+    if(Math.abs(b.left - f.l) < 1 && Math.abs(b.top - f.t) < 1 && Math.abs(b.width - f.w) < 1) return;
+    moves.push({g, r, b:{l:b.left, t:b.top, w:b.width}, f});
+  });
+  if(!moves.length) return;
+  const lines = [...svg.querySelectorAll('g.edges, g.pts, g.labels')];
+  const frame = e => {
+    const m0 = e < 1 ? svg.getScreenCTM() : null;
+    moves.forEach(m => {
+      if(!m0){ m.g.removeAttribute('transform'); return; }
+      const l = m.b.l + (m.f.l - m.b.l) * e, t = m.b.t + (m.f.t - m.b.t) * e, w = m.b.w + (m.f.w - m.b.w) * e;
+      const x = (l - m0.e) / m0.a, y = (t - m0.f) / m0.d, k = w / m0.a / m.r[2];
+      m.g.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${k.toFixed(4)}) translate(${-m.r[0]} ${-m.r[1]})`);
+    });
+    lines.forEach(l => { l.style.opacity = e >= 1 ? '' : Math.max(0, e * 2 - 1).toFixed(3); });
+  };
+  frame(0);   // before the first paint, so the new layout never flashes in place
+  const ms = area ? 250 : 380, ease = area ? cssEase : inOut;
+  let t0 = 0;
+  const step = now => {
+    if(svg._glide !== tok) return;
+    if(!t0) t0 = now;
+    const k = Math.min(1, (now - t0) / ms);
+    frame(k < 1 ? ease(k) : 1);
+    if(k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 const WIDE = [-100, -62, 1200, 744];
 const wideOf = b => [b[0] - b[2] * .1, b[1] - b[3] * .1, b[2] * 1.2, b[3] * 1.2];
 
@@ -270,7 +321,6 @@ function go(view, instant){
   const prev = S.view, ov = $('#ov'), dt = $('#dt'), ms = instant ? 0 : 420;
   if(prev === view){ if(S.focus || S.hl){ S.focus = null; S.hl = null; refresh(); } return; }
   S.view = view; S.focus = null; S.hl = null;
-  document.querySelectorAll('#svgwrap .ovfade').forEach(n => n.remove());
   if(view === 'ov'){
     show(dt, false); animVB(dt, DVB.slice(), WIDE, ms);
     show(ov, true); animVB(ov, OVR[prev] ? aspectBox(OVR[prev]) : wideOf(VB), VB.slice(), ms);
@@ -291,7 +341,7 @@ function go(view, instant){
 function setMode(m){
   if(S.mode === m) return;
   S.mode = m;
-  renderOverview();
+  renderOverview(true);
   if(S.view !== 'ov') renderDetail();
   refresh();
 }
@@ -302,7 +352,7 @@ function setFocus(f){
 }
 function setSelection(set){
   S.sel = set;
-  renderOverview();
+  renderOverview(true);
   if(S.view !== 'ov') go('ov'); else refresh();
 }
 function toggleMotion(){ S.anim = !S.anim; refresh(); }
@@ -310,7 +360,7 @@ function toggleMotion(){ S.anim = !S.anim; refresh(); }
 /* ===== Adding, removing and renaming sites, and toggling capabilities ===== */
 const siteView = v => isDC(v) || v === 'dcs' || isBR(v) || v === 'brs';
 function dcRefresh(target){
-  renderOverview();
+  renderOverview(true);
   const v = S.view;
   if(siteView(v) && target && target !== v){ go(target); return; }
   if(siteView(v)){ S.focus = null; S.hl = null; renderDetail(); }
@@ -365,7 +415,7 @@ function renameSite(kind, i, v){
 /* Any change to an agent: redraw everything that depends on it and keep the panel where it was */
 function siteChanged(){
   const top = $('#panel').scrollTop;
-  renderOverview();
+  renderOverview(true);
   if(S.view !== 'ov'){ S.focus = null; renderDetail(); }
   refresh();
   $('#panel').scrollTop = top;
@@ -552,7 +602,17 @@ $('#backBtn').addEventListener('click', () => go('ov'));
 /* ===== Collapsible details panel: the diagram takes the space back ===== */
 function setPanel(open, save){
   S.panelOpen = open;
-  const m = $('.main');
+  const m = $('.main'), wrap = $('#svgwrap');
+  let next = null, area = null;
+  if(save && S.view === 'ov' && performance.now() > zoomEnd){
+    // Measure where the diagram area ends up, so the overview can re-lay out for it while the panel slides
+    m.classList.remove('sliding');
+    m.classList.toggle('nopanel', !open);
+    area = wrap.getBoundingClientRect();
+    if(area.width && area.height) next = ovSize(area.width, area.height);
+    m.classList.toggle('nopanel', open);
+    void wrap.getBoundingClientRect();
+  }
   if(save && !REDUCED){ m.classList.add('sliding'); clearTimeout(m._slide); m._slide = setTimeout(() => m.classList.remove('sliding'), 320); }
   m.classList.toggle('nopanel', !open);
   const b = $('#panelBtn');
@@ -560,9 +620,10 @@ function setPanel(open, save){
   b.title = open ? 'Hide the details panel (\\)' : 'Show the details panel (\\)';
   b.querySelector('span').textContent = open ? 'Hide details' : 'Details';
   if(save) try { localStorage.setItem('ibk-panel', open ? '1' : '0'); } catch(e){}
+  if(next && (next[0] !== VB[2] || next[1] !== VB[3])){ renderOverview(true, next, area); buildParticles(); applyHighlight(); }
 }
-/* The overview canvas widens to fill a wide stage (up to 1.5x), so cards spread out instead of floating in white space.
-   It never re-lays out in the middle of a zoom, and on screen the new layout fades in over the old one. */
+/* When the diagram area changes shape (window resized, panel toggled), the overview canvas takes the new shape
+   (see ovSize) and the cards glide over. Never in the middle of a zoom: it waits for the zoom to finish. */
 let fitT = 0;
 function fitOverview(){
   clearTimeout(fitT);
@@ -570,20 +631,10 @@ function fitOverview(){
   if(wait > 0){ fitT = setTimeout(fitOverview, wait); return; }
   const r = $('#svgwrap').getBoundingClientRect();
   if(!r.width || !r.height) return;
-  const w = Math.round(Math.min(1500, Math.max(1000, VB[3] * r.width / r.height)) / 10) * 10;
-  if(w === VB[2]) return;
-  const ov = $('#ov'), live = S.view === 'ov';
-  const old = live && !REDUCED ? ov.cloneNode(true) : null;
-  VB[2] = w;
-  renderOverview();
-  setVB(ov, live || !OVR[S.view] ? VB : aspectBox(OVR[S.view]));
-  if(live){ buildParticles(); applyHighlight(); }
-  if(old){
-    old.removeAttribute('id'); old.setAttribute('aria-hidden', 'true'); old.classList.add('ovfade'); old.style.pointerEvents = 'none';
-    ov.after(old); void old.getBoundingClientRect();
-    old.style.opacity = 0;
-    setTimeout(() => old.remove(), 320);
-  }
+  const size = ovSize(r.width, r.height);
+  if(size[0] === VB[2] && size[1] === VB[3]) return;
+  renderOverview(true, size);
+  if(S.view === 'ov'){ buildParticles(); applyHighlight(); }
 }
 $('#panelBtn').addEventListener('click', () => setPanel(!S.panelOpen, true));
 if(window.ResizeObserver) new ResizeObserver(() => { clearTimeout(fitT); fitT = setTimeout(fitOverview, 60); }).observe($('#svgwrap'));
@@ -634,7 +685,7 @@ document.addEventListener('visibilitychange', () => { if(!document.hidden && S.a
   else { renderDetail(); show($('#dt'), true); show($('#ov'), false); }
   refresh();
   if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => {
-    FIT.length = 0;
+    FIT.length = 0; MCACHE.clear();
     renderOverview();
     if(S.view !== 'ov') renderDetail();
     buildParticles(); applyHighlight();
