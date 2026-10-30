@@ -38,7 +38,6 @@ ui/                        page source, joined in this order by build.sh
 examples/                  three setup JSONs for the CLI
 samples/                   PDFs built from examples/, plus one exported from the app
 assets/                    put the official logo here as infoblox-logo.png
-takes/                     two new takes for review (Network Canvas, Rollout Map); see takes/README.md
 ```
 
 How the pieces connect:
@@ -130,15 +129,9 @@ python3 run.py export setup.json --out out --only guide            # or topology
   - Licensing names, entitlements and credit pricing per contract.
   - Whether UA sizing matches the UA resource docs referenced when sizing was added in PR #4. They never arrived, so the KB sizing table is used.
 
-## The two takes (takes/)
-
-- Two new versions of the tool, built for review: `canvas/` (Take A, draw the customer's network) and `rollout/` (Take B, the deployment as waves of team tasks). They do not touch the current app.
-- `python3 takes/serve.py` serves both on port 8770 (stdlib only). It joins each take's index.html, app.css and app.js with `common/icons.svg` and the facts bundle at every request.
-- `common/facts.py` builds the facts bundle from `configurator/catalog.py`, so the takes have no second copy of the facts.
-- Each page reads link options from the URL hash (`#starter=...&lens=...` or `#view=...&pos=...`), which also helps headless screenshots.
-
 ## Discussed but not built yet
 
+- Two alternative takes are parked on the branch `explore/two-takes` (tag `takes-v1`): Take A, Network Canvas (the SE draws the customer's network and the Kentik plan follows from it), and Take B, Rollout Map (the deployment as waves of tasks for each customer team, with a customer workbook). They were merged in PR #13 and then reverted, because the owner chose to keep iterating on this app. A plain merge of that branch now does nothing; to bring the takes back to main, revert the revert commit. To look at them: `git switch explore/two-takes`, then `python3 takes/serve.py` (port 8770).
 - A topology-only PDF in the app's Export menu. It was part of the original ask, and the endpoint already exists.
 - The official Infoblox brand kit: real hex values in brand.py, plus the logo file, also used in the page.
 - Drill-in views that grow into the space freed by hiding details. This was looked at in PR #10; they stayed fixed-size scenes.
