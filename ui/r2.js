@@ -353,7 +353,7 @@ function setFocus(f){
 function setSelection(set){
   S.sel = set;
   renderOverview(true);
-  if(S.view !== 'ov') go('ov'); else refresh();
+  if(S.view !== 'ov') nav('ov'); else refresh();
 }
 function toggleMotion(){ S.anim = !S.anim; refresh(); }
 
@@ -362,7 +362,7 @@ const siteView = v => isDC(v) || v === 'dcs' || isBR(v) || v === 'brs';
 function dcRefresh(target){
   renderOverview(true);
   const v = S.view;
-  if(siteView(v) && target && target !== v){ go(target); return; }
+  if(siteView(v) && target && target !== v){ (target === 'ov' ? nav : go)(target); return; }
   if(siteView(v)){ S.focus = null; S.hl = null; renderDetail(); }
   refresh();
 }
@@ -525,14 +525,14 @@ function loadHash(){
 /* ===== Events ===== */
 $('#ov').addEventListener('click', ev => {
   const g = ev.target.closest('[data-go]');
-  if(g) go(g.dataset.go);
+  if(g) nav(g.dataset.go);
 });
 $('#dt').addEventListener('click', ev => {
   const n = ev.target.closest('[data-id]');
-  if(n){ setFocus(S.focus && S.focus.id === n.dataset.id ? null : {k:'node', id:n.dataset.id}); return; }
+  if(n){ pick({k:'node', id:n.dataset.id}); return; }
   const e = ev.target.closest('g.edge');
-  if(e){ const i = +e.dataset.edge; setFocus(S.focus && S.focus.k === 'edge' && S.focus.i === i ? null : {k:'edge', i}); return; }
-  if(S.focus || S.hl) setFocus(null);
+  if(e){ pick({k:'edge', i:+e.dataset.edge}); return; }
+  unpick();
 });
 $('#panel').addEventListener('click', ev => {
   const t = ev.target;
@@ -576,7 +576,7 @@ $('#panel').addEventListener('change', ev => { const t = ev.target; if(t && t.cl
 $('#crumbs').addEventListener('click', ev => {
   const b = ev.target.closest('[data-nav]');
   if(!b) return;
-  if(b.dataset.nav === 'ov') go('ov'); else setFocus(null);
+  if(b.dataset.nav === 'ov') nav('ov'); else unpick();
 });
 $('#legend').addEventListener('click', ev => {
   const b = ev.target.closest('[data-t]');
@@ -597,14 +597,20 @@ $('#chips').addEventListener('click', ev => {
   if(s.has(id)) s.delete(id); else s.add(id);
   setSelection(s);
 });
-$('#backBtn').addEventListener('click', () => go('ov'));
+$('#backBtn').addEventListener('click', () => nav('ov'));
 
 /* ===== Collapsible details panel: the diagram takes the space back ===== */
-function setPanel(open, save){
+/* The panel follows the selection. Picking a box or line in a drill-in opens it, and picking another one
+   only changes what it says. Clearing the selection, moving to another deployment or zooming back out
+   hides it again. The Details button (or \) still opens and closes it by hand. */
+function pick(f){ setFocus(f); if(!S.panelOpen) setPanel(true, true); }
+function unpick(){ if(S.focus || S.hl) setFocus(null); if(S.panelOpen) setPanel(false, true); }
+function nav(view){ go(view); if(S.panelOpen) setPanel(false, true); }
+function setPanel(open, anim){
   S.panelOpen = open;
   const m = $('.main'), wrap = $('#svgwrap');
   let next = null, area = null;
-  if(save && S.view === 'ov' && performance.now() > zoomEnd){
+  if(anim && S.view === 'ov' && performance.now() > zoomEnd){
     // Measure where the diagram area ends up, so the overview can re-lay out for it while the panel slides
     m.classList.remove('sliding');
     m.classList.toggle('nopanel', !open);
@@ -613,13 +619,12 @@ function setPanel(open, save){
     m.classList.toggle('nopanel', open);
     void wrap.getBoundingClientRect();
   }
-  if(save && !REDUCED){ m.classList.add('sliding'); clearTimeout(m._slide); m._slide = setTimeout(() => m.classList.remove('sliding'), 320); }
+  if(anim && !REDUCED){ m.classList.add('sliding'); clearTimeout(m._slide); m._slide = setTimeout(() => m.classList.remove('sliding'), 320); }
   m.classList.toggle('nopanel', !open);
   const b = $('#panelBtn');
   b.setAttribute('aria-expanded', open ? 'true' : 'false');
   b.title = open ? 'Hide the details panel (\\)' : 'Show the details panel (\\)';
   b.querySelector('span').textContent = open ? 'Hide details' : 'Details';
-  if(save) try { localStorage.setItem('ibk-panel', open ? '1' : '0'); } catch(e){}
   if(next && (next[0] !== VB[2] || next[1] !== VB[3])){ renderOverview(true, next, area); buildParticles(); applyHighlight(); }
 }
 /* When the diagram area changes shape (window resized, panel toggled), the overview canvas takes the new shape
@@ -638,7 +643,7 @@ function fitOverview(){
 }
 $('#panelBtn').addEventListener('click', () => setPanel(!S.panelOpen, true));
 if(window.ResizeObserver) new ResizeObserver(() => { clearTimeout(fitT); fitT = setTimeout(fitOverview, 60); }).observe($('#svgwrap'));
-(() => { let open = true; try { open = localStorage.getItem('ibk-panel') !== '0'; } catch(e){} setPanel(open, false); })();
+setPanel(false, false);   // nothing is selected at the start, so the diagram gets the whole width
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
 $('#motionBtn').addEventListener('click', toggleMotion);
 $('#themeBtn').addEventListener('click', () => {
@@ -655,12 +660,12 @@ document.addEventListener('keydown', ev => {
   if((k === 'Enter' || k === ' ') && tg instanceof SVGElement && tg.getAttribute('role') === 'button'){
     ev.preventDefault(); tg.dispatchEvent(new MouseEvent('click', {bubbles:true})); return;
   }
-  if(k === 'Escape'){ if(S.focus || S.hl) setFocus(null); else if(S.view !== 'ov') go('ov'); return; }
+  if(k === 'Escape'){ if(S.focus || S.hl) unpick(); else if(S.view !== 'ov') nav('ov'); return; }
   if(k === '\\'){ setPanel(!S.panelOpen, true); return; }
-  if(/^[1-7]$/.test(k)){ go(CHIP_ORDER[+k - 1]); return; }
+  if(/^[1-7]$/.test(k)){ nav(CHIP_ORDER[+k - 1]); return; }
   if(k === '+' || k === '='){ stepDC(1); return; }
   if(k === '-' || k === '_'){ stepDC(-1); return; }
-  if(k === 'k' || k === 'K' || k === '0'){ go('kentik'); return; }
+  if(k === 'k' || k === 'K' || k === '0'){ nav('kentik'); return; }
   if(k === 'd' || k === 'D'){ setMode('deep'); return; }
   if(k === 'h' || k === 'H'){ setMode('high'); return; }
   if(k === 'm' || k === 'M'){ toggleMotion(); return; }
@@ -669,7 +674,7 @@ document.addEventListener('keydown', ev => {
     CHIP_ORDER.filter(id => S.sel.has(id)).forEach(id => { if(id === 'dc'){ list.push(...dcIds()); if(S.dcN > 1) list.push('dcs'); } else if(id === 'branch'){ list.push(...brIds()); if(S.brN > 1) list.push('brs'); } else list.push(id); });
     list.push('kentik');
     const i = list.indexOf(S.view);
-    go(list[(i + (k === 'ArrowRight' ? 1 : list.length - 1)) % list.length]);
+    nav(list[(i + (k === 'ArrowRight' ? 1 : list.length - 1)) % list.length]);
     ev.preventDefault();
   }
 });
