@@ -403,7 +403,7 @@ def guide_pdf(cfg, images=None):
         sec.append("Public cloud setup")
     if cfg["synthetics"]["enabled"]:
         sec.append("Synthetic monitoring plan")
-    sec += ["Go-live validation checklist", "Security, data handling and licensing", "Open items to confirm with Kentik", "Appendix: Kentik KB references"]
+    sec += ["Security, data handling and licensing", "Open items to confirm with Kentik", "Appendix: Kentik KB references"]
     num = {name: i + 1 for i, name in enumerate(sec)}
     story += H1("Contents")
     story += [P(f"{i + 1}.&nbsp;&nbsp;{esc(n)}", "lead") for i, n in enumerate(sec)]
@@ -483,8 +483,10 @@ def guide_pdf(cfg, images=None):
     if sites:
         rr.append(["Server or platform team", f"Provide {len(sites)} agent host(s) and run the install command",
                    "root or sudo on a supported Linux host" + (", or Docker" if any(s["install"] == "docker" for s in sites) else "")])
-        rr.append(["Network team", "Point flow, traps and syslog at the agents" + (" (branches without an agent point at their data center agent)" if remote else "") + "; create SNMP and SSH credentials" + ("; configure BGP peering" if any(s["bgp"] or "bgp" in s["capabilities"] for s in sites) else ""),
-                   "Device configuration rights; SNMP v2c/v3 read-only credentials; read-only SSH account"])
+        rr.append(["Network team", "Point flow, traps and syslog at the agents" + (" (branches without an agent point at their data center agent)" if remote else "") + "; create SNMP and SSH credentials"
+                   + ("; turn on gNMI dial-in on the devices that stream telemetry" if "st" in caps_used else "") + ("; configure BGP peering" if any(s["bgp"] or "bgp" in s["capabilities"] for s in sites) else ""),
+                   "Device configuration rights; SNMP v2c/v3 read-only credentials; read-only SSH account"
+                   + ("; read-only gNMI access for the agent" if "st" in caps_used else "")])
         rr.append(["Security / firewall team", "Open the rules in section " + str(num["Network and firewall requirements"]), "Firewall and proxy change rights"])
     if "dns" in caps_used:
         rr.append(["DNS team", "Stream DNSTAP from DNS servers (for example Infoblox NIOS) to the agent", "DNS appliance administration"])
@@ -497,6 +499,8 @@ def guide_pdf(cfg, images=None):
         ga.append([C.CLOUDS[cid]["name"], C.CLOUDS[cid]["grant_what"]])
     if any("snmp" in s["capabilities"] for s in sites):
         ga.append(["Network devices", "SNMP read-only (polled from the customer's own agent, never from the Internet)"])
+    if any("st" in s["capabilities"] for s in sites):
+        ga.append(["Network devices", "gNMI streaming telemetry, read-only (the customer's own agent dials in, never from the Internet)"])
     if any("ssh" in s["capabilities"] for s in sites):
         ga.append(["Network devices", "Read-only SSH from the agent; command block-list, never configure or commit"])
     if ga:
@@ -573,30 +577,32 @@ def guide_pdf(cfg, images=None):
                                        ("BACKGROUND", (0, len(rows)), (-1, len(rows)), HexColor("#E3F4E6"))]))
                 block.append(t)
             story += block
-            story.append(P("<b>Install and register</b>", "h3"))
+            inst = [P("<b>Install and register</b>", "h3")]
             stp = [x.format(method="Docker" if s["install"] == "docker" else "Linux",
                             hostname_note="container ID" if s["install"] == "docker" else "system hostname",
                             site=s["name"],
-                            caps=M.cap_names(s) or "none")
+                            caps=M.portal_cap_names(s) or "none")
                    for x in C.UA_INSTALL_STEPS]
-            story += steps(stp)
+            inst += steps(stp)
             if s.get("proxy"):
-                story.append(callout(esc(C.UA_PROXY[s["install"]]), W))
+                inst.append(callout(esc(C.UA_PROXY[s["install"]]), W))
             if s["install"] == "linux":
-                story.append(code("export K_COMPANY_ID=<Kentik company ID>\nexport K_REGISTER_PROVISIONING_TOKEN=<token>\n"
-                                  + ("export https_proxy=http://<proxy>:<port>\n" if s.get("proxy") else "")
-                                  + "# then run the Linux command copied from Settings > Universal Agents > Deploy Agent", W))
+                inst.append(code("export K_COMPANY_ID=<Kentik company ID>\nexport K_REGISTER_PROVISIONING_TOKEN=<token>\n"
+                                 + ("export https_proxy=http://<proxy>:<port>\n" if s.get("proxy") else "")
+                                 + "# then run the Linux command copied from Settings > Universal Agents > Deploy Agent", W))
             else:
-                story.append(code("# run the docker command copied from Settings > Universal Agents > Deploy Agent\n"
-                                  "# it carries K_COMPANY_ID and K_REGISTER_PROVISIONING_TOKEN\n"
-                                  + ("# behind a proxy, add: --env https_proxy=http://<proxy>:<port>\n" if s.get("proxy") else ""), W))
+                inst.append(code("# run the docker command copied from Settings > Universal Agents > Deploy Agent\n"
+                                 "# it carries K_COMPANY_ID and K_REGISTER_PROVISIONING_TOKEN\n"
+                                 + ("# behind a proxy, add: --env https_proxy=http://<proxy>:<port>\n" if s.get("proxy") else ""), W))
+            groups = [inst]   # each group stays on one page, so a code box or a KB line never sits alone on a page
             if s.get("bgp"):
-                story.append(P("<b>BGP peering from the edge routers</b>", "h3"))
-                story += bullets(C.BGP["steps"])
+                groups.append([P("<b>BGP peering from the edge routers</b>", "h3")] + bullets(C.BGP["steps"]))
             if s["kind"] == "cloud":
-                story.append(P("<b>In the cloud</b>", "h3"))
-                story += bullets(C.CLOUD_AGENT_STEPS if s["devices"] and s["agent_role"] == "full" else C.CLOUD_AGENT_STEPS[:2])
-        story.append(src(["ua-deployment", "ua-portal-management", "device-settings"]))
+                groups.append([P("<b>In the cloud</b>", "h3")] +
+                              bullets(C.CLOUD_AGENT_STEPS if s["devices"] and s["agent_role"] == "full" else C.CLOUD_AGENT_STEPS[:2]))
+            if i == len(sites):
+                groups[-1].append(src(["ua-deployment", "ua-portal-management", "device-settings"]))
+            story += [KeepTogether(g) for g in groups]
 
     # ---- branches with no agent
     if remote:
@@ -608,14 +614,16 @@ def guide_pdf(cfg, images=None):
                        "across the WAN. Nothing is installed at the branch.", "lead"))
         story.append(table(["Site" if remote_title != "Branches without an agent" else "Branch", "Sends to", "What reaches Kentik"],
                            [[b["name"], (b["send_to"] + " agent") if b["send_to"] else "Nothing yet: add a data center or an agent",
-                             (lambda d: ", ".join(M.cap_name(d, c) for c in d["capabilities"] if c in ("flow", "snmp", "trap", "syslog", "ssh")) if d else "")(
+                             (lambda d: ", ".join(M.cap_name(d, c) for c in d["capabilities"] if c in ("flow", "snmp", "st", "trap", "syslog", "ssh")) if d else "")(
                                  next((d for d in sites if d["name"] == b["send_to"]), None)) or "None"] for b in remote],
                            [1.8 * inch, 1.8 * inch, 3.4 * inch], bold_first=True))
         story.append(P("<b>Steps for each branch</b>", "h3"))
         story += steps([
             "On the branch WAN or SD-WAN router (and switches if wanted), export flow to the data center agent's IP on UDP 9995. Set the same sample rate for the device in Kentik.",
             "Point SNMP traps at the agent on UDP 162 and syslog on UDP or TCP 514.",
-            "Allow those flows through WAN firewalls and SD-WAN policy, plus UDP 161, ICMP and TCP 22 from the agent back to the branch devices.",
+            "Allow those flows through WAN firewalls and SD-WAN policy, plus UDP 161, ICMP and TCP 22"
+            + (" (and the gNMI port of the devices that stream telemetry)" if any("st" in d["capabilities"] and M.remote_branches(cfg, d) for d in sites) else "")
+            + " from the agent back to the branch devices.",
             "In Kentik, add the branch devices with the data center agent as their collection agent, and assign them to the branch Site so they still group by location.",
             "Optional: create Server IP or agent-to-agent tests from the data center agent to the branch router to watch the WAN path.",
         ])
@@ -755,41 +763,7 @@ def guide_pdf(cfg, images=None):
                            "(the KB example: a 4-agent private mesh is 30 credits per run). Treat these as planning estimates and confirm with Kentik.", "small"))
         story.append(src(["synthetics-overview", "test-types", "test-credits", "agents-page"]))
 
-    # ---- 9. validation
-    story.append(PageBreak())
-    story += H1("Go-live validation checklist", num["Go-live validation checklist"])
-    chk = []
-    for s in remote:
-        if s["send_to"]:
-            chk.append(f"{s['name']}: {who(s).lower()} show {s['send_to']} as their collection agent; flow, traps and syslog arrive across {M.path_name(s)}")
-    for s in sites:
-        chk.append(f"{s['name']}: agent shows Up in Settings > Universal Agents, capabilities show enabled")
-        if "flow" in s["capabilities"]:
-            chk.append(f"{s['name']}: flow arrives in Data Explorer; device sample rates match Kentik; flow within about 20% of SNMP interface traffic")
-        if "snmp" in s["capabilities"]:
-            chk.append(f"{s['name']}: devices discovered in NMS with interfaces and health metrics")
-        if "trap" in s["capabilities"] or "syslog" in s["capabilities"]:
-            chk.append(f"{s['name']}: test trap or syslog message visible (SNMP Traps: Events, Syslog: Events)")
-        if "ssh" in s["capabilities"]:
-            chk.append(f"{s['name']}: first config backup fetched over SSH")
-        if s.get("bgp"):
-            chk.append(f"{s['name']}: BGP sessions established with Kentik; flows show AS path")
-        if "bgp" in s["capabilities"]:
-            chk.append(f"{s['name']}: routers peered with the agent (BGP Proxy); flows show AS path")
-    for cid in clouds:
-        chk.append(f"{C.CLOUDS[cid]['name']}: cloud export status OK; metadata visible in Kentik Map" +
-                   ("; flow logs arriving" if "flow" in cfg["clouds"][cid]["features"] else ""))
-    if cfg["synthetics"]["enabled"]:
-        chk.append("Synthetics: tests show Healthy, Warning or Critical (not Pending); agents Active")
-    chk.append("Alerting: at least one alert policy routed to the customer's notification channel")
-    ct = Table([["", P(esc(x), "cell")] for x in chk], colWidths=[0.3 * inch, 6.7 * inch], hAlign="LEFT")
-    ct.setStyle(TableStyle([("BOX", (0, i), (0, i), 0.8, HexColor(B.NAVY)) for i in range(len(chk))] +
-                           [("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LINEBELOW", (1, 0), (1, -1), 0.3, HexColor(B.LINE)),
-                            ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
-    story.append(ct)
-    story.append(src(["ua-portal-management", "flow-overview", "snmp-traps-syslogs", "public-clouds"]))
-
-    # ---- 10. security & licensing
+    # ---- 9. security & licensing
     story.append(PageBreak())
     story += H1("Security, data handling and licensing", num["Security, data handling and licensing"])
     story.append(table(["Area", "Detail"], C.SECURITY, [1.6 * inch, 5.4 * inch], bold_first=True))

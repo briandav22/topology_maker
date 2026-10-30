@@ -6,7 +6,8 @@ const TYPES = {
   https:  {n:'To Kentik (HTTPS)', d:'Telemetry sent to Kentik SaaS over outbound HTTPS or gRPC with TLS 1.2+', pt:'sq'},
   pull:   {n:'Kentik reads', d:'Kentik reads from your cloud account using read-only access you grant', pt:'sq'},
   flow:   {n:'Flow and flow logs', d:'NetFlow, sFlow or IPFIX sent to the Universal Agent, or cloud flow logs written to storage', pt:'sq'},
-  snmp:   {n:'SNMP and telemetry', d:'The Universal Agent polls SNMP or dials in with gNMI streaming telemetry', pt:'ring'},
+  snmp:   {n:'SNMP', d:'The Universal Agent polls devices with SNMP', pt:'ring'},
+  st:     {n:'Streaming telemetry', d:'The Universal Agent dials in to devices with gNMI streaming telemetry', pt:'ring'},
   trap:   {n:'SNMP traps', d:'Devices push SNMP traps to the Universal Agent', pt:'dot'},
   syslog: {n:'Syslog', d:'Network devices push syslog to the Universal Agent', pt:'sq'},
   dns:    {n:'DNS', d:'A DNSTAP stream (for example from Infoblox) or mirrored DNS traffic', pt:'dot'},
@@ -22,14 +23,14 @@ const MODS = [
    sub:'One agent per site, capabilities on', subd:'In: UDP 9995, 162, 514 · Out: TCP 443',
    flowline:'Devices → Universal Agent → Kentik',
    pipe:[['router','Routers, switches','and firewalls'],['agent','Universal','Agent'],['egress','Outbound','HTTPS only']],
-   chips:[['flow','Flow'],['snmp','SNMP/ST'],['trap','Traps'],['syslog','Syslog'],['dns','DNS'],['synth','Tests'],['ssh','Config'],['bgp','BGP']],
+   chips:[['flow','Flow'],['snmp','SNMP'],['trap','Traps'],['syslog','Syslog'],['dns','DNS'],['synth','Tests'],['ssh','Config'],['bgp','BGP']],
    one:'A Universal Agent in the data center collects flow, metrics, traps, syslog, DNS, tests and configs.',
    oned:'UA on a Linux host or in Docker. Devices send to UDP 9995/162/514; the agent polls UDP 161 and SSH 22; everything leaves on TCP 443.'},
   {id:'branch', side:'bottom', name:'Branch office', icon:'store', tag:'Agent optional',
    sub:'Sends to a data center agent, or has its own', subd:'Across the WAN: UDP 9995, 162, 514',
    flowline:'Branch devices → data center or branch agent → Kentik',
    pipe:[['router','Branch router,','switches, Wi-Fi'],['agent','Universal','Agent'],['probe','Tests to apps','and other sites']],
-   chips:[['flow','Flow'],['snmp','SNMP/ST'],['trap','Traps'],['syslog','Syslog'],['synth','Tests']],
+   chips:[['flow','Flow'],['snmp','SNMP'],['trap','Traps'],['syslog','Syslog'],['synth','Tests']],
    one:'Most branches have no agent: their devices send flow, traps and syslog across the WAN to a data center agent. Add an agent at a branch for local tests and collection.',
    oned:'No agent: allow UDP 9995, 162 and 514 from branch devices to the data center agent, and UDP 161 / TCP 22 back. With an agent: same UA build, toggle what the site needs, open TCP 8877 and UDP 9977 for agent-to-agent tests.'},
   {id:'aws', side:'right', name:'AWS', icon:'cloud', tag:'Agentless',
@@ -90,7 +91,7 @@ const OV_HL = `
 <h2>How Kentik is deployed</h2>
 <p class="lead">Kentik, now part of Infoblox, is SaaS. You run a small footprint where your network lives, and everything lands in your Kentik account over encrypted, outbound connections.</p>
 <h3>Three patterns cover almost everything</h3>
-<div class="card"><h4>On-prem: a Universal Agent in each data center</h4><p>A single agent on a Linux host or in Docker. You toggle on only the capabilities you need, just like Installed Capabilities in the portal: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy (Forwarding or Edge Processing), SNMP Trap Receiver, SNMP/ST and Syslog Server. Devices point at it, and it talks to Kentik over HTTPS.</p></div>
+<div class="card"><h4>On-prem: a Universal Agent in each data center</h4><p>A single agent on a Linux host or in Docker. You toggle on only the capabilities you need, just like Installed Capabilities in the portal: BGP Proxy, Connectivity Test, Device Configuration Sync, DNS OTT Tap, Flow Proxy (Forwarding or Edge Processing), SNMP, SNMP Trap Receiver, Streaming Telemetry and Syslog Server. Devices point at it, and it talks to Kentik over HTTPS.</p></div>
 <div class="card"><h4>Branch offices: agent optional</h4><p>Most branches don’t get an agent. Their routers send flow, traps and syslog across the WAN to a data center agent. Give a branch its own agent when you want local tests or to keep telemetry local.</p></div>
 <div class="card"><h4>Public cloud: agentless</h4><p>You turn on flow logs, send them to storage in your own account, and grant Kentik read-only access. Kentik also reads topology metadata and metrics.</p></div>
 <div class="card"><h4>Internet and SaaS: synthetic tests</h4><p>Kentik’s global agents and your own agents test SaaS apps, websites, DNS and paths between your sites and clouds.</p></div>
@@ -107,7 +108,8 @@ const OV_DD = `
 <tr><td>Universal Agent → Kentik</td><td>TCP 443, TLS 1.2+</td><td>flow, grpc.api, api, portal .kentik.com and storage.googleapis.com (EU: .kentik.eu)</td></tr>
 <tr><td>Devices → Universal Agent</td><td>UDP 9995 · UDP 162 · UDP/TCP 514</td><td>Flow, SNMP traps, syslog (also from branches with no agent, across the WAN)</td></tr>
 <tr><td>Routers → Universal Agent</td><td>TCP 179</td><td>BGP Proxy, if peering goes through the agent</td></tr>
-<tr><td>Universal Agent → devices</td><td>UDP 161 · gNMI · ICMP · TCP 22</td><td>SNMP, streaming telemetry, reachability, SSH config</td></tr>
+<tr><td>Universal Agent → devices</td><td>UDP 161 · ICMP · TCP 22</td><td>SNMP, reachability, SSH config</td></tr>
+<tr><td>Universal Agent → devices</td><td>Device gNMI port</td><td>Streaming telemetry, only if you turn it on</td></tr>
 <tr><td>Agent ↔ agent</td><td>TCP 8877 · UDP 9977</td><td>Agent-to-agent and mesh tests</td></tr>
 <tr><td>Edge router ↔ Kentik</td><td>TCP 179</td><td>Direct BGP peering, if peering is on without BGP Proxy; use the ingest peering IPs shown in device settings</td></tr>
 <tr><td>Kentik → Azure storage</td><td>From 20.69.189.228 and 20.69.185.115</td><td>Only if the storage account firewall is restricted</td></tr>

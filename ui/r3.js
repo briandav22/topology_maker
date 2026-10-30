@@ -98,7 +98,7 @@ function svgPNG(svg, scale){
 function exportViews(){
   const v = [['ov', 'All deployments']];
   if(dcOn()){ dcIds().forEach((id, k) => v.push([id, dcName(k + 1)])); if(S.dcN > 1) v.push(['dcs', 'All data centers']); }
-  if(brOn()){ brIds().forEach((id, k) => v.push([id, brName(k + 1)])); if(S.brN > 1) v.push(['brs', 'All branch offices']); }
+  if(brOn()) brIds().forEach((id, k) => v.push([id, brName(k + 1)]));   // each branch, but not the All branch offices view
   ['aws', 'azure', 'gcp', 'oci', 'saas'].filter(id => S.sel.has(id)).forEach(id => {
     v.push([id, MOD[id].name]);
     if(CLOUD_IDS.includes(id) && clUsed(id)) v.push([cuId(id), viewName(cuId(id))]);   // the agent or appliances in that cloud

@@ -82,21 +82,36 @@ CAPABILITIES = {
         "kb": ["universal-agents", "router-configuration", "flow-overview", "kproxy-migration"],
     },
     "snmp": {
-        "name": "SNMP/ST", "kb_id": "ranger", "color": "snmp",
+        "name": "SNMP", "kb_id": "ranger", "color": "snmp",
         "short": "Health and interfaces", "port_label": "UDP 161 out",
-        "purpose": "Discovers devices and collects health, interface and hardware metrics by SNMP polling or gNMI streaming telemetry. It also enriches flow with interface names and speeds.",
+        "purpose": "Discovers devices and collects health, interface and hardware metrics by SNMP polling. It also enriches flow with interface names and speeds.",
         "inbound": [],
-        "outbound_local": [("Network devices", "UDP 161", "SNMP polling (v1, v2c, v3)"), ("Network devices", "ICMP", "Reachability"),
-                           ("Network devices", "Device gNMI port", "Streaming telemetry dial-in (only if used)")],
+        "outbound_local": [("Network devices", "UDP 161", "SNMP polling (v1, v2c, v3)"), ("Network devices", "ICMP", "Reachability")],
         "setup": [
+            "In the portal, SNMP polling is part of the SNMP/ST capability: toggle on SNMP/ST on the agent.",
             "Run the NMS Setup Wizard: pick this agent, enter IP ranges and SNMP v1, v2c or v3 credentials, discover, then add devices.",
             "Per device, on the SNMP tab choose \"Flow Enrichment via Universal Agent\" or \"Full Monitoring via Universal Agent\".",
             "SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.",
             "Default polling: 1 minute for status, CPU, memory and interfaces; 5 minutes for everything else.",
-            "Streaming telemetry (optional): enable \"Dial-In from Universal Agent\" (gNMI over gRPC, 30 second default).",
         ],
         "license": "FlowPak (flow enrichment) or NMS / DevicePak (full monitoring)",
         "kb": ["universal-agents", "nms-setup", "device-settings"],
+    },
+    # Its own switch here, so a design (and its guide) can use SNMP without gNMI. The portal bundles both in one SNMP/ST capability.
+    "st": {
+        "name": "Streaming Telemetry", "kb_id": "ranger", "color": "st",
+        "short": "gNMI from the devices", "port_label": "gNMI out",
+        "purpose": "Collects device metrics with gNMI streaming telemetry instead of polling: the agent dials in to each device over gRPC. "
+                   "In the portal it is part of the SNMP/ST capability.",
+        "inbound": [],
+        "outbound_local": [("Network devices", "Device gNMI port", "Streaming telemetry dial-in (gNMI over gRPC)")],
+        "setup": [
+            "In the portal, streaming telemetry is part of the SNMP/ST capability: toggle on SNMP/ST on the agent.",
+            "In the settings of each device that streams, enable \"Dial-In from Universal Agent\" (gNMI over gRPC, 30 second default).",
+            "Allow the agent to reach the gNMI port of each device that streams.",
+        ],
+        "license": "NMS / DevicePak",
+        "kb": ["universal-agents", "device-settings"],
     },
     "trap": {
         "name": "SNMP Trap Receiver", "kb_id": "ksnmptrap", "color": "trap",
@@ -191,13 +206,13 @@ CAPABILITIES["bgp"] = {
     "kb": ["universal-agents", "device-settings"],
 }
 # Order used in tables and the PDF. The portal lists them alphabetically under Installed Capabilities.
-CAP_ORDER = ["flow", "snmp", "trap", "syslog", "dns", "synth", "ssh", "bgp"]
+CAP_ORDER = ["flow", "snmp", "st", "trap", "syslog", "dns", "synth", "ssh", "bgp"]
 
 # Sizing from the KB (Universal Agents page). None = not published.
 SIZING = {
     "flow_edge": {"label": "Flow Proxy Edge Processing", "cpu": 8, "ram": 32, "per": 25000, "unit": "flows/s", "estimate": True},
     "flow_forward": {"label": "Flow Proxy Forwarding", "cpu": 1, "ram": 2, "per": 20000, "unit": "flows/s", "estimate": True},
-    "snmp": {"label": "SNMP/ST", "cpu": 2, "ram": 8, "per": 500, "unit": "devices"},
+    "snmp": {"label": "SNMP", "cpu": 2, "ram": 8, "per": 500, "unit": "devices"},   # the portal's SNMP/ST: also covers Streaming Telemetry
     "syslog": {"label": "Syslog Server", "cpu": 1, "ram": 1, "per": 8000, "unit": "events/s"},
     "dns": {"label": "DNS OTT Tap", "cpu": 1, "ram": 1, "per": 400000, "unit": "lookups/s"},
     "synth": {"label": "Connectivity Test", "cpu": 2, "ram": 2, "per": None, "unit": None},

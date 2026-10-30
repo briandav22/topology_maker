@@ -8,11 +8,12 @@ const UACAPS = [
   {id:'dns', ui:'DNS OTT Tap', icon:'dns', s:'DNS queries as flow', sd:'DNSTAP, SPAN or on-server', chip:'DNS', cpu:1, ram:1},
   {id:'flow', ui:'Flow Proxy', icon:'flow', s:'NetFlow, sFlow, IPFIX', sd:'Listens on UDP 9995', chip:'Flow', cpu:1, ram:2},
   {id:'trap', ui:'SNMP Trap Receiver', icon:'bolt', s:'Real-time device events', sd:'Listens on UDP 162', chip:'Traps', cpu:0, ram:0},
-  {id:'snmp', ui:'SNMP/ST', icon:'gauge', s:'Health and interfaces', sd:'UDP 161 · gNMI · ICMP', chip:'SNMP/ST', cpu:2, ram:8},
+  {id:'snmp', ui:'SNMP', icon:'gauge', s:'Health and interfaces', sd:'UDP 161 · ICMP', chip:'SNMP', cpu:2, ram:8},
+  {id:'st', ui:'Streaming Telemetry', icon:'chart', s:'gNMI from the devices', sd:'gNMI dial-in, device port', chip:'ST', cpu:0, ram:0},   // shares the SNMP/ST sizing
   {id:'syslog', ui:'Syslog Server', icon:'list', s:'Network device logs', sd:'Listens on UDP/TCP 514', chip:'Syslog', cpu:1, ram:1}
 ];
 const UAC = Object.fromEntries(UACAPS.map(c => [c.id, c]));
-const DRAW_ORDER = ['flow', 'snmp', 'trap', 'syslog', 'dns', 'synth', 'ssh', 'bgp'];   // order inside the agent box, matching the device lines
+const DRAW_ORDER = ['flow', 'snmp', 'st', 'trap', 'syslog', 'dns', 'synth', 'ssh', 'bgp'];   // order inside the agent box, matching the device lines
 const DC_DEF = ['flow', 'snmp', 'trap', 'syslog'], BR_DEF = ['flow', 'snmp', 'synth'];
 const BR_MAX = 10;
 
@@ -103,6 +104,7 @@ function sizing(kind, i){
     let cc = UAC[c].cpu, rr = UAC[c].ram, n = 1;
     if(c === 'flow'){ const m = FLOW_MODES[fmOf(kind, i)]; cc = m.cpu; rr = m.ram; n = Math.max(1, Math.ceil(f / m.per)); est = n > 1; }
     if(c === 'snmp') n = Math.max(1, Math.ceil(d / SNMP_PER));
+    if(c === 'st' && !list.includes('snmp')){ cc = UAC.snmp.cpu; rr = UAC.snmp.ram; n = Math.max(1, Math.ceil(d / SNMP_PER)); }   // one SNMP/ST capability in the portal: counted once
     cpu += cc * n; ram += rr * n;
   });
   return {cpu, ram, d, f, est, given:!!(d || f), rc:list.length ? Math.max(2, Math.ceil(cpu * 1.3)) : 0, rr:list.length ? Math.max(2, Math.ceil(ram * 1.3)) : 0};
@@ -145,7 +147,7 @@ function uaFoot(kind, i, dd){
   if(!capList(kind, i).length) return 'No capabilities on';
   const host = z.rc + ' vCPU / ' + z.rr + ' GB';
   if(!z.given) return dd ? 'Plan ' + host + ' RAM at the KB baseline' : 'Plan ' + host;
-  return host + ' · ' + [z.d ? fmtN(z.d) + ' devices' : '', z.f ? fmtN(z.f) + ' flows/s' : ''].filter(Boolean).join(' · ');
+  return host + ' · ' + [z.d ? fmtN(z.d) + (z.d === 1 ? ' device' : ' devices') : '', z.f ? fmtN(z.f) + ' flows/s' : ''].filter(Boolean).join(' · ');
 }
 
 /* ===== One site with a Universal Agent: the layout follows the capabilities that are on ===== */
@@ -159,7 +161,7 @@ function agentScene(kind, i){
     labeld:dc ? (S.dcN > 1 ? name + ' (on-prem) · site ' + i + ' of ' + S.dcN : name + ' (on-prem)') : cl ? name + ' · Universal Agent ' + lc(CL[i].on) : name + ' · agent at the branch'});
   frames.push(dc ? DC_NETGRP : cl ? CL_NETGRP(i) : BR_NETGRP);
   const bm = dc ? bgpMode(i) : '';
-  nodes.push(...(dc ? DC_DEVICES.map(n => n.id === 'edge' && bm === 'off' ? Object.assign({}, n, {sd:'Flow · SNMP · traps'}) : n) : cl ? (devs ? CL_DEVICES(i) : [CL_NONE(i)]) : BR_DEVICES));
+  nodes.push(...(dc ? DC_DEVICES : cl ? (devs ? CL_DEVICES(i) : [CL_NONE(i)]) : BR_DEVICES));
 
   /* Left column under the devices: only what the capabilities need */
   const feeds = dc ? feeders(i) : [], cfeeds = dc ? cfeeders(i) : [];
@@ -169,17 +171,17 @@ function agentScene(kind, i){
   if(feeds.length){
     const one = feeds.length === 1, someTest = feeds.some(b => brRole(b) === 'test'), allTest = feeds.every(b => brRole(b) === 'test');
     left.push({id:'brin', k:'net', icon:'store', h:64, t:one ? brName(feeds[0]) : feeds.length + ' branch offices', s:allTest ? 'Tests-only agent at the branch' : someTest ? 'No agent, or a tests-only agent' : 'No agent at the branch',
-      sd:'Flow, traps, syslog over the WAN', go:one ? brId(feeds[0]) : 'brs',
+      go:one ? brId(feeds[0]) : 'brs',
       i:{h:'Routers, switches and Wi-Fi at ' + (one ? brName(feeds[0]) : 'these branches') + ' send flow, traps and syslog across the WAN to this agent, and the agent polls them back across the WAN.' + (someTest ? ' A tests-only agent at the branch runs Connectivity Test only.' : ''),
          d:['Allow UDP 9995 (flow), UDP 162 (traps) and UDP or TCP 514 (syslog) from branch devices to this agent, through WAN firewalls and SD-WAN policies.',
-            'Allow UDP 161 and ICMP (SNMP/ST) and TCP 22 (Device Configuration Sync) from this agent to the branch devices.',
+            'Allow UDP 161 and ICMP (SNMP) and TCP 22 (Device Configuration Sync) from this agent to the branch devices.',
             'In Kentik, set this agent as the collection agent for the branch devices, and assign the devices to the branch Site so they still group by location.',
             'Size this agent for the branch flow and devices too.']}});
   }
   if(cfeeds.length){
     const one = cfeeds.length === 1, n = cfeeds.reduce((t, c) => t + clOf(c).ap, 0), links = cfeeds.map(c => CL[c].link).join(' and ');
     left.push({id:'clin', k:'net', icon:'cloud', h:64, t:one ? MOD[cfeeds[0]].name + ' appliances' : cfeeds.length + ' clouds', s:plural(n, 'appliance') + (one ? ', no agent there' : ''),
-      sd:'Flow, traps, syslog over ' + (one ? CL[cfeeds[0]].link : 'private links'), go:one ? cuId(cfeeds[0]) : null,
+      go:one ? cuId(cfeeds[0]) : null,
       i:{h:'Network appliances in ' + cfeeds.map(c => MOD[c].name).join(' and ') + ', for example Palo Alto VM-Series, send flow, traps and syslog to this agent across ' + links + ', and the agent polls them back.',
          d:['Allow UDP 9995, UDP 162 and UDP or TCP 514 from the appliances to this agent, in the cloud security groups or NSGs and in the data center firewall.',
             'Allow UDP 161 and ICMP from this agent back to the appliances.',
@@ -213,6 +215,7 @@ function agentScene(kind, i){
   if(devs){
     if(on('flow')) edges.push({t:'flow', a:'netgrp', b:'c-flow', p:[[272, 104], [cx, cy('flow')]]});
     if(on('snmp')) edges.push({t:'snmp', a:'c-snmp', b:'netgrp', p:[[cx, cy('snmp')], [272, 148]], bi:true});
+    if(on('st')) edges.push({t:'st', a:'c-st', b:'netgrp', p:[[cx, cy('st')], [272, 170]], bi:true});
     if(on('trap')) edges.push({t:'trap', a:'netgrp', b:'c-trap', p:[[272, 192], [cx, cy('trap')]]});
     if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'c-syslog', p:[[272, 236], [cx, cy('syslog')]]});   // logs come from the network devices
     if(on('ssh')) edges.push({t:'ssh', a:'c-ssh', b:'netgrp', p:[[cx, cy('ssh')], [298, cy('ssh')], [298, 268], [272, 268]]});
@@ -230,6 +233,7 @@ function agentScene(kind, i){
     const ins = [['flow', 14], ['trap', 38], ['syslog', 50]].filter(c => on(c[0]));
     ins.forEach(([c, dy]) => edges.push({t:c, a:n.id, b:'c-' + c, p:[[r, b0 + dy], [l, b0 + dy]]}));
     if(on('snmp')) edges.push({t:'snmp', a:'c-snmp', b:n.id, p:[[l, b0 + 26], [r, b0 + 26]], bi:true});
+    if(on('st')) edges.push({t:'st', a:'c-st', b:n.id, p:[[l, b0 + 32], [r, b0 + 32]], bi:true});
   });
 
   /* Connectivity Test targets */
@@ -300,7 +304,7 @@ function remoteScene(kind, i){
     return {frames, nodes, edges, notes};
   }
   const caps = capsOf('dc', t), on = c => caps.has(c), dname = dcName(t);
-  const rel = ['flow', 'snmp', 'trap', 'syslog', 'ssh', 'synth'].filter(on);
+  const rel = ['flow', 'snmp', 'st', 'trap', 'syslog', 'ssh', 'synth'].filter(on);
   frames.push({x:478, y:16, w:286, h:588, label:dname + ' (on-prem)', labeld:dname + ' · collects for ' + (cl ? MOD[i].name : 'this branch'), go:dcId(t)});
   const uh = Math.max(220, 64 + Math.max(rel.length, 1) * 22 + 28);
   nodes.push({id:'ua', x:494, y:90, w:254, h:uh, k:'ua', icon:'agent', t:'Universal Agent', s:'In ' + dname, sd:instOf('dc', t) === 'docker' ? 'In Docker' : 'On a Linux host', go:dcId(t),
@@ -313,12 +317,13 @@ function remoteScene(kind, i){
   const R = 280, U = 494, over = cl ? CL[i].link : 'the WAN';
   if(devs){
     if(on('flow')) edges.push({t:'flow', a:'netgrp', b:'ua', p:[[R, 104], [U, 104]], lab:'Flow over ' + over, labd:'UDP 9995', lp:[387, 104]});
-    if(on('snmp')) edges.push({t:'snmp', a:'ua', b:'netgrp', p:[[U, 130], [R, 130]], bi:true, lab:'SNMP polls', labd:'UDP 161 · ICMP', lp:[387, 130]});
-    if(on('trap')) edges.push({t:'trap', a:'netgrp', b:'ua', p:[[R, 156], [U, 156]], lab:'Traps', labd:'UDP 162', lp:[387, 156]});
-    if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'ua', p:[[R, 182], [U, 182]], lab:'Syslog', labd:'UDP/TCP 514', lp:[387, 182]});
-    if(on('ssh') && !cl) edges.push({t:'ssh', a:'ua', b:'netgrp', p:[[U, 208], [R, 208]], lab:'Config sync', labd:'SSH, TCP 22', lp:[387, 208]});
+    if(on('snmp')) edges.push({t:'snmp', a:'ua', b:'netgrp', p:[[U, 128], [R, 128]], bi:true, lab:'SNMP polls', labd:'UDP 161 · ICMP', lp:[387, 128]});
+    if(on('st')) edges.push({t:'st', a:'ua', b:'netgrp', p:[[U, 152], [R, 152]], bi:true, lab:'Streaming telemetry', labd:'gNMI dial-in', lp:[387, 152]});
+    if(on('trap')) edges.push({t:'trap', a:'netgrp', b:'ua', p:[[R, 176], [U, 176]], lab:'Traps', labd:'UDP 162', lp:[387, 176]});
+    if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'ua', p:[[R, 200], [U, 200]], lab:'Syslog', labd:'UDP/TCP 514', lp:[387, 200]});
+    if(on('ssh') && !cl) edges.push({t:'ssh', a:'ua', b:'netgrp', p:[[U, 224], [R, 224]], lab:'Config sync', labd:'SSH, TCP 22', lp:[387, 224]});
   }
-  if(on('synth') && !test && !cl) edges.push({t:'synth', a:'ua', b:'wan', p:[[U, 240], [R, 240]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 240]});
+  if(on('synth') && !test && !cl) edges.push({t:'synth', a:'ua', b:'wan', p:[[U, 250], [R, 250]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 250]});
   if(test){
     nodes.push(Object.assign({}, REMOTE));
     edges.push({t:'synth', a:'ua-t', b:'ua', p:[[280, 392], [470, 392], [470, 300], [494, 300]], bi:true, lab:'Agent-to-agent tests', labd:'TCP 8877 · UDP 9977', lp:[387, 386]},
@@ -343,12 +348,12 @@ function CL_NETGRP(c){ return {id:'netgrp', x:32, y:58, w:240, h:222, label:'Net
         'Allow UDP 161 and ICMP from that agent for SNMP polling.',
         'In Kentik, add each appliance as a device with that agent as its collection agent.']}}; }
 function CL_DEVICES(c){ return [
-  {id:'fw', x:44, y:90, w:216, h:52, k:'net', icon:'firewall', t:'Firewall appliances', s:'For example Palo Alto VM-Series', sd:'Flow, SNMP, syslog, traps',
+  {id:'fw', x:44, y:90, w:216, h:52, k:'net', icon:'firewall', t:'Firewall appliances', s:'For example Palo Alto VM-Series',
    i:{h:'Next-generation firewalls in the cloud see the traffic between subnets, ' + CL[c].net + 's and the Internet, with the applications behind it.',
       d:['Palo Alto VM-Series exports NetFlow version 9; other vendors use NetFlow or IPFIX.', 'Point the export at the agent that collects this cloud, on UDP 9995.']}},
-  {id:'vr', x:44, y:152, w:216, h:52, k:'net', icon:'router', t:'Virtual routers, SD-WAN', s:'For example Cisco 8000v', sd:'Flow · SNMP · BGP',
+  {id:'vr', x:44, y:152, w:216, h:52, k:'net', icon:'router', t:'Virtual routers, SD-WAN', s:'For example Cisco 8000v',
    i:{h:'Virtual routers and SD-WAN hubs in the cloud add flow and interface health for the paths between the cloud and your sites.', d:[]}},
-  {id:'lb', x:44, y:214, w:216, h:52, k:'net', icon:'network', t:'Load balancers', s:'For example F5 BIG-IP VE', sd:'SNMP · syslog',
+  {id:'lb', x:44, y:214, w:216, h:52, k:'net', icon:'network', t:'Load balancers', s:'For example F5 BIG-IP VE',
    i:{h:'Virtual load balancers mostly add health, syslog and traps.', d:[]}}
 ]; }
 function CL_NONE(c){ return {id:'fw', x:44, y:90, w:216, h:64, k:'opt', icon:'firewall', t:'No network appliances', s:'Set the count in the panel', sd:'For example Palo Alto VM-Series',
@@ -372,14 +377,16 @@ const CL_SLOT = {
 function cloudScene(c){
   const nested = c === 'aws' && S.awsNested, base = nested ? awsNestedScene() : SC[c];
   const o = clOf(c), role = o.ua, ap = o.ap, t = clTarget(c), slot = CL_SLOT[nested ? 'awsN' : c], aps = plural(ap, 'appliance');
-  const nodes = base.nodes.filter(n => n.id !== 'ua'), edges = base.edges.filter(e => e.a !== 'ua' && e.b !== 'ua');
+  // exports show only what was chosen: no hint to pick nested accounts, no empty agent slot
+  const nodes = base.nodes.filter(n => n.id !== 'ua' && !(EXPORTING && n.id === 'nested')), edges = base.edges.filter(e => e.a !== 'ua' && e.b !== 'ua');
+  const frames = EXPORTING && c === 'aws' && !nested ? base.frames.map(f => f.labeld ? Object.assign({}, f, {labeld:f.label}) : f) : base.frames;   // and no Standard-or-Nested choice in the title
   const at = {id:'ua', x:slot.x, y:slot.y, w:slot.w, h:slot.h};
-  if(role === 'none' && !ap)
-    nodes.push(Object.assign(at, {k:'opt', icon:'agent', t:'Universal Agent', s:'None: flow logs need no agent', sd:'Optional: tests or appliances',
+  if(role === 'none' && !ap){
+    if(!EXPORTING) nodes.push(Object.assign(at, {k:'opt', icon:'agent', t:'Universal Agent', s:'None: flow logs need no agent', sd:'Optional: tests or appliances',
       i:{h:'Optional. A Universal Agent on ' + CL[c].vm + ' tests from inside ' + MOD[c].name + ', and can collect from network appliances such as Palo Alto VM-Series. Choose one in the panel.',
          d:['Tests only: Connectivity Test, for paths between the cloud, your sites and SaaS apps.', 'Collects here: the appliances send flow, SNMP, traps and syslog to this agent, so their data stays in the cloud.', 'No agent: appliances can still send to a data center agent across ' + CL[c].linkd + '.']}}));
-  else if(role === 'none')
-    nodes.push(Object.assign(at, {k:'net', icon:'firewall', t:aps, s:t ? 'Send to ' + dcName(t) + ' over ' + CL[c].link : 'No agent collects them yet', sd:'Flow, SNMP, traps, syslog', go:cuId(c),
+  } else if(role === 'none')
+    nodes.push(Object.assign(at, {k:'net', icon:'firewall', t:aps, s:t ? 'Send to ' + dcName(t) + ' over ' + CL[c].link : 'No agent collects them yet', go:cuId(c),
       i:{h:'Network appliances in ' + MOD[c].name + ', for example Palo Alto VM-Series. With no agent in the cloud, they send to ' + (t ? 'the ' + dcName(t) + ' agent' : 'a data center agent') + ' across ' + CL[c].linkd + '.', d:['Open the view to see the path and the ports.']}}));
   else {
     const caps = capList('cl', c);
@@ -389,7 +396,7 @@ function cloudScene(c){
          d:['Open the view to see the agent, its capabilities and the ports.']}}));
     edges.push({t:'https', a:'ua', b:'kentik', p:slot.p, lab:role === 'test' ? 'Test results over HTTPS' : 'Agent data over HTTPS', labd:'TCP 443 outbound', lp:slot.lp});
   }
-  return Object.assign({}, base, {nodes, edges});
+  return Object.assign({}, base, {nodes, edges, frames});
 }
 
 /* ===== Every data center at once: one row per site, each with its own agent ===== */
@@ -412,12 +419,12 @@ function dcsScene(){
     frames.push({id:'site-' + i, x:32, y:r.y, w:520, h:rowH, label:name, cls:'sframe', go:dcId(i),
       i:{h:name + ' has its own Universal Agent. The site’s devices send to that agent, and the agent sends everything to Kentik over outbound HTTPS.',
          d:['Same install command and ports as every other site; the capabilities can differ per agent.', 'Assign the agent to this site’s Site in Kentik so devices and tests group by location.']}});
-    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls', sd:'Flow, SNMP, traps, syslog',
+    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls',
       i:{h:'The routers, switches and firewalls at ' + name + (f ? ', plus the devices of ' + f + ' branch office' + (f > 1 ? 's' : '') + ' with no agent,' : '') + ' send to the local agent and answer its polls.',
-         d:['Devices → agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.', 'Agent → devices: UDP 161 SNMP, ICMP, gNMI and TCP 22 for SSH.']}});
+         d:['Devices → agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.', 'Agent → devices: UDP 161 SNMP, ICMP, and TCP 22 for SSH.']}});
     nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:uaFoot('dc', i), sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(i),
       i:{h:'The Universal Agent for ' + name + ', ' + (instOf('dc', i) === 'docker' ? 'in Docker' : 'on a Linux host') + '. On: ' + (caps.length ? caps.map(c => capUI('dc', i, c)).join(', ') : 'nothing yet') + '.',
-         d:['Install: Settings › Universal Agents › Deploy Agent gives a Linux or Docker command. Portal tokens last 1 hour.', 'Size the host for the sum of its capabilities: for example SNMP/ST 2 cores / 8 GB, Connectivity Test 2 cores / 2 GB.', 'Agent-to-agent tests with the other sites use TCP 8877 and UDP 9977.']}});
+         d:['Install: Settings › Universal Agents › Deploy Agent gives a Linux or Docker command. Portal tokens last 1 hour.', 'Size the host for the sum of its capabilities: for example SNMP 2 cores / 8 GB, Connectivity Test 2 cores / 2 GB.', 'Agent-to-agent tests with the other sites use TCP 8877 and UDP 9977.']}});
     nodes.push(Object.assign(EGRESS(760, r.cy), {id:'egress-' + i}));
     if(caps.includes('flow')) edges.push({t:'flow', a:'dev-' + i, b:'ua-' + i, p:[[270, r.cy - 7], [320, r.cy - 7]]});
     if(caps.includes('snmp')) edges.push({t:'snmp', a:'ua-' + i, b:'dev-' + i, p:[[320, r.cy + 7], [270, r.cy + 7]], bi:true});
@@ -539,14 +546,14 @@ dd:`<p class="lead">Branch devices are configured to use the data center agent a
 <tr><td>Branch devices → DC agent</td><td>UDP 9995</td><td>Flow Proxy</td></tr>
 <tr><td>Branch devices → DC agent</td><td>UDP 162</td><td>SNMP Trap Receiver</td></tr>
 <tr><td>Branch devices → DC agent</td><td>UDP and TCP 514</td><td>Syslog Server</td></tr>
-<tr><td>DC agent → branch devices</td><td>UDP 161, ICMP</td><td>SNMP/ST</td></tr>
+<tr><td>DC agent → branch devices</td><td>UDP 161, ICMP</td><td>SNMP</td></tr>
 <tr><td>DC agent → branch devices</td><td>TCP 22</td><td>Device Configuration Sync</td></tr>
 </tbody></table>
 <h3>In Kentik</h3><ul>
 <li>Add the branch devices with the data center agent as their collection agent (SNMP tab: Flow Enrichment or Full Monitoring via Universal Agent).</li>
 <li>Assign the devices to the branch Site, so dashboards and maps still group them by location.</li>
 <li>Set each device’s flow sample rate in Kentik to match the router.</li></ul>
-<h3>Sizing</h3><p>Enter this branch’s devices and flows under Branch load and they are added to the data center agent’s sizing. SNMP/ST covers up to 500 devices per 2 cores / 8 GB. Flow Proxy Forwarding handles 20,000+ flows per second on 1 core / 2 GB; Edge Processing needs 8 cores / 32 GB per 25,000.</p>`,
+<h3>Sizing</h3><p>Enter this branch’s devices and flows under Branch load and they are added to the data center agent’s sizing. SNMP covers up to 500 devices per 2 cores / 8 GB. Flow Proxy Forwarding handles 20,000+ flows per second on 1 core / 2 GB; Edge Processing needs 8 cores / 32 GB per 25,000.</p>`,
 src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['Device Settings','https://kb.kentik.com/docs/device-settings'],['Router Configuration','https://kb.kentik.com/docs/router-configuration'],['NMS Setup','https://kb.kentik.com/docs/nms-setup']]};
 
 const INFO_BR_TEST = {kick:'Drill-in · On-prem', title:'Branch office with a tests-only agent',
@@ -566,7 +573,7 @@ dd:`<p class="lead">Two paths leave the branch: test traffic from the local agen
 <tr><td>Branch devices → DC agent</td><td>UDP 9995</td><td>Flow Proxy</td></tr>
 <tr><td>Branch devices → DC agent</td><td>UDP 162</td><td>SNMP Trap Receiver</td></tr>
 <tr><td>Branch devices → DC agent</td><td>UDP and TCP 514</td><td>Syslog Server</td></tr>
-<tr><td>DC agent → branch devices</td><td>UDP 161, ICMP</td><td>SNMP/ST</td></tr>
+<tr><td>DC agent → branch devices</td><td>UDP 161, ICMP</td><td>SNMP</td></tr>
 </tbody></table>
 <h3>In Kentik</h3><ul>
 <li>Authorize the branch agent and turn on Connectivity Test only.</li>
@@ -594,7 +601,7 @@ function cloudSiteInfo(c){
   if(role !== 'none') rows.push(['Cloud agent → Kentik', 'TCP 443', 'Everything, outbound only']);
   if(role !== 'none' && capsOf('cl', c).has('synth')) rows.push(['Cloud agent ↔ other agents', 'TCP 8877, UDP 9977', 'Connectivity Test']);
   if(ap) rows.push(['Appliances → ' + (role === 'full' ? 'cloud agent' : 'DC agent, over ' + CL[c].link), 'UDP 9995, 162, 514', 'Flow, traps, syslog'],
-                   [(role === 'full' ? 'Cloud agent' : 'DC agent') + ' → appliances', 'UDP 161, ICMP', 'SNMP/ST']);
+                   [(role === 'full' ? 'Cloud agent' : 'DC agent') + ' → appliances', 'UDP 161, ICMP', 'SNMP']);
   const dd = `<p class="lead">The ports for this cloud, next to the flow log export.</p>
 <table><thead><tr><th style="width:42%">Direction</th><th style="width:28%">Port</th><th>Used by</th></tr></thead><tbody>${rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</tbody></table>
 <h3>In Kentik</h3><ul>${role !== 'none' ? '<li>Install with the Linux or Docker command from Settings › Universal Agents › Deploy Agent, then authorize the agent and assign it to a Site for this cloud.</li>' : ''}${ap ? '<li>Add each appliance as a device with ' + (role === 'full' ? 'the cloud agent' : 'the data center agent') + ' as its collection agent, and set its flow sample rate.</li>' : ''}<li>Flow logs and metadata still come through the cloud export: an agent does not replace them.</li></ul>`;
@@ -680,7 +687,7 @@ function capsCard(kind, i, dd){
 function sizeLine(kind, i){
   if(!capList(kind, i).length) return 'Turn on a capability to size this agent.';
   const z = sizing(kind, i), f = kind === 'dc' ? feeders(i).filter(b => { const q = szOf('br', b); return q.d || q.f; }).length : 0, fc = kind === 'dc' ? cfeeders(i).length : 0;
-  return `Plan <b>${z.rc} vCPU / ${z.rr} GB RAM</b> ` + (z.given ? `for ${[z.d ? fmt(z.d) + ' devices' : '', z.f ? fmt(z.f) + ' flows/s' : ''].filter(Boolean).join(' and ')}${f ? ', branch load included' : ''}${fc ? ', cloud appliances included' : ''}` : 'at the KB baseline (up to 500 devices, 20k+ flows/s)')
+  return `Plan <b>${z.rc} vCPU / ${z.rr} GB RAM</b> ` + (z.given ? `for ${[z.d ? fmt(z.d) + (z.d === 1 ? ' device' : ' devices') : '', z.f ? fmt(z.f) + ' flows/s' : ''].filter(Boolean).join(' and ')}${f ? ', branch load included' : ''}${fc ? ', cloud appliances included' : ''}` : 'at the KB baseline (up to 500 devices, 20k+ flows/s)')
     + ', with 30% headroom.' + (z.est ? ' Above the KB flow figure this is an estimate: confirm with your Infoblox team.' : '');
 }
 /* Devices send to a data center agent: a branch with no agent or a tests-only agent, or cloud appliances with no collecting agent */
