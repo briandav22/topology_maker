@@ -260,6 +260,18 @@ def sources(keys):
     return P("Source: Kentik KB, " + "; ".join(parts), "small")
 
 
+def draw_fit(c, text, x, y, font, size, min_size, width):
+    """Draw one line no wider than width: shrink the font down to min_size, then cut the end with an ellipsis."""
+    while size > min_size and c.stringWidth(text, font, size) > width:
+        size -= 0.5
+    if c.stringWidth(text, font, size) > width:
+        while text and c.stringWidth(text + "…", font, size) > width:
+            text = text[:-1]
+        text = text.rstrip() + "…"
+    c.setFont(font, size)
+    c.drawString(x, y, text)
+
+
 class GuideDoc(BaseDocTemplate):
     def __init__(self, buf, cfg, **kw):
         super().__init__(buf, pagesize=letter, leftMargin=0.75 * inch, rightMargin=0.75 * inch,
@@ -268,7 +280,8 @@ class GuideDoc(BaseDocTemplate):
         self.kb_used = []
         pw, ph = letter
         lw, lh = landscape(letter)
-        cover = Frame(0.9 * inch, 0.9 * inch, pw - 1.8 * inch, ph * 0.42, id="cover")
+        # The cover's text starts below the dark band and its green line (ph * 0.48 - 6), with a gap, so no row hides under them
+        cover = Frame(0.9 * inch, 0.9 * inch, pw - 1.8 * inch, ph * 0.48 - 6 - 0.35 * inch - 0.9 * inch, id="cover")
         body = Frame(self.leftMargin, self.bottomMargin, pw - self.leftMargin - self.rightMargin,
                      ph - self.topMargin - self.bottomMargin, id="body")
         land = Frame(0.5 * inch, 0.6 * inch, lw - 1.0 * inch, lh - 0.6 * inch - 0.85 * inch, id="land")
@@ -305,11 +318,10 @@ class GuideDoc(BaseDocTemplate):
         c.setFillColor(HexColor(B.WHITE))
         c.setFont("Helvetica-Bold", 30)
         c.drawString(0.9 * inch, ph * 0.48 + 2.0 * inch, "Kentik Deployment Guide")
-        c.setFont("Helvetica", 15)
         c.setFillColor(HexColor("#D5E2F2"))
-        c.drawString(0.9 * inch, ph * 0.48 + 1.62 * inch, f"Prepared for {cfg['customer']}")
-        c.setFont("Helvetica", 11)
-        c.drawString(0.9 * inch, ph * 0.48 + 1.32 * inch, cfg["project"])
+        width = pw - 1.8 * inch   # long customer and project names shrink, then shorten, to stay on the page
+        draw_fit(c, f"Prepared for {cfg['customer']}", 0.9 * inch, ph * 0.48 + 1.62 * inch, "Helvetica", 15, 10, width)
+        draw_fit(c, cfg["project"], 0.9 * inch, ph * 0.48 + 1.32 * inch, "Helvetica", 11, 8, width)
         c.restoreState()
         c.saveState()
         c.setFont("Helvetica", 7.5)
