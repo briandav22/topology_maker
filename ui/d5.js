@@ -159,9 +159,8 @@ function agentScene(kind, i){
   const frames = [], nodes = [], edges = [], notes = [];
   frames.push({x:16, y:16, w:L.fw, h:588, label:name + (dc ? ' (on-prem)' : ''),
     labeld:dc ? (S.dcN > 1 ? name + ' (on-prem) · site ' + i + ' of ' + S.dcN : name + ' (on-prem)') : cl ? name + ' · Universal Agent ' + lc(CL[i].on) : name + ' · agent at the branch'});
-  frames.push(dc ? DC_NETGRP : cl ? CL_NETGRP(i) : BR_NETGRP);
   const bm = dc ? bgpMode(i) : '';
-  nodes.push(...(dc ? DC_DEVICES : cl ? (devs ? CL_DEVICES(i) : [CL_NONE(i)]) : BR_DEVICES));
+  nodes.push(dc ? DC_NET(bm !== 'off') : cl ? CL_NET(i) : BR_NET);
 
   /* Left column under the devices: only what the capabilities need */
   const feeds = dc ? feeders(i) : [], cfeeds = dc ? cfeeders(i) : [];
@@ -221,11 +220,10 @@ function agentScene(kind, i){
     if(on('ssh')) edges.push({t:'ssh', a:'c-ssh', b:'netgrp', p:[[cx, cy('ssh')], [298, cy('ssh')], [298, 268], [272, 268]]});
   }
   if(on('dns')){ const d = byId('dnsn'); edges.push({t:'dns', a:'dnsn', b:'c-dns', p:[[272, d.y + 26], [cx, cy('dns')]]}); }
-  const router = dc ? 'edge' : cl ? 'fw' : 'wan';
   const ur = L.ux + L.uw;
-  if(on('bgp') && dc) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [ur + 12, 50], [ur + 12, cy('bgp')], [rx, cy('bgp')]], lab:'BGP: routers peer with the agent', labd:'BGP Proxy, TCP 179 to the agent', lp:[(236 + ur) / 2 + 6, 50]});
-  else if(on('bgp')) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [294, 50], [294, cy('bgp')], [cx, cy('bgp')]], lab:'BGP', labd:'TCP 179', lp:[265, 50]});
-  else if(bm === 'direct') edges.push({t:'bgp', a:'edge', b:'kentik', p:[[236, 90], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179', lp:[566, 50]});
+  if(on('bgp') && dc) edges.push({t:'bgp', a:'netgrp', b:'c-bgp', p:[[236, 58], [236, 50], [ur + 12, 50], [ur + 12, cy('bgp')], [rx, cy('bgp')]], lab:'BGP: routers peer with the agent', labd:'BGP Proxy, TCP 179 to the agent', lp:[(236 + ur) / 2 + 6, 50]});
+  else if(on('bgp')) edges.push({t:'bgp', a:'netgrp', b:'c-bgp', p:[[236, 58], [236, 50], [294, 50], [294, cy('bgp')], [cx, cy('bgp')]], lab:'BGP', labd:'TCP 179', lp:[265, 50]});
+  else if(bm === 'direct') edges.push({t:'bgp', a:'netgrp', b:'kentik', p:[[236, 58], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179', lp:[566, 50]});
 
   /* Sites whose devices send here: branches across the WAN, and cloud appliances across a private link */
   [brin, clin].filter(Boolean).forEach(n => {
@@ -271,7 +269,6 @@ function remoteScene(kind, i){
   const who = cl ? 'appliances' : 'devices', place = cl ? 'inside ' + MOD[i].name : 'the branch';
   const frames = [
     {x:16, y:16, w:280, h:588, label:name, labeld:name + (test ? ' · tests-only agent' : ' · no agent')},
-    Object.assign({}, cl ? CL_NETGRP(i) : BR_NETGRP, {w:248}),
     {id:'wan', x:312, y:58, w:150, h:296, label:cl ? CL[i].link : 'WAN or SD-WAN', cls:'sframe', ghost:true,
      i:cl ? {h:'Appliance telemetry crosses ' + CL[i].linkd + ' to the data center agent. It is small next to the traffic it describes, but the cloud security groups and the data center firewall must allow it.',
              d:['Allow UDP 9995, UDP 162 and UDP or TCP 514 from the appliances to the data center agent.',
@@ -282,7 +279,7 @@ function remoteScene(kind, i){
                 'Allow UDP 161, ICMP and TCP 22 from the data center agent back to the branch devices.',
                 'SD-WAN: make sure these flows are permitted by the overlay policy and any branch firewall.']}}
   ];
-  const nodes = (cl ? (devs ? CL_DEVICES(i) : [CL_NONE(i)]) : BR_DEVICES).map(n => Object.assign({}, n, {w:224}));
+  const nodes = [Object.assign({}, cl ? CL_NET(i) : BR_NET, {w:248})];
   nodes.push(Object.assign({}, cl ? CL_WORK(i) : BR_USERS, {x:32, y:300, w:248, h:52}));
   const edges = [], notes = [];
   if(test){
@@ -323,7 +320,7 @@ function remoteScene(kind, i){
     if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'ua', p:[[R, 200], [U, 200]], lab:'Syslog', labd:'UDP/TCP 514', lp:[387, 200]});
     if(on('ssh') && !cl) edges.push({t:'ssh', a:'ua', b:'netgrp', p:[[U, 224], [R, 224]], lab:'Config sync', labd:'SSH, TCP 22', lp:[387, 224]});
   }
-  if(on('synth') && !test && !cl) edges.push({t:'synth', a:'ua', b:'wan', p:[[U, 250], [R, 250]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 250]});
+  if(on('synth') && !test && !cl) edges.push({t:'synth', a:'ua', b:'netgrp', p:[[U, 250], [R, 250]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 250]});
   if(test){
     nodes.push(Object.assign({}, REMOTE));
     edges.push({t:'synth', a:'ua-t', b:'ua', p:[[280, 392], [470, 392], [470, 300], [494, 300]], bi:true, lab:'Agent-to-agent tests', labd:'TCP 8877 · UDP 9977', lp:[387, 386]},
@@ -342,22 +339,17 @@ function remoteScene(kind, i){
 }
 
 /* ===== The cloud pieces: appliances, workloads and the agent in a cloud network ===== */
-function CL_NETGRP(c){ return {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network appliances in ' + MOD[c].name + (clOf(c).ap ? ' (' + clOf(c).ap + ')' : ''), cls:'sframe',
-  i:{h:'Virtual firewalls, routers and SD-WAN appliances in your ' + CL[c].net + ', for example Palo Alto VM-Series. Flow logs do not see inside them; their own flow export, SNMP, traps and syslog do.',
-     d:['Export NetFlow or IPFIX on UDP 9995, traps on UDP 162 and syslog on UDP or TCP 514 to the agent that collects them.',
-        'Allow UDP 161 and ICMP from that agent for SNMP polling.',
-        'In Kentik, add each appliance as a device with that agent as its collection agent.']}}; }
-function CL_DEVICES(c){ return [
-  {id:'fw', x:44, y:90, w:216, h:52, k:'net', icon:'firewall', t:'Firewall appliances', s:'For example Palo Alto VM-Series',
-   i:{h:'Next-generation firewalls in the cloud see the traffic between subnets, ' + CL[c].net + 's and the Internet, with the applications behind it.',
-      d:['Palo Alto VM-Series exports NetFlow version 9; other vendors use NetFlow or IPFIX.', 'Point the export at the agent that collects this cloud, on UDP 9995.']}},
-  {id:'vr', x:44, y:152, w:216, h:52, k:'net', icon:'router', t:'Virtual routers, SD-WAN', s:'For example Cisco 8000v',
-   i:{h:'Virtual routers and SD-WAN hubs in the cloud add flow and interface health for the paths between the cloud and your sites.', d:[]}},
-  {id:'lb', x:44, y:214, w:216, h:52, k:'net', icon:'network', t:'Load balancers', s:'For example F5 BIG-IP VE',
-   i:{h:'Virtual load balancers mostly add health, syslog and traps.', d:[]}}
-]; }
-function CL_NONE(c){ return {id:'fw', x:44, y:90, w:216, h:64, k:'opt', icon:'firewall', t:'No network appliances', s:'Set the count in the panel', sd:'For example Palo Alto VM-Series',
-  i:{h:'No network appliances in ' + MOD[c].name + ' are in the design yet. Flow logs already cover the ' + CL[c].net + '; add appliances when firewalls or routers there should send their own flow, SNMP and syslog.', d:[]}}; }
+function CL_NET(c){
+  const ap = clOf(c).ap;
+  if(!ap) return Object.assign({}, NET_BOX, {k:'opt', icon:'firewall', t:'No network appliances', s:'Set the count in the panel', s2:'For example Palo Alto VM-Series',
+    i:{h:'No network appliances in ' + MOD[c].name + ' are in the design yet. Flow logs already cover the ' + CL[c].net + '; add appliances when firewalls or routers there should send their own flow, SNMP and syslog.', d:[]}});
+  return Object.assign({}, NET_BOX, {icon:'firewall', t:MOD[c].name + ' network appliances', s:plural(ap, 'appliance'), s2:'For example Palo Alto VM-Series',
+    i:{h:'Virtual firewalls, routers, SD-WAN hubs and load balancers in your ' + CL[c].net + '. Flow logs do not see inside them; their own flow export, SNMP, traps and syslog do.',
+       d:['Export NetFlow or IPFIX on UDP 9995, traps on UDP 162 and syslog on UDP or TCP 514 to the agent that collects them.',
+          'Allow UDP 161 and ICMP from that agent for SNMP polling.',
+          'Palo Alto VM-Series exports NetFlow version 9; other vendors use NetFlow or IPFIX.',
+          'In Kentik, add each appliance as a device with that agent as its collection agent.']}});
+}
 function CL_WORK(c){ return {id:'users', k:'ext', icon:'server', t:'Workloads', s:'Apps in this ' + CL[c].net, sd:'Tests run from here',
   i:{h:'Your applications in ' + MOD[c].name + '. An agent here tests the paths between them, your sites and the SaaS apps they use.', d:[]}}; }
 function UA_CL_I(c){ return {h:'The same Universal Agent as on-prem, on ' + CL[c].vm + '. It needs outbound TCP 443 only, through a NAT gateway or a proxy.',
@@ -419,7 +411,7 @@ function dcsScene(){
     frames.push({id:'site-' + i, x:32, y:r.y, w:520, h:rowH, label:name, cls:'sframe', go:dcId(i),
       i:{h:name + ' has its own Universal Agent. The site’s devices send to that agent, and the agent sends everything to Kentik over outbound HTTPS.',
          d:['Same install command and ports as every other site; the capabilities can differ per agent.', 'Assign the agent to this site’s Site in Kentik so devices and tests group by location.']}});
-    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls',
+    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network equipment', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls',
       i:{h:'The routers, switches and firewalls at ' + name + (f ? ', plus the devices of ' + f + ' branch office' + (f > 1 ? 's' : '') + ' with no agent,' : '') + ' send to the local agent and answer its polls.',
          d:['Devices → agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.', 'Agent → devices: UDP 161 SNMP, ICMP, and TCP 22 for SSH.']}});
     nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:uaFoot('dc', i), sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(i),

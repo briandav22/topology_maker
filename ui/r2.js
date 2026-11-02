@@ -9,6 +9,12 @@ function drawNode(gN, n, dd){
   el('rect', {class:'bg', x:n.x, y:n.y, width:n.w, height:n.h, rx:n.k === 'ua' ? 12 : 9}, g);
   if(!n.t){ icon(g, n.icon, n.x + n.w / 2 - 10, n.y + n.h / 2 - 10, 20); return g; }
   const tx = nodeText(n, dd);
+  if(n.center){   // a large box with nothing inside: icon on top, text centered under it
+    const cx = n.x + n.w / 2, top = n.y + n.h / 2 - (tx.length * 16 + 34) / 2;
+    icon(g, n.icon, cx - 14, top, 28);
+    tx.forEach((s, i) => fit(txt(g, cx, top + 50 + i * 16, s, i ? 't-sub' : 't-label', {'text-anchor':'middle'}), n.w - 28));
+    return g;
+  }
   if(n.k === 'ua' || n.lines){
     if(n.k === 'ua'){
       el('rect', {class:'uahead', x:n.x + 1.2, y:n.y + 1.2, width:n.w - 2.4, height:50, rx:10.8}, g);

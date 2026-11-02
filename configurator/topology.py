@@ -274,7 +274,7 @@ def draw_site(sc, s, x, y, deep, compact, cfg=None):
     dx, dy, dw = x + 14, y + 30, 128
     dh = 22 + 16 * len(dev_rows) + (14 if s.get("bgp") else 0)
     sc.rect(dx, dy, dw, dh, fill=B.PANEL, stroke=None, r=4)
-    sc.text(dx + 8, dy + 14, "Network devices", 8.5, B.NAVY, True)
+    sc.text(dx + 8, dy + 14, "Network equipment", 8.5, B.NAVY, True)
     for i, r in enumerate(dev_rows):
         sc.text(dx + 8, dy + 29 + 16 * i, fit(r, 7.5, dw - 12), 7.5, B.INK)
     if s.get("bgp"):
