@@ -253,8 +253,12 @@ function agentScene(kind, i){
     const warn = inn && !on('flow') ? 'Turn on Flow Proxy to collect the flow sent here.' : '';
     if(dc) notes.push({x:32, y:ny, t:warn || 'Point devices at the agent.', td:warn || 'All agent connections are outbound.'},
                       {x:32, y:ny + 17, t:'It forwards everything to Kentik.', td:'A web proxy works (https_proxy).'});
-    else if(cl) notes.push({x:32, y:ny, t:'Appliance data stays in ' + MOD[i].name + ';', td:'Security group: UDP 9995, 162, 514 in;'},
-                           {x:32, y:ny + 17, t:'only results leave on TCP 443.', td:'TCP 8877 and UDP 9977 with other agents.'});
+    else if(cl){   // with no appliances, say what the agent does instead
+      const say = devs ? ['Appliance data stays in ' + MOD[i].name + ';', 'only results leave on TCP 443.']
+        : on('synth') ? ['Tests start inside ' + MOD[i].name + ';', 'results go to Kentik on TCP 443.'] : ['No appliances send to this agent yet.', ''];
+      notes.push({x:32, y:ny, t:say[0], td:'Security group: UDP 9995, 162, 514 in;'},
+                 {x:32, y:ny + 17, t:say[1], td:'TCP 8877 and UDP 9977 with other agents.'});
+    }
     else notes.push({x:32, y:ny, t:'Local flow, health and tests,', td:'Agent-to-agent tests need TCP 8877'},
                     {x:32, y:ny + 17, t:'without crossing the WAN.', td:'and UDP 9977 open between agents.'});
   }
@@ -341,7 +345,8 @@ function remoteScene(kind, i){
 /* ===== The cloud pieces: appliances, workloads and the agent in a cloud network ===== */
 function CL_NET(c){
   const ap = clOf(c).ap;
-  if(!ap) return Object.assign({}, NET_BOX, {k:'opt', icon:'firewall', t:'No network appliances', s:'Set the count in the panel', s2:'For example Palo Alto VM-Series',
+  if(!ap) return Object.assign({}, NET_BOX, {k:'opt', icon:'firewall', t:'No network appliances',   // exports have no panel to point at
+    s:EXPORTING ? 'Flow logs cover the ' + CL[c].net : 'Set the count in the panel', s2:EXPORTING ? '' : 'For example Palo Alto VM-Series',
     i:{h:'No network appliances in ' + MOD[c].name + ' are in the design yet. Flow logs already cover the ' + CL[c].net + '; add appliances when firewalls or routers there should send their own flow, SNMP and syslog.', d:[]}});
   return Object.assign({}, NET_BOX, {icon:'firewall', t:MOD[c].name + ' network appliances', s:plural(ap, 'appliance'), s2:'For example Palo Alto VM-Series',
     i:{h:'Virtual firewalls, routers, SD-WAN hubs and load balancers in your ' + CL[c].net + '. Flow logs do not see inside them; their own flow export, SNMP, traps and syslog do.',
@@ -651,7 +656,7 @@ function cloudCard(c, dd){
   const o = clOf(c), role = o.ua, ap = o.ap, t = clTarget(c), name = MOD[c].name;
   const what = {none:ap ? 'No agent here. The appliances send across ' + CL[c].link + ' to a data center agent.' : 'Flow logs need no agent. Add one for tests from inside ' + name + ', or to collect from network appliances.',
     test:'An agent ' + lc(CL[c].on) + ' that runs Connectivity Test only.' + (ap ? ' The appliances still send across ' + CL[c].link + ' to a data center agent.' : ''),
-    full:'An agent ' + lc(CL[c].on) + ' that collects the appliances here and tests from inside ' + name + '.'}[role];
+    full:'An agent ' + lc(CL[c].on) + ' that ' + ([ap ? 'collects the appliances here' : '', capsOf('cl', c).has('synth') ? 'tests from inside ' + name : ''].filter(Boolean).join(' and ') || 'has no appliances to collect yet') + '.'}[role];
   const sel = ap && role !== 'full' ? (dcOn()
     ? `<label class="fld"><span>Appliances send to</span><select class="clTo" data-clto="${c}">${dcIds().map((id, k) => `<option value="${k + 1}"${t === k + 1 ? ' selected' : ''}>${esc(dcName(k + 1))} agent</option>`).join('')}</select></label><p class="muted" style="font-size:12px;margin:-2px 0 8px">Across ${esc(CL[c].linkd)}.</p>`
     : '<p class="note">No data center is selected, so nothing collects the appliances. Add a data center, or pick Collects here.</p>') : '';
