@@ -160,7 +160,8 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 .sframe{fill:var(--sub-frame);stroke:var(--frame-stroke);stroke-width:1}
 .node rect.bg{stroke-width:1.2}
 .k-net rect.bg{fill:var(--net-fill);stroke:var(--net)} .k-net .ico{color:var(--net)}
-.k-eq rect.bg{fill:var(--surface);stroke:var(--net);stroke-width:1.6} .k-eq .ico{color:var(--net)}
+.k-eq rect.bg{fill:var(--surface);stroke:var(--net)} .k-eq .ico{color:var(--net)}
+.equnit{fill:var(--net-fill);stroke:var(--net);stroke-width:1.2} .eqport{fill:var(--surface);stroke:var(--net);stroke-width:.9} .eqled{fill:var(--net)}
 .k-srv rect.bg{fill:var(--srv-fill);stroke:var(--srv)} .k-srv .ico{color:var(--srv)}
 .k-ext rect.bg{fill:var(--ext-fill);stroke:var(--ext)} .k-ext .ico{color:var(--ext)}
 .k-ktk rect.bg{fill:var(--ktk-fill);stroke:var(--ktk)} .k-ktk .ico{color:var(--ktk)}
@@ -2552,16 +2553,28 @@ function nodeText(n, dd){
   return [n.t, dd && n.sd !== undefined ? n.sd : n.s, dd && n.sd2 !== undefined ? n.sd2 : n.s2].filter(s => s !== undefined && s !== '');
 }
 
+/* The picture in the network equipment box: three identical units. It names no device type on purpose. */
+function unitStack(g, cx, y){
+  const w = 160, h = 26, x = cx - w / 2;
+  for(let k = 0; k < 3; k++){
+    const uy = y + k * 34;
+    el('rect', {class:'equnit', x, y:uy, width:w, height:h, rx:5}, g);
+    for(let p = 0; p < 8; p++) el('rect', {class:'eqport', x:x + 12 + p * 13, y:uy + 9, width:8, height:8, rx:1.5}, g);
+    el('circle', {class:'eqled', cx:x + w - 25, cy:uy + h / 2, r:3, opacity:.4}, g);
+    el('circle', {class:'eqled', cx:x + w - 14, cy:uy + h / 2, r:3}, g);
+  }
+}
+
 function drawNode(gN, n, dd){
   const g = el('g', {class:'node k-' + n.k, role:'button', tabindex:0, 'data-id':n.id, 'aria-label':(n.t || n.tip || n.id) + (n.i ? '. ' + n.i.h : '')}, gN);
   if(n.tip) el('title', {}, g).textContent = n.tip;
-  el('rect', {class:'bg', x:n.x, y:n.y, width:n.w, height:n.h, rx:n.k === 'ua' ? 12 : 9}, g);
+  el('rect', {class:'bg', x:n.x, y:n.y, width:n.w, height:n.h, rx:n.k === 'ua' || n.k === 'eq' ? 12 : 9}, g);
   if(!n.t){ icon(g, n.icon, n.x + n.w / 2 - 10, n.y + n.h / 2 - 10, 20); return g; }
   const tx = nodeText(n, dd);
-  if(n.center){   // a large box with nothing inside: icon on top, text centered under it
-    const cx = n.x + n.w / 2, top = n.y + n.h / 2 - (tx.length * 16 + 34) / 2;
-    icon(g, n.icon, cx - 14, top, 28);
-    tx.forEach((s, i) => fit(txt(g, cx, top + 50 + i * 16, s, i ? 't-sub' : 't-label', {'text-anchor':'middle'}), n.w - 28));
+  if(n.center){   // a large box with nothing inside: a picture on top (the unit stack, or the icon), text centered under it
+    const art = n.k === 'eq' ? 108 : 34, cx = n.x + n.w / 2, top = n.y + n.h / 2 - (tx.length * 16 + art) / 2;
+    if(n.k === 'eq') unitStack(g, cx, top); else icon(g, n.icon, cx - 14, top, 28);
+    tx.forEach((s, i) => fit(txt(g, cx, top + art + 16 + i * 16, s, i ? 't-sub' : 't-label', {'text-anchor':'middle'}), n.w - 28));
     return g;
   }
   if(n.k === 'ua' || n.lines){
