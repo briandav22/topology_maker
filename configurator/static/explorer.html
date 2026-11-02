@@ -160,6 +160,7 @@ svg text{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 .sframe{fill:var(--sub-frame);stroke:var(--frame-stroke);stroke-width:1}
 .node rect.bg{stroke-width:1.2}
 .k-net rect.bg{fill:var(--net-fill);stroke:var(--net)} .k-net .ico{color:var(--net)}
+.k-eq rect.bg{fill:var(--surface);stroke:var(--net);stroke-width:1.6} .k-eq .ico{color:var(--net)}
 .k-srv rect.bg{fill:var(--srv-fill);stroke:var(--srv)} .k-srv .ico{color:var(--srv)}
 .k-ext rect.bg{fill:var(--ext-fill);stroke:var(--ext)} .k-ext .ico{color:var(--ext)}
 .k-ktk rect.bg{fill:var(--ktk-fill);stroke:var(--ktk)} .k-ktk .ico{color:var(--ktk)}
@@ -444,14 +445,14 @@ const MODS = [
   {id:'dc', side:'left', name:'Data center', icon:'building', tag:'Universal Agent',
    sub:'One agent per site, capabilities on', subd:'In: UDP 9995, 162, 514 · Out: TCP 443',
    flowline:'Devices → Universal Agent → Kentik',
-   pipe:[['router','Routers, switches','and firewalls'],['agent','Universal','Agent'],['egress','Outbound','HTTPS only']],
+   pipe:[['router','Network','equipment'],['agent','Universal','Agent'],['egress','Outbound','HTTPS only']],
    chips:[['flow','Flow'],['snmp','SNMP'],['trap','Traps'],['syslog','Syslog'],['dns','DNS'],['synth','Tests'],['ssh','Config'],['bgp','BGP']],
    one:'A Universal Agent in the data center collects flow, metrics, traps, syslog, DNS, tests and configs.',
    oned:'UA on a Linux host or in Docker. Devices send to UDP 9995/162/514; the agent polls UDP 161 and SSH 22; everything leaves on TCP 443.'},
   {id:'branch', side:'bottom', name:'Branch office', icon:'store', tag:'Agent optional',
    sub:'Sends to a data center agent, or has its own', subd:'Across the WAN: UDP 9995, 162, 514',
    flowline:'Branch devices → data center or branch agent → Kentik',
-   pipe:[['router','Branch router,','switches, Wi-Fi'],['agent','Universal','Agent'],['probe','Tests to apps','and other sites']],
+   pipe:[['router','Network','equipment'],['agent','Universal','Agent'],['probe','Tests to apps','and other sites']],
    chips:[['flow','Flow'],['snmp','SNMP'],['trap','Traps'],['syslog','Syslog'],['synth','Tests']],
    one:'Most branches have no agent: their devices send flow, traps and syslog across the WAN to a data center agent. Add an agent at a branch for local tests and collection.',
    oned:'No agent: allow UDP 9995, 162 and 514 from branch devices to the data center agent, and UDP 161 / TCP 22 back. With an agent: same UA build, toggle what the site needs, open TCP 8877 and UDP 9977 for agent-to-agent tests.'},
@@ -622,28 +623,25 @@ function chips(x, y0, w, list, step){
 }
 
 /* ===== Data center pieces: the scene is built per site from its capabilities (see d5) ===== */
-const DC_NETGRP = {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network devices', cls:'sframe',
-  i:{h:'Routers, switches and firewalls export flow to the agent, send it traps and syslog, and answer its SNMP polls.',
-     d:['Flow: sample ingress on every interface, never ingress and egress on the same interface. The device sample rate must match the rate set for the device in Kentik.',
-        'Recommended standard rates: data center and core 1:400–800 at 1 Gbps up to 1:25k–50k at 1 Tbps; Internet edge 1:3k–7k at 10 Gbps up to 1:11k–15k at 1 Tbps.',
-        'SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.',
-        'Vendor config snippets for flow, SNMP and BGP live in github.com/kentik/config-snippets.']}};
-const DC_DEVICES = [
-  {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge',
-   i:{h:'Edge routers carry Internet and WAN traffic. Besides flow and device telemetry, they peer BGP so every flow gets AS path, community and next-hop context.',
-      d:['With BGP Proxy on, routers peer with the Universal Agent on TCP 179 and the agent relays routes to Kentik over HTTPS.',
-         'BGP peering is optional; many enterprises skip it. Without BGP Proxy, routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
-         'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
-         'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
-         'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.']}},
-  {id:'core', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Core and leaf switches', s:'Data center fabric',
-   i:{h:'Data center switches export sFlow or IPFIX and are polled for interface counters, so Kentik sees east-west traffic and link health together.',
-      d:['sFlow is the only common flow protocol that carries a packet sample. IPFIX and NetFlow v9 add MAC and VLAN through option templates.',
-         'Sanity check: flow volume should land within about 20% of SNMP interface traffic.']}},
-  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls and load balancers', s:'Perimeter, internal, ADCs',
-   i:{h:'Firewalls and load balancers export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
-      d:['Syslog to the agent on UDP or TCP 514; traps to UDP 162.','Trap and syslog ingestion require the device to be licensed for NMS.']}}
-];
+/* One box for all the network equipment at a site. There are no device types to pick:
+   every device is assumed to send what the agent collects. Same place and size as before, so the lines keep their ends. */
+const NET_BOX = {id:'netgrp', x:32, y:58, w:240, h:222, k:'eq', icon:'router', center:true};
+const DC_NET_I = {h:'Your routers, switches, firewalls and load balancers. They export flow to the agent, send it traps and syslog, and answer its SNMP polls.',
+  d:['Flow: sample ingress on every interface, never ingress and egress on the same interface. The device sample rate must match the rate set for the device in Kentik.',
+     'Recommended standard rates: data center and core 1:400–800 at 1 Gbps up to 1:25k–50k at 1 Tbps; Internet edge 1:3k–7k at 10 Gbps up to 1:11k–15k at 1 Tbps.',
+     'SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.',
+     'Trap and syslog ingestion require the device to be licensed for NMS.',
+     'Sanity check: flow volume should land within about 20% of SNMP interface traffic.',
+     'Vendor config snippets for flow, SNMP and BGP live in github.com/kentik/config-snippets.']};
+const DC_BGP_D = ['With BGP Proxy on, edge routers peer with the Universal Agent on TCP 179 and the agent relays routes to Kentik over HTTPS.',
+  'Without BGP Proxy, edge routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
+  'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
+  'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
+  'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.'];
+function DC_NET(bgp){
+  return Object.assign({}, NET_BOX, {t:'Data center network equipment', s:'Routers, switches, firewalls', s2:'and load balancers',
+    i:bgp ? {h:DC_NET_I.h + ' The edge routers also peer BGP, so every flow gets AS path, community and next-hop context.', d:DC_NET_I.d.concat(DC_BGP_D)} : DC_NET_I});
+}
 const DC_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'DNS servers', s:'Infoblox, BIND resolvers', sd:'DNSTAP stream to the agent',
   i:{h:'DNS servers stream queries and answers to the agent, which turns DNS into records Kentik can join with traffic.', d:CAP.dns.d}};
 const UA_DC_I = {h:'The Universal Agent is one software package that runs capabilities. Install it once per site, then toggle capabilities on in Settings › Universal Agents. It updates itself and reports its own health.',
@@ -716,18 +714,11 @@ export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
 src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['UA Deployment','https://kb.kentik.com/docs/ua-deployment'],['UA Portal Management','https://kb.kentik.com/docs/ua-portal-management'],['Device Settings','https://kb.kentik.com/docs/device-settings'],['Router Configuration','https://kb.kentik.com/docs/router-configuration'],['Flow Overview','https://kb.kentik.com/docs/flow-overview'],['NMS Setup','https://kb.kentik.com/docs/nms-setup'],['SNMP Traps & Syslog','https://kb.kentik.com/docs/snmp-traps-syslogs'],['SSH Command Access for Kentik NMS','https://kb.kentik.com/docs/ssh-command-access-for-kentik-nms'],['Migration Scenarios (kproxy to UA)','https://kb.kentik.com/docs/kproxy-migration-scenarios']]};
 
 /* ===== Branch office pieces ===== */
-const BR_NETGRP = {id:'netgrp', x:32, y:58, w:240, h:222, label:'Branch network devices', cls:'sframe',
-  i:{h:'Branch devices send flow, traps and syslog to an agent and answer its SNMP polls. That agent is either at the branch or in a data center.',
+const BR_NET = Object.assign({}, NET_BOX, {t:'Branch network equipment', s:'Routers, switches, firewalls', s2:'and Wi-Fi',
+  i:{h:'Your routers, switches, firewalls and Wi-Fi at the branch. They send flow, traps and syslog to an agent and answer its SNMP polls. That agent is either at the branch or in a data center.',
      d:['Use the same device settings as the data center: SNMP tab “Flow Enrichment via Universal Agent” or “Full Monitoring via Universal Agent”, then pick the collection agent.',
-        'At a small site, flow from the WAN router alone often answers most questions.']}};
-const BR_DEVICES = [
-  {id:'wan', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Branch / SD-WAN router', s:'WAN edge',
-   i:{h:'The WAN or SD-WAN edge sees everything entering and leaving the site, so its flow is the most valuable single source at a branch.', d:['Export flow on UDP 9995 to the agent that collects for this branch, and set the same sample rate in Kentik.']}},
-  {id:'sw', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Access switches', s:'Wired users and devices',
-   i:{h:'Access switches add interface health and, with sFlow, local traffic.', d:[]}},
-  {id:'wifi', x:44, y:214, w:216, h:52, k:'net', icon:'wifi', t:'Wi-Fi controller, APs', s:'Wireless users',
-   i:{h:'Wireless controllers mostly contribute events and health: syslog, traps and SNMP.', d:[]}}
-];
+        'Export flow on UDP 9995 to the agent that collects for this branch, and set the same sample rate in Kentik.',
+        'At a small site, flow from the WAN or SD-WAN router alone often answers most questions.']}});
 const BR_USERS = {id:'users', k:'ext', icon:'users', t:'Users at the site', s:'Experience you test for', sd:'Tests run from here',
   i:{h:'People at the branch. Tests from the branch agent measure the paths and apps they rely on, before anyone opens a ticket.', d:[]}};
 const BR_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'Local DNS resolver', s:'Branch or SD-WAN DNS', sd:'DNSTAP or mirrored DNS',
@@ -1588,9 +1579,8 @@ function agentScene(kind, i){
   const frames = [], nodes = [], edges = [], notes = [];
   frames.push({x:16, y:16, w:L.fw, h:588, label:name + (dc ? ' (on-prem)' : ''),
     labeld:dc ? (S.dcN > 1 ? name + ' (on-prem) · site ' + i + ' of ' + S.dcN : name + ' (on-prem)') : cl ? name + ' · Universal Agent ' + lc(CL[i].on) : name + ' · agent at the branch'});
-  frames.push(dc ? DC_NETGRP : cl ? CL_NETGRP(i) : BR_NETGRP);
   const bm = dc ? bgpMode(i) : '';
-  nodes.push(...(dc ? DC_DEVICES : cl ? (devs ? CL_DEVICES(i) : [CL_NONE(i)]) : BR_DEVICES));
+  nodes.push(dc ? DC_NET(bm !== 'off') : cl ? CL_NET(i) : BR_NET);
 
   /* Left column under the devices: only what the capabilities need */
   const feeds = dc ? feeders(i) : [], cfeeds = dc ? cfeeders(i) : [];
@@ -1650,11 +1640,10 @@ function agentScene(kind, i){
     if(on('ssh')) edges.push({t:'ssh', a:'c-ssh', b:'netgrp', p:[[cx, cy('ssh')], [298, cy('ssh')], [298, 268], [272, 268]]});
   }
   if(on('dns')){ const d = byId('dnsn'); edges.push({t:'dns', a:'dnsn', b:'c-dns', p:[[272, d.y + 26], [cx, cy('dns')]]}); }
-  const router = dc ? 'edge' : cl ? 'fw' : 'wan';
   const ur = L.ux + L.uw;
-  if(on('bgp') && dc) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [ur + 12, 50], [ur + 12, cy('bgp')], [rx, cy('bgp')]], lab:'BGP: routers peer with the agent', labd:'BGP Proxy, TCP 179 to the agent', lp:[(236 + ur) / 2 + 6, 50]});
-  else if(on('bgp')) edges.push({t:'bgp', a:router, b:'c-bgp', p:[[236, 90], [236, 50], [294, 50], [294, cy('bgp')], [cx, cy('bgp')]], lab:'BGP', labd:'TCP 179', lp:[265, 50]});
-  else if(bm === 'direct') edges.push({t:'bgp', a:'edge', b:'kentik', p:[[236, 90], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179', lp:[566, 50]});
+  if(on('bgp') && dc) edges.push({t:'bgp', a:'netgrp', b:'c-bgp', p:[[236, 58], [236, 50], [ur + 12, 50], [ur + 12, cy('bgp')], [rx, cy('bgp')]], lab:'BGP: routers peer with the agent', labd:'BGP Proxy, TCP 179 to the agent', lp:[(236 + ur) / 2 + 6, 50]});
+  else if(on('bgp')) edges.push({t:'bgp', a:'netgrp', b:'c-bgp', p:[[236, 58], [236, 50], [294, 50], [294, cy('bgp')], [cx, cy('bgp')]], lab:'BGP', labd:'TCP 179', lp:[265, 50]});
+  else if(bm === 'direct') edges.push({t:'bgp', a:'netgrp', b:'kentik', p:[[236, 58], [236, 50], [882, 50], [882, 130]], lab:'BGP routes: edge routers peer with Kentik', labd:'Direct iBGP on TCP 179', lp:[566, 50]});
 
   /* Sites whose devices send here: branches across the WAN, and cloud appliances across a private link */
   [brin, clin].filter(Boolean).forEach(n => {
@@ -1700,7 +1689,6 @@ function remoteScene(kind, i){
   const who = cl ? 'appliances' : 'devices', place = cl ? 'inside ' + MOD[i].name : 'the branch';
   const frames = [
     {x:16, y:16, w:280, h:588, label:name, labeld:name + (test ? ' · tests-only agent' : ' · no agent')},
-    Object.assign({}, cl ? CL_NETGRP(i) : BR_NETGRP, {w:248}),
     {id:'wan', x:312, y:58, w:150, h:296, label:cl ? CL[i].link : 'WAN or SD-WAN', cls:'sframe', ghost:true,
      i:cl ? {h:'Appliance telemetry crosses ' + CL[i].linkd + ' to the data center agent. It is small next to the traffic it describes, but the cloud security groups and the data center firewall must allow it.',
              d:['Allow UDP 9995, UDP 162 and UDP or TCP 514 from the appliances to the data center agent.',
@@ -1711,7 +1699,7 @@ function remoteScene(kind, i){
                 'Allow UDP 161, ICMP and TCP 22 from the data center agent back to the branch devices.',
                 'SD-WAN: make sure these flows are permitted by the overlay policy and any branch firewall.']}}
   ];
-  const nodes = (cl ? (devs ? CL_DEVICES(i) : [CL_NONE(i)]) : BR_DEVICES).map(n => Object.assign({}, n, {w:224}));
+  const nodes = [Object.assign({}, cl ? CL_NET(i) : BR_NET, {w:248})];
   nodes.push(Object.assign({}, cl ? CL_WORK(i) : BR_USERS, {x:32, y:300, w:248, h:52}));
   const edges = [], notes = [];
   if(test){
@@ -1752,7 +1740,7 @@ function remoteScene(kind, i){
     if(on('syslog')) edges.push({t:'syslog', a:'netgrp', b:'ua', p:[[R, 200], [U, 200]], lab:'Syslog', labd:'UDP/TCP 514', lp:[387, 200]});
     if(on('ssh') && !cl) edges.push({t:'ssh', a:'ua', b:'netgrp', p:[[U, 224], [R, 224]], lab:'Config sync', labd:'SSH, TCP 22', lp:[387, 224]});
   }
-  if(on('synth') && !test && !cl) edges.push({t:'synth', a:'ua', b:'wan', p:[[U, 250], [R, 250]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 250]});
+  if(on('synth') && !test && !cl) edges.push({t:'synth', a:'ua', b:'netgrp', p:[[U, 250], [R, 250]], lab:'Tests to the branch', labd:'Server IP tests', lp:[387, 250]});
   if(test){
     nodes.push(Object.assign({}, REMOTE));
     edges.push({t:'synth', a:'ua-t', b:'ua', p:[[280, 392], [470, 392], [470, 300], [494, 300]], bi:true, lab:'Agent-to-agent tests', labd:'TCP 8877 · UDP 9977', lp:[387, 386]},
@@ -1771,22 +1759,17 @@ function remoteScene(kind, i){
 }
 
 /* ===== The cloud pieces: appliances, workloads and the agent in a cloud network ===== */
-function CL_NETGRP(c){ return {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network appliances in ' + MOD[c].name + (clOf(c).ap ? ' (' + clOf(c).ap + ')' : ''), cls:'sframe',
-  i:{h:'Virtual firewalls, routers and SD-WAN appliances in your ' + CL[c].net + ', for example Palo Alto VM-Series. Flow logs do not see inside them; their own flow export, SNMP, traps and syslog do.',
-     d:['Export NetFlow or IPFIX on UDP 9995, traps on UDP 162 and syslog on UDP or TCP 514 to the agent that collects them.',
-        'Allow UDP 161 and ICMP from that agent for SNMP polling.',
-        'In Kentik, add each appliance as a device with that agent as its collection agent.']}}; }
-function CL_DEVICES(c){ return [
-  {id:'fw', x:44, y:90, w:216, h:52, k:'net', icon:'firewall', t:'Firewall appliances', s:'For example Palo Alto VM-Series',
-   i:{h:'Next-generation firewalls in the cloud see the traffic between subnets, ' + CL[c].net + 's and the Internet, with the applications behind it.',
-      d:['Palo Alto VM-Series exports NetFlow version 9; other vendors use NetFlow or IPFIX.', 'Point the export at the agent that collects this cloud, on UDP 9995.']}},
-  {id:'vr', x:44, y:152, w:216, h:52, k:'net', icon:'router', t:'Virtual routers, SD-WAN', s:'For example Cisco 8000v',
-   i:{h:'Virtual routers and SD-WAN hubs in the cloud add flow and interface health for the paths between the cloud and your sites.', d:[]}},
-  {id:'lb', x:44, y:214, w:216, h:52, k:'net', icon:'network', t:'Load balancers', s:'For example F5 BIG-IP VE',
-   i:{h:'Virtual load balancers mostly add health, syslog and traps.', d:[]}}
-]; }
-function CL_NONE(c){ return {id:'fw', x:44, y:90, w:216, h:64, k:'opt', icon:'firewall', t:'No network appliances', s:'Set the count in the panel', sd:'For example Palo Alto VM-Series',
-  i:{h:'No network appliances in ' + MOD[c].name + ' are in the design yet. Flow logs already cover the ' + CL[c].net + '; add appliances when firewalls or routers there should send their own flow, SNMP and syslog.', d:[]}}; }
+function CL_NET(c){
+  const ap = clOf(c).ap;
+  if(!ap) return Object.assign({}, NET_BOX, {k:'opt', icon:'firewall', t:'No network appliances', s:'Set the count in the panel', s2:'For example Palo Alto VM-Series',
+    i:{h:'No network appliances in ' + MOD[c].name + ' are in the design yet. Flow logs already cover the ' + CL[c].net + '; add appliances when firewalls or routers there should send their own flow, SNMP and syslog.', d:[]}});
+  return Object.assign({}, NET_BOX, {icon:'firewall', t:MOD[c].name + ' network appliances', s:plural(ap, 'appliance'), s2:'For example Palo Alto VM-Series',
+    i:{h:'Virtual firewalls, routers, SD-WAN hubs and load balancers in your ' + CL[c].net + '. Flow logs do not see inside them; their own flow export, SNMP, traps and syslog do.',
+       d:['Export NetFlow or IPFIX on UDP 9995, traps on UDP 162 and syslog on UDP or TCP 514 to the agent that collects them.',
+          'Allow UDP 161 and ICMP from that agent for SNMP polling.',
+          'Palo Alto VM-Series exports NetFlow version 9; other vendors use NetFlow or IPFIX.',
+          'In Kentik, add each appliance as a device with that agent as its collection agent.']}});
+}
 function CL_WORK(c){ return {id:'users', k:'ext', icon:'server', t:'Workloads', s:'Apps in this ' + CL[c].net, sd:'Tests run from here',
   i:{h:'Your applications in ' + MOD[c].name + '. An agent here tests the paths between them, your sites and the SaaS apps they use.', d:[]}}; }
 function UA_CL_I(c){ return {h:'The same Universal Agent as on-prem, on ' + CL[c].vm + '. It needs outbound TCP 443 only, through a NAT gateway or a proxy.',
@@ -1848,7 +1831,7 @@ function dcsScene(){
     frames.push({id:'site-' + i, x:32, y:r.y, w:520, h:rowH, label:name, cls:'sframe', go:dcId(i),
       i:{h:name + ' has its own Universal Agent. The site’s devices send to that agent, and the agent sends everything to Kentik over outbound HTTPS.',
          d:['Same install command and ports as every other site; the capabilities can differ per agent.', 'Assign the agent to this site’s Site in Kentik so devices and tests group by location.']}});
-    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network devices', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls',
+    nodes.push({id:'dev-' + i, x:44, y:r.ny, w:226, h:nodeH, k:'net', icon:'router', t:'Network equipment', s:f ? 'Plus ' + f + (f > 1 ? ' branches' : ' branch') + ' over the WAN' : 'Routers, switches, firewalls',
       i:{h:'The routers, switches and firewalls at ' + name + (f ? ', plus the devices of ' + f + ' branch office' + (f > 1 ? 's' : '') + ' with no agent,' : '') + ' send to the local agent and answer its polls.',
          d:['Devices → agent: UDP 9995 flow, UDP 162 traps, UDP or TCP 514 syslog.', 'Agent → devices: UDP 161 SNMP, ICMP, and TCP 22 for SSH.']}});
     nodes.push({id:'ua-' + i, x:320, y:r.ny, w:216, h:nodeH, k:'uas', icon:'agent', t:'Universal Agent', s:uaFoot('dc', i), sd:caps.length ? caps.map(c => UAC[c].chip).join(', ') : 'No capabilities on', go:dcId(i),
@@ -2570,6 +2553,12 @@ function drawNode(gN, n, dd){
   el('rect', {class:'bg', x:n.x, y:n.y, width:n.w, height:n.h, rx:n.k === 'ua' ? 12 : 9}, g);
   if(!n.t){ icon(g, n.icon, n.x + n.w / 2 - 10, n.y + n.h / 2 - 10, 20); return g; }
   const tx = nodeText(n, dd);
+  if(n.center){   // a large box with nothing inside: icon on top, text centered under it
+    const cx = n.x + n.w / 2, top = n.y + n.h / 2 - (tx.length * 16 + 34) / 2;
+    icon(g, n.icon, cx - 14, top, 28);
+    tx.forEach((s, i) => fit(txt(g, cx, top + 50 + i * 16, s, i ? 't-sub' : 't-label', {'text-anchor':'middle'}), n.w - 28));
+    return g;
+  }
   if(n.k === 'ua' || n.lines){
     if(n.k === 'ua'){
       el('rect', {class:'uahead', x:n.x + 1.2, y:n.y + 1.2, width:n.w - 2.4, height:50, rx:10.8}, g);

@@ -67,28 +67,25 @@ function chips(x, y0, w, list, step){
 }
 
 /* ===== Data center pieces: the scene is built per site from its capabilities (see d5) ===== */
-const DC_NETGRP = {id:'netgrp', x:32, y:58, w:240, h:222, label:'Network devices', cls:'sframe',
-  i:{h:'Routers, switches and firewalls export flow to the agent, send it traps and syslog, and answer its SNMP polls.',
-     d:['Flow: sample ingress on every interface, never ingress and egress on the same interface. The device sample rate must match the rate set for the device in Kentik.',
-        'Recommended standard rates: data center and core 1:400–800 at 1 Gbps up to 1:25k–50k at 1 Tbps; Internet edge 1:3k–7k at 10 Gbps up to 1:11k–15k at 1 Tbps.',
-        'SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.',
-        'Vendor config snippets for flow, SNMP and BGP live in github.com/kentik/config-snippets.']}};
-const DC_DEVICES = [
-  {id:'edge', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Edge routers', s:'WAN and Internet edge',
-   i:{h:'Edge routers carry Internet and WAN traffic. Besides flow and device telemetry, they peer BGP so every flow gets AS path, community and next-hop context.',
-      d:['With BGP Proxy on, routers peer with the Universal Agent on TCP 179 and the agent relays routes to Kentik over HTTPS.',
-         'BGP peering is optional; many enterprises skip it. Without BGP Proxy, routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
-         'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
-         'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
-         'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.']}},
-  {id:'core', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Core and leaf switches', s:'Data center fabric',
-   i:{h:'Data center switches export sFlow or IPFIX and are polled for interface counters, so Kentik sees east-west traffic and link health together.',
-      d:['sFlow is the only common flow protocol that carries a packet sample. IPFIX and NetFlow v9 add MAC and VLAN through option templates.',
-         'Sanity check: flow volume should land within about 20% of SNMP interface traffic.']}},
-  {id:'fw', x:44, y:214, w:216, h:52, k:'net', icon:'firewall', t:'Firewalls and load balancers', s:'Perimeter, internal, ADCs',
-   i:{h:'Firewalls and load balancers export flow and send syslog and traps, so allowed and denied traffic sits next to device health and events.',
-      d:['Syslog to the agent on UDP or TCP 514; traps to UDP 162.','Trap and syslog ingestion require the device to be licensed for NMS.']}}
-];
+/* One box for all the network equipment at a site. There are no device types to pick:
+   every device is assumed to send what the agent collects. Same place and size as before, so the lines keep their ends. */
+const NET_BOX = {id:'netgrp', x:32, y:58, w:240, h:222, k:'eq', icon:'router', center:true};
+const DC_NET_I = {h:'Your routers, switches, firewalls and load balancers. They export flow to the agent, send it traps and syslog, and answer its SNMP polls.',
+  d:['Flow: sample ingress on every interface, never ingress and egress on the same interface. The device sample rate must match the rate set for the device in Kentik.',
+     'Recommended standard rates: data center and core 1:400–800 at 1 Gbps up to 1:25k–50k at 1 Tbps; Internet edge 1:3k–7k at 10 Gbps up to 1:11k–15k at 1 Tbps.',
+     'SNMP v3 options: auth None, MD5 or SHA; privacy None, DES or AES.',
+     'Trap and syslog ingestion require the device to be licensed for NMS.',
+     'Sanity check: flow volume should land within about 20% of SNMP interface traffic.',
+     'Vendor config snippets for flow, SNMP and BGP live in github.com/kentik/config-snippets.']};
+const DC_BGP_D = ['With BGP Proxy on, edge routers peer with the Universal Agent on TCP 179 and the agent relays routes to Kentik over HTTPS.',
+  'Without BGP Proxy, edge routers peer with Kentik directly: Device settings › BGP › “Peer with device”, using the ingest peering IPs shown next to the fields.',
+  'Kentik peers as an iBGP route-reflector client using your ASN. 4-byte ASN support is required; an MD5 password is optional.',
+  'Filter the default route toward Kentik so it does not override the destination AS for unmatched flows.',
+  'BGP here is telemetry only; your routing is unaffected. Peering is also what enables RTBH and Flowspec mitigation.'];
+function DC_NET(bgp){
+  return Object.assign({}, NET_BOX, {t:'Data center network equipment', s:'Routers, switches, firewalls', s2:'and load balancers',
+    i:bgp ? {h:DC_NET_I.h + ' The edge routers also peer BGP, so every flow gets AS path, community and next-hop context.', d:DC_NET_I.d.concat(DC_BGP_D)} : DC_NET_I});
+}
 const DC_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'DNS servers', s:'Infoblox, BIND resolvers', sd:'DNSTAP stream to the agent',
   i:{h:'DNS servers stream queries and answers to the agent, which turns DNS into records Kentik can join with traffic.', d:CAP.dns.d}};
 const UA_DC_I = {h:'The Universal Agent is one software package that runs capabilities. Install it once per site, then toggle capabilities on in Settings › Universal Agents. It updates itself and reports its own health.',
@@ -161,18 +158,11 @@ export K_REGISTER_PROVISIONING_TOKEN=&lt;token&gt;
 src:[['Universal Agents','https://kb.kentik.com/docs/universal-agents'],['UA Deployment','https://kb.kentik.com/docs/ua-deployment'],['UA Portal Management','https://kb.kentik.com/docs/ua-portal-management'],['Device Settings','https://kb.kentik.com/docs/device-settings'],['Router Configuration','https://kb.kentik.com/docs/router-configuration'],['Flow Overview','https://kb.kentik.com/docs/flow-overview'],['NMS Setup','https://kb.kentik.com/docs/nms-setup'],['SNMP Traps & Syslog','https://kb.kentik.com/docs/snmp-traps-syslogs'],['SSH Command Access for Kentik NMS','https://kb.kentik.com/docs/ssh-command-access-for-kentik-nms'],['Migration Scenarios (kproxy to UA)','https://kb.kentik.com/docs/kproxy-migration-scenarios']]};
 
 /* ===== Branch office pieces ===== */
-const BR_NETGRP = {id:'netgrp', x:32, y:58, w:240, h:222, label:'Branch network devices', cls:'sframe',
-  i:{h:'Branch devices send flow, traps and syslog to an agent and answer its SNMP polls. That agent is either at the branch or in a data center.',
+const BR_NET = Object.assign({}, NET_BOX, {t:'Branch network equipment', s:'Routers, switches, firewalls', s2:'and Wi-Fi',
+  i:{h:'Your routers, switches, firewalls and Wi-Fi at the branch. They send flow, traps and syslog to an agent and answer its SNMP polls. That agent is either at the branch or in a data center.',
      d:['Use the same device settings as the data center: SNMP tab “Flow Enrichment via Universal Agent” or “Full Monitoring via Universal Agent”, then pick the collection agent.',
-        'At a small site, flow from the WAN router alone often answers most questions.']}};
-const BR_DEVICES = [
-  {id:'wan', x:44, y:90, w:216, h:52, k:'net', icon:'router', t:'Branch / SD-WAN router', s:'WAN edge',
-   i:{h:'The WAN or SD-WAN edge sees everything entering and leaving the site, so its flow is the most valuable single source at a branch.', d:['Export flow on UDP 9995 to the agent that collects for this branch, and set the same sample rate in Kentik.']}},
-  {id:'sw', x:44, y:152, w:216, h:52, k:'net', icon:'switch', t:'Access switches', s:'Wired users and devices',
-   i:{h:'Access switches add interface health and, with sFlow, local traffic.', d:[]}},
-  {id:'wifi', x:44, y:214, w:216, h:52, k:'net', icon:'wifi', t:'Wi-Fi controller, APs', s:'Wireless users',
-   i:{h:'Wireless controllers mostly contribute events and health: syslog, traps and SNMP.', d:[]}}
-];
+        'Export flow on UDP 9995 to the agent that collects for this branch, and set the same sample rate in Kentik.',
+        'At a small site, flow from the WAN or SD-WAN router alone often answers most questions.']}});
 const BR_USERS = {id:'users', k:'ext', icon:'users', t:'Users at the site', s:'Experience you test for', sd:'Tests run from here',
   i:{h:'People at the branch. Tests from the branch agent measure the paths and apps they rely on, before anyone opens a ticket.', d:[]}};
 const BR_DNS = {id:'dnsn', k:'srv', icon:'dns', t:'Local DNS resolver', s:'Branch or SD-WAN DNS', sd:'DNSTAP or mirrored DNS',
