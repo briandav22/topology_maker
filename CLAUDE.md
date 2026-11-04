@@ -10,7 +10,7 @@ Infoblox Kentik Deployment Configurator: a small local web app for designing how
 
 ## Stack
 
-- Python 3.9+ with the standard library HTTP server. reportlab is the only dependency (PDFs).
+- Python 3.9+ with the standard library HTTP server. reportlab is the only dependency (PDFs). reportlab 5 needs Python 3.10, although its package data says 3.9, so `requirements.txt` gives Python 3.9 a reportlab below 5.
 - The page is one self-contained HTML file: inline SVG and plain JavaScript, no framework, no npm, no bundler. `ui/build.sh` concatenates the parts.
 - No database. The design lives in the page's URL hash. localStorage keeps only the theme.
 
