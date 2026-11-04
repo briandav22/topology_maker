@@ -22,16 +22,30 @@ Design rules built in: on-prem sites always use the **Universal Agent** with cap
 
 ## Run it
 
-Needs Python 3.9 or newer and one package, reportlab.
+Needs Python 3.9 or newer and one package, reportlab. Install reportlab in a Python virtual environment, as shown below.
+
+**Why a virtual environment?** A virtual environment (venv) is a folder in the project, here `.venv`, with its own Python and its own packages:
+
+- reportlab goes into that folder only. It does not change the Python of your system or the packages of your other projects.
+- Recent Python installs (Homebrew on macOS, many Linux distributions) refuse `pip install` outside a virtual environment, with the error `externally-managed-environment`. In a venv, the install works and needs no `sudo`.
+- To remove everything, delete the `.venv` folder. Git ignores it.
+
+On macOS or Linux:
 
 ```bash
 git clone https://github.com/briandav22/topology_maker.git
 cd topology_maker
-python3 -m pip install -r requirements.txt
-python3 run.py
+python3 -m venv .venv                       # make the environment (one time)
+source .venv/bin/activate                   # turn it on (in each new terminal)
+python -m pip install -r requirements.txt   # install reportlab into .venv (one time)
+python run.py
 ```
 
+On Windows, make the environment with `py -m venv .venv` and turn it on with `.venv\Scripts\activate`. The other commands are the same.
+
 Your browser opens at http://127.0.0.1:8765. Use `--port 9000` to change the port or `--no-browser` to skip opening it.
+
+While the environment is on, your prompt starts with `(.venv)`. In a new terminal, go to the `topology_maker` folder and turn the environment on again before you run `python run.py` or an export. To turn it off, run `deactivate`.
 
 In the app:
 
