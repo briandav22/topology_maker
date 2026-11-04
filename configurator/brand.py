@@ -2,7 +2,7 @@
 
 Edit this one file to match the official brand kit. If you have the official
 logo, save it as assets/infoblox-logo.png (a wide, transparent PNG works best)
-and it replaces the drawn wordmark in every PDF and in the web app.
+and it replaces the drawn wordmark in every PDF (the web page keeps its own mark).
 """
 import os
 
