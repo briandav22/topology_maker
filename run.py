@@ -28,8 +28,10 @@ def main():
 
     try:
         import reportlab  # noqa: F401
-    except ImportError:
-        sys.exit("reportlab is missing. Install it with:  python3 -m pip install -r requirements.txt")
+    except ImportError as e:   # also a reportlab too new for this Python: reportlab 5 refuses Python 3.9
+        why = str(e).split("\n")[0]
+        sys.exit(f"reportlab does not load on Python {sys.version.split()[0]}: {why}\n"
+                 "To fix this, run:  python3 -m pip install -r requirements.txt")
 
     if args.cmd == "export":
         from configurator import model, pdf
