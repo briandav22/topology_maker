@@ -16,7 +16,7 @@ A small Python app for designing a Kentik deployment and exporting it for a cust
   - **Deployment guide PDF**: the diagrams (each branch, but not the All branch offices view; cloud views show only the agents and the account setup you chose), then roles and permissions, firewall rules per site, Universal Agent sizing and install steps, capability configuration, branches without an agent, cloud setup with IAM policies, a synthetic test plan with credit estimates, and the Kentik KB sources.
   - **Setup JSON**: the design in the format the command line export reads.
 
-Everything carries Infoblox branding.
+Everything carries Infoblox branding. The AWS, Azure, Google Cloud and Oracle Cloud views and cards use each provider's official architecture icons, and the AWS card shows the AWS logo (see [Cloud provider icons](#cloud-provider-icons)).
 
 Design rules built in: on-prem sites always use the **Universal Agent** with capabilities (never the standalone kproxy or ksynth agents), the agent installs on a **Linux host or in Docker** only (no Kubernetes or Helm), and Kentik Kube is not part of the offer.
 
@@ -83,6 +83,28 @@ The command line guide draws its own simpler diagram; the guide exported from th
 
 Colors, the product line and the footer text live in `configurator/brand.py`. The colors are a close approximation; swap in the official hex values from the Infoblox brand kit there. To use the official logo, save it as `assets/infoblox-logo.png` (wide, transparent PNG) and it replaces the drawn wordmark in every PDF.
 
+## Cloud provider icons
+
+The cloud views, the flow pictures on the cloud cards, the guide PDF and the AWS card use the official icons of each cloud provider, unchanged: no crop, new color or new shape. The boxes that show Kentik, the Universal Agent and the provider APIs keep the app's own icons.
+
+| Provider | Package | Where to get it | Terms |
+|---|---|---|---|
+| AWS | Architecture Icons, release 07312026 | https://aws.amazon.com/architecture/icons/ | Customers and partners may use them to make architecture diagrams. |
+| Microsoft Azure | Azure_Public_Service_Icons_V24 | https://learn.microsoft.com/en-us/azure/architecture/icons/ | Allowed in architecture diagrams, training materials and documentation. Do not crop, flip, rotate or change an icon. Show the service name near each icon. |
+| Google Cloud | Core product icons and product category icons (2025 update) | https://cloud.google.com/icons | Published for diagrams and technical documentation. A product without its own icon uses the icon of its category, for example Networking for VPC. |
+| Oracle Cloud | OCI Architecture Diagram Toolkit v24.2 for draw.io | https://docs.oracle.com/en-us/iaas/Content/General/Reference/graphicsfordiagrams.htm | Published for architecture diagrams of OCI. |
+
+Only the AWS package has a logo (the AWS Cloud group icon). The Azure, Google Cloud and Oracle Cloud cards keep a plain cloud icon. Those logos are trademarks with stricter rules: add them only from a source that the Infoblox brand or alliances team approves.
+
+The icons are in `ui/csp-icons.svg`, which `tools/csp_icons.py` makes from the packages. To update them, unzip the new packages and run:
+
+```bash
+python3 -I tools/csp_icons.py --aws DIR --azure DIR --gcp-core DIR --gcp-cat DIR --oci "DIR/OCI Library.xml"
+sh ui/build.sh
+```
+
+The script lists the file that each icon comes from. It stops if a file is missing or has a format that it does not handle.
+
 ## Where the facts come from
 
 All Kentik facts (ports, sizing, permissions, cloud steps, credit rules) are in `configurator/catalog.py`, each tied to its Kentik KB page, checked against kb.kentik.com in October 2026. Update that one file when Kentik changes something. Sizing math and firewall rules are derived in `configurator/model.py`.
@@ -102,6 +124,8 @@ configurator/pdf.py        topology PDF and deployment guide PDF
 configurator/web.py        local web server: serves the explorer, builds PDFs
 configurator/static/       explorer.html, the app page (built from ui/)
 ui/                        the page's parts (p1/p2 HTML, d1-d5 data, r1-r3 rendering) and build.sh
+ui/csp-icons.svg           the cloud provider icons (made by tools/csp_icons.py)
+tools/csp_icons.py         makes ui/csp-icons.svg from the providers' icon packages
 configurator/brand.py      Infoblox branding
 examples/                  sample setups
 samples/                   sample exports

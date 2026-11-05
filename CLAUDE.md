@@ -29,6 +29,7 @@ configurator/
 ui/                        page source, joined in this order by build.sh
   p1.html                  CSS, light and dark themes
   p2.html                  body markup and icons
+  csp-icons.svg            BUILT by tools/csp_icons.py: the cloud provider icons (i-aws-*, i-az-*, i-gcp-*, i-oci-*). Never edit by hand
   d1.js                    line types, deployments, presets, limits; PRISTINE copy used by Save as HTML
   d2.js d3.js d4.js        scene data: on-prem and SaaS; AWS and Azure; GCP, OCI and the Kentik platform
   d5.js                    sites: UA capabilities (UACAPS), Flow Proxy modes and sizing, agent scenes (dc, branch, cloud),
@@ -36,6 +37,7 @@ ui/                        page source, joined in this order by build.sh
   r1.js                    helpers, state object S, overview layout (ovLayout, ovSize)
   r2.js                    drill-ins, side panel, zoom and glide, URL hash state, keyboard, startup
   r3.js                    exports: Save as HTML, guide PDF, setup JSON
+tools/csp_icons.py         makes ui/csp-icons.svg from the providers' icon packages (the packages are not in the repo)
 examples/                  three setup JSONs for the CLI
 samples/                   PDFs built from examples/, plus one exported from the app
 assets/                    put the official logo here as infoblox-logo.png
@@ -66,6 +68,13 @@ python3 run.py export setup.json --out out --only guide            # or topology
 - **Universal Agent only on-prem.** Never draw the standalone kproxy or ksynth agents: the UA with capabilities is how Kentik is deployed now, and kproxy reaches end of life on May 1, 2027.
 - **The UA installs on a Linux host or in Docker only.** No Kubernetes or Helm, and no Kentik Kube, which Kentik no longer offers.
 - **Infoblox branding throughout.** Kentik is part of Infoblox. Say "Infoblox + Kentik" and "your Infoblox account team".
+- **Official cloud provider icons.** The cloud views and the flow pictures on the cloud cards (`pipe` in d1.js) show each provider's own icon for its services (VPC, S3, IAM, VNet, Pub/Sub, VCN and so on), and the AWS card shows the AWS logo.
+  - The icons are symbols in `ui/csp-icons.svg`. `tools/csp_icons.py` makes them from the providers' packages; README "Cloud provider icons" lists the packages and their terms.
+  - Keep each icon unchanged: no crop, new color or new shape. Use an icon only for the product it was made for. Keep the service name near each Azure icon (Microsoft asks for it).
+  - Google gives unique icons to its main products only. Other products use their category icon: Networking for VPC, Operations for Cloud Logging, Data Analytics for Pub/Sub, Security Identity for IAM.
+  - Kentik, Infoblox, the Universal Agent and the provider API boxes keep the app's own icons.
+  - Only the AWS package has a logo. The Azure, Google Cloud and Oracle Cloud cards keep the plain cloud icon.
+  - The guide PDF export copies the provider symbols that each view uses (`svgPNG()` in r3.js).
 - **One page for everything.** The app serves the same page that Save as HTML writes, so the customer sees exactly what was designed, and the guide PDF uses pictures of the same views.
 - **The design lives in the URL hash.** Bookmarks, reloads and shared links reopen it, with no server state.
 - **Branches have no agent by default.** Many customers don't put a UA at every site. A branch's devices send flow, SNMP, traps and syslog across the WAN to a chosen data center agent, and that load counts toward the agent's sizing. A branch agent has three choices: No agent, Tests only (Connectivity Test only; the devices still send to the data center) or Collects here.
@@ -126,6 +135,7 @@ python3 run.py export setup.json --out out --only guide            # or topology
 - **Branding is approximate.**
   - The PDF palette in brand.py (green #2DB24A, navy) differs from the page's Infoblox green #00BD4D.
   - The official logo file, once added, is used in PDFs only.
+  - Only the AWS card has a provider logo. The official Azure, Google Cloud and Oracle icon packages have no logo, and those logos have stricter trademark rules.
 - **Sizing gaps.** The KB publishes no disk sizing, and no CPU or RAM for SNMP Trap Receiver or Device Configuration Sync. The KB marks Flow Proxy Forwarding as beta.
 - **samples/ is stale.** It was last regenerated in PR #5 (the from-app guide in PR #1), so it lags later PDF changes. Regenerate the CLI samples with `python3 run.py export examples/<file>.json --out samples`; the from-app guide comes from the app's Export menu.
 - **Fonts.** The Inter font loads from Google Fonts; offline, the page falls back to system fonts.
@@ -140,5 +150,6 @@ python3 run.py export setup.json --out out --only guide            # or topology
 - Two alternative takes are parked on the branch `explore/two-takes` (tag `takes-v1`): Take A, Network Canvas (the SE draws the customer's network and the Kentik plan follows from it), and Take B, Rollout Map (the deployment as waves of tasks for each customer team, with a customer workbook). They were merged in PR #13 and then reverted, because the owner chose to keep iterating on this app. A plain merge of that branch now does nothing; to bring the takes back to main, revert the revert commit. To look at them: `git switch explore/two-takes`, then `python3 takes/serve.py` (port 8770).
 - A topology-only PDF in the app's Export menu. It was part of the original ask, and the endpoint already exists.
 - The official Infoblox brand kit: real hex values in brand.py, plus the logo file, also used in the page.
+- Logos on the Azure, Google Cloud and Oracle Cloud cards. They need a source that the Infoblox brand or alliances team approves.
 - Drill-in views that grow into the space freed by hiding details. This was looked at in PR #10; they stayed fixed-size scenes.
 - A systemd service (or similar) to keep the app running on a server. It was offered for a DigitalOcean droplet but not written.
