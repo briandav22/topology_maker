@@ -1,5 +1,6 @@
 #!/bin/sh
-# Builds the app page (configurator/static/explorer.html) from the parts. p1 = head (title, styles), p2 = body markup and icons, the rest = scripts.
+# Builds the app page (configurator/static/explorer.html) from the parts. p1 = head (title, styles), p2 = body markup and icons,
+# csp-icons.svg = the cloud provider icons (made by tools/csp_icons.py), the rest = scripts.
 set -e
 cd "$(dirname "$0")"
 OUT=${1:-../configurator/static/explorer.html}
@@ -11,7 +12,7 @@ ICON='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%
   printf '<link rel="icon" href="%s">\n' "$ICON"
   cat p1.html
   printf '</head>\n<body>\n'
-  cat p2.html
+  cat p2.html csp-icons.svg
   printf '<script>\n'; cat d1.js d2.js d3.js d4.js d5.js r1.js r2.js r3.js; printf '</script>\n'
   printf '</body>\n</html>\n'
 } > "$OUT"

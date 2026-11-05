@@ -76,6 +76,8 @@ function svgPNG(svg, scale){
   const liveDefs = document.querySelector('#sprite defs'), defs = liveDefs.cloneNode(true);
   inlineStyles(liveDefs, defs);
   defs.removeAttribute('style');
+  const used = new Set([...c.querySelectorAll('use')].map(u => u.getAttribute('href')));   // the cloud provider icons this view shows
+  document.querySelectorAll('#csp symbol').forEach(s => { if(used.has('#' + s.id)) defs.appendChild(s.cloneNode(true)); });
   const bg = document.createElementNS(NS, 'rect');
   ['x', 'y'].forEach(k => bg.setAttribute(k, 0));
   bg.setAttribute('width', VB[2]); bg.setAttribute('height', VB[3]); bg.setAttribute('fill', '#fbfbfb');
